@@ -1,0 +1,40 @@
+{
+  "monsters": [
+    {
+      "id": "slime",
+      "name": "Slime",
+      "hp": 20,
+      "atk": 5,
+      "def": 2,
+      "speed": 80,
+      "detectionRange": 3,
+      "expReward": 10,
+      "goldReward": 5,
+      "spritePrefix": "slime"
+    },
+    {
+      "id": "skeleton",
+      "name": "Skeleton",
+      "hp": 40,
+      "atk": 10,
+      "def": 5,
+      "speed": 120,
+      "detectionRange": 5,
+      "expReward": 25,
+      "goldReward": 15,
+      "spritePrefix": "skeleton"
+    },
+    {
+      "id": "goblin",
+      "name": "Goblin",
+      "hp": 30,
+      "atk": 8,
+      "def": 3,
+      "speed": 100,
+      "detectionRange": 4,
+      "expReward": 15,
+      "goldReward": 10,
+      "spritePrefix": "goblin"
+    }
+  ]
+}

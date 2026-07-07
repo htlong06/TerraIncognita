@@ -1,0 +1,27 @@
+# Compiled class files
+out/
+*.class
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Save files (generated at runtime)
+resources/saves/*.json
+!resources/saves/.gitkeep
+
+# Build artifacts
+*.jar
+*.war
