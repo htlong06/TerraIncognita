@@ -157,23 +157,30 @@ public class Player extends Entity {
 
     /**
      * Trang bị item.
+     * @return true nếu trang bị thành công
      */
-    public void equip(Equipment equipment) {
+    public boolean equip(Equipment equipment) {
         EquipmentSlot slot = equipment.getSlot();
-
-        // Tháo trang bị cũ nếu có
+        // Must remove from inventory first
+        if (!inventory.removeItem(equipment)) {
+            return false;
+        }
+        // Try to return old equipment
         Equipment old = equippedItems.get(slot);
         if (old != null) {
+            if (inventory.isFull()) {
+                // Cannot return old — rollback: put equipment back in inventory
+                inventory.addItem(equipment);
+                return false;
+            }
             atk -= old.getAtkBonus();
             def -= old.getDefBonus();
             inventory.addItem(old);
         }
-
-        // Đặt trang bị mới
         equippedItems.put(slot, equipment);
         atk += equipment.getAtkBonus();
         def += equipment.getDefBonus();
-        inventory.removeItem(equipment);
+        return true;
     }
 
     /**

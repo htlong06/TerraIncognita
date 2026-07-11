@@ -25,3 +25,6 @@ resources/saves/*.json
 # Build artifacts
 *.jar
 *.war
+!lib/*.jar
+
+.codegraph

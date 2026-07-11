@@ -1,5 +1,7 @@
 package TerraIncognita.item;
 
+import TerraIncognita.entity.Player;
+
 /**
  * Abstract class vật phẩm cơ sở.
  * Các lớp con: Potion, Key, Equipment, Scroll...
@@ -34,7 +36,7 @@ public abstract class Item {
      * Sử dụng item (cho item dùng 1 lần như Potion).
      * Mặc định không làm gì — lớp con override nếu cần.
      */
-    public boolean use() {
+    public boolean use(Player player) {
         return false;
     }
 

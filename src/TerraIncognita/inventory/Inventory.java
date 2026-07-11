@@ -1,5 +1,6 @@
 package TerraIncognita.inventory;
 
+import TerraIncognita.entity.Player;
 import TerraIncognita.item.Item;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -99,5 +100,21 @@ public class Inventory {
 
     public int getMaxSlots() {
         return maxSlots;
+    }
+
+    /**
+     * Sử dụng item tại vị trí index.
+     * @param index vị trí item trong túi
+     * @param player người chơi sử dụng item
+     * @return true nếu sử dụng thành công
+     */
+    public boolean useItem(int index, Player player) {
+        if (index < 0 || index >= items.size()) return false;
+        Item item = items.get(index);
+        boolean used = item.use(player);
+        if (used && item.isStackable() && item.getStackCount() <= 0) {
+            items.remove(index);
+        }
+        return used;
     }
 }

@@ -1,5 +1,7 @@
 package TerraIncognita.entity;
 
+import TerraIncognita.util.Constants;
+
 /**
  * Rương báu / kho báu.
  * Là Entity đứng yên, khi player tương tác sẽ mở ra và sinh item ngẫu nhiên.
@@ -16,8 +18,8 @@ public class Chest extends Entity {
         this.name = "Chest";
         this.tileX = tileX;
         this.tileY = tileY;
-        this.worldX = tileX * 32;   // TODO: dùng Constants.TILE_SIZE
-        this.worldY = tileY * 32;
+        this.worldX = tileX * Constants.TILE_SIZE;
+        this.worldY = tileY * Constants.TILE_SIZE;
         this.opened = false;
         this.locked = locked;
         this.requiredKeyId = "";
