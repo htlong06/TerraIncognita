@@ -28,3 +28,4 @@ resources/saves/*.json
 !lib/*.jar
 
 .codegraph
+.hermes
