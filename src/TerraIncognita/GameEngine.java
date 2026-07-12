@@ -1,13 +1,22 @@
 package TerraIncognita;
 
+import TerraIncognita.combat.CombatSystem;
 import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Player;
+import TerraIncognita.entity.monster.Monster;
+import TerraIncognita.entity.monster.SkeletonMonster;
+import TerraIncognita.entity.monster.SlimeMonster;
+import TerraIncognita.graphics.Animation;
+import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.util.Constants;
-
+ 
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
-
+import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 /**
  * Quản lý trạng thái game (State Machine).
  *
@@ -25,6 +34,8 @@ public class GameEngine {
     private Player player;
     private InputHandler inputHandler;
 
+    private AssetLoader assetLoader;
+
     // TODO (GĐ2): GameMap currentMap
     // TODO (GĐ3): AssetLoader assetLoader, Renderer renderer
     // TODO (GĐ4): CombatSystem combatSystem
@@ -34,13 +45,14 @@ public class GameEngine {
     public GameEngine(InputHandler inputHandler) {
         this.inputHandler = inputHandler;
 
-        // Khởi tạo Player
         this.player = new Player();
-        // Đặt player ở giữa màn hình (tạm thời, chưa có map)
         this.player.setWorldX(Constants.SCREEN_WIDTH / 2.0 - Constants.TILE_SIZE / 2.0);
         this.player.setWorldY(Constants.SCREEN_HEIGHT / 2.0 - Constants.TILE_SIZE / 2.0);
 
-        // Set trạng thái ban đầu = PLAYING (tạm thời, bỏ qua MENU ở GĐ1)
+        this.assetLoader = new AssetLoader();
+        this.assetLoader.loadAll();
+        this.player.initAnimations(assetLoader);
+
         this.currentState = GameState.PLAYING;
     }
 
@@ -56,7 +68,6 @@ public class GameEngine {
                 updatePlaying(deltaTime);
                 break;
             case PAUSED:
-                // Không update logic khi pause
                 break;
             case GAME_OVER:
                 updateGameOver(deltaTime);
@@ -78,7 +89,7 @@ public class GameEngine {
                 renderPlaying(g2d);
                 break;
             case PAUSED:
-                renderPlaying(g2d); // Vẽ game phía sau
+                renderPlaying(g2d); 
                 renderPauseOverlay(g2d);
                 break;
             case GAME_OVER:
@@ -187,39 +198,7 @@ public class GameEngine {
             g2d.drawLine(0, y, Constants.SCREEN_WIDTH, y);
         }
 
-        // Vẽ Player (hình vuông màu xanh dương)
-        // TODO (GĐ3): Thay bằng sprite animation
-        int px = (int) player.getWorldX();
-        int py = (int) player.getWorldY();
-
-        // Thân player
-        g2d.setColor(new Color(70, 130, 230));
-        g2d.fillRect(px + 2, py + 2, Constants.TILE_SIZE - 4, Constants.TILE_SIZE - 4);
-
-        // Viền sáng
-        g2d.setColor(new Color(120, 180, 255));
-        g2d.drawRect(px + 2, py + 2, Constants.TILE_SIZE - 4, Constants.TILE_SIZE - 4);
-
-        // Mắt nhỏ (cho biết hướng nhìn)
-        g2d.setColor(Color.WHITE);
-        int eyeSize = 4;
-        int eyeOffX = Constants.TILE_SIZE / 2 - eyeSize / 2;
-        int eyeOffY = Constants.TILE_SIZE / 2 - eyeSize / 2;
-        switch (player.getDirection()) {
-            case UP:
-                eyeOffY -= 5;
-                break;
-            case DOWN:
-                eyeOffY += 5;
-                break;
-            case LEFT:
-                eyeOffX -= 5;
-                break;
-            case RIGHT:
-                eyeOffX += 5;
-                break;
-        }
-        g2d.fillOval(px + eyeOffX, py + eyeOffY, eyeSize, eyeSize);
+        drawPlayer(g2d);
 
         // HUD tạm (góc trên trái)
         g2d.setColor(Color.WHITE);
@@ -232,6 +211,29 @@ public class GameEngine {
         g2d.setColor(new Color(150, 150, 150));
         g2d.setFont(g2d.getFont().deriveFont(12f));
     }
+
+    private void drawPlayer(Graphics2D g2d) {
+        int tileX = (int) player.getWorldX();
+        int tileY = (int) player.getWorldY();
+ 
+        Animation anim = player.getCurrentAnimation();
+        BufferedImage frame = (anim != null) ? anim.getCurrentFrame() : null;
+ 
+        int drawSize = Constants.PLAYER_SPRITE_SIZE;
+        int drawX = tileX + Constants.TILE_SIZE / 2 - drawSize / 2;
+        int drawY = tileY + Constants.TILE_SIZE - drawSize; // neo chân sprite vào đáy tile
+ 
+        if (frame != null) {
+            g2d.drawImage(frame, drawX, drawY, drawSize, drawSize, null);
+        } else {
+            // Fallback: hình vuông màu xanh nếu sprite chưa sẵn sàng
+            g2d.setColor(player.isAttacking() ? new Color(230, 150, 60) : new Color(70, 130, 230));
+            g2d.fillRect(tileX + 2, tileY + 2, Constants.TILE_SIZE - 4, Constants.TILE_SIZE - 4);
+            g2d.setColor(new Color(120, 180, 255));
+            g2d.drawRect(tileX + 2, tileY + 2, Constants.TILE_SIZE - 4, Constants.TILE_SIZE - 4);
+        }
+    }
+
 
     private void renderPauseOverlay(Graphics2D g2d) {
         // Overlay mờ
