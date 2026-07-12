@@ -1,5 +1,7 @@
 package TerraIncognita.entity;
 
+import TerraIncognita.graphics.Animation;
+import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.inventory.Inventory;
 import TerraIncognita.item.Equipment;
 import TerraIncognita.item.EquipmentSlot;
@@ -7,27 +9,22 @@ import TerraIncognita.map.GameMap;
 import TerraIncognita.util.Constants;
 import java.util.EnumMap;
 import java.util.Map;
+import java.awt.image.BufferedImage;
 
-/**
- * Nhân vật người chơi.
- *
- * Thuộc tính mở rộng so với Entity:
- * - Level, EXP
- * - Inventory (túi đồ)
- * - Equipment (trang bị đang mang)
- * - Gold (vàng)
- */
 public class Player extends Entity {
 
     private int level;
     private int exp;
-    private int expToNextLevel;     // EXP cần để lên level tiếp
+    private int expToNextLevel;
     private int gold;
     private Inventory inventory;
     private Map<EquipmentSlot, Equipment> equippedItems;
 
     // Tham chiếu tới map hiện tại để kiểm tra va chạm
     private GameMap currentMap;
+
+    private double attackTimer;
+    private double attackCoolDownTimer;
 
     public Player() {
         super();
@@ -50,17 +47,15 @@ public class Player extends Entity {
 
     @Override
     public void update(double deltaTime) {
-        // Cập nhật animation
         updateAnimation(deltaTime);
-        // Cập nhật status effects
         updateStatusEffects(deltaTime);
-        // Cập nhật tileX/tileY
         updateTilePosition(Constants.TILE_SIZE);
     }
 
     /**
      * Di chuyển theo hướng.
-     * @param dir hướng di chuyển
+     * 
+     * @param dir       hướng di chuyển
      * @param deltaTime thời gian frame
      */
     public void move(Direction dir, double deltaTime) {
@@ -107,11 +102,30 @@ public class Player extends Entity {
      * Đặt trạng thái idle khi không di chuyển.
      */
     public void setIdle() {
-        this.state = EntityState.IDLE;
+        if (isAttacking()) {
+            return;
+        } else {
+            this.state = EntityState.IDLE;
+        }
+    }
+
+    public boolean isAttacking() {
+        return attackTimer > 0;
+    }
+
+    public boolean canAttack() {
+        return attackCoolDownTimer <= 0 && !isAttacking();
+    }
+
+    public void stateAttack() {
+        this.state = EntityState.ATTACK;
+        this.attackTimer = Constants.PLAYER_ATTACK_DURATION;
+        this.attackCoolDownTimer = Constants.PLAYER_ATTACK_COOLDOWN;
     }
 
     /**
      * Thêm EXP, kiểm tra lên level.
+     * 
      * @param amount lượng EXP nhận
      */
     public void addExp(int amount) {
@@ -129,7 +143,7 @@ public class Player extends Entity {
         level++;
         // Tăng chỉ số
         maxHp += 10;
-        hp = maxHp;     // Hồi đầy HP khi lên level
+        hp = maxHp; // Hồi đầy HP khi lên level
         atk += 2;
         def += 1;
         // Tăng EXP cần thiết cho level tiếp theo
@@ -145,6 +159,7 @@ public class Player extends Entity {
 
     /**
      * Tiêu vàng.
+     * 
      * @return true nếu đủ vàng để tiêu
      */
     public boolean spendGold(int amount) {
@@ -157,6 +172,7 @@ public class Player extends Entity {
 
     /**
      * Trang bị item.
+     * 
      * @return true nếu trang bị thành công
      */
     public boolean equip(Equipment equipment) {
@@ -191,11 +207,64 @@ public class Player extends Entity {
     }
 
     // --- Getter ---
-    public int getLevel() { return level; }
-    public int getExp() { return exp; }
-    public int getExpToNextLevel() { return expToNextLevel; }
-    public int getGold() { return gold; }
-    public Inventory getInventory() { return inventory; }
-    public Map<EquipmentSlot, Equipment> getEquippedItems() { return equippedItems; }
-    public GameMap getCurrentMap() { return currentMap; }
+    public int getLevel() {
+        return level;
+    }
+
+    public int getExp() {
+        return exp;
+    }
+
+    public int getExpToNextLevel() {
+        return expToNextLevel;
+    }
+
+    public int getGold() {
+        return gold;
+    }
+
+    public Inventory getInventory() {
+        return inventory;
+    }
+
+    public Map<EquipmentSlot, Equipment> getEquippedItems() {
+        return equippedItems;
+    }
+
+    public GameMap getCurrentMap() {
+        return currentMap;
+    }
+
+    private void resetAnimations(String key) {
+        Animation ani = animations.get(key);
+        if (ani != null) {
+            ani.reset();
+        }
+    }
+
+    public void initAnimations(AssetLoader assets) {
+        registerDirectionalAnimation(assets, "player_idle", EntityState.IDLE, 130, true);
+        registerDirectionalAnimation(assets, "player_walk", EntityState.WALK, 90, true);
+        registerDirectionalAnimation(assets, "player_attack", EntityState.ATTACK, 40, false);
+        registerDirectionalAnimation(assets, "player_hurt", EntityState.HURT, 90, false);
+        registerDirectionalAnimation(assets, "player_dead", EntityState.DEAD, 150, false);
+    }
+ 
+    private void registerDirectionalAnimation(AssetLoader assets, String spriteName, EntityState forState, int frameDurationMs, boolean looping) {
+        BufferedImage[] facingRight = assets.getFrames(spriteName);
+        BufferedImage[] facingLeft = assets.getFramesFlipped(spriteName);
+ 
+        Animation animRight = new Animation(facingRight, frameDurationMs);
+        animRight.setLooping(looping);
+        Animation animLeft = new Animation(facingLeft, frameDurationMs);
+        animLeft.setLooping(looping);
+ 
+        String prefix = forState.name().toLowerCase() + "_";
+        animations.put(prefix + "right", animRight);
+        animations.put(prefix + "up", animRight);
+        animations.put(prefix + "down", animRight);
+        animations.put(prefix + "left", animLeft);
+    }
 }
+
+
