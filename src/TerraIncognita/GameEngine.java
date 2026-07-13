@@ -8,6 +8,7 @@ import TerraIncognita.entity.monster.SkeletonMonster;
 import TerraIncognita.entity.monster.SlimeMonster;
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.graphics.AssetLoader;
+import TerraIncognita.ui.InventoryUI;
 import TerraIncognita.util.Constants;
  
 import java.awt.Color;
@@ -33,6 +34,7 @@ public class GameEngine {
     private GameState currentState;
     private Player player;
     private InputHandler inputHandler;
+    private InventoryUI inventoryUI;
 
     private AssetLoader assetLoader;
 
@@ -54,6 +56,9 @@ public class GameEngine {
         this.player.initAnimations(assetLoader);
 
         this.currentState = GameState.PLAYING;
+
+        // Inventory UI
+        this.inventoryUI = new InventoryUI();
     }
 
     /**
@@ -66,6 +71,9 @@ public class GameEngine {
                 break;
             case PLAYING:
                 updatePlaying(deltaTime);
+                break;
+            case INVENTORY:
+                updateInventory(deltaTime);
                 break;
             case PAUSED:
                 break;
@@ -87,6 +95,10 @@ public class GameEngine {
                 break;
             case PLAYING:
                 renderPlaying(g2d);
+                break;
+            case INVENTORY:
+                renderPlaying(g2d);
+                inventoryUI.render(g2d, player.getInventory(), 0, 0);
                 break;
             case PAUSED:
                 renderPlaying(g2d); 
@@ -149,8 +161,48 @@ public class GameEngine {
             changeState(GameState.PAUSED);
         }
 
+        // Mở inventory
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_I)) {
+            inventoryUI.toggle();
+            if (inventoryUI.isOpen()) {
+                changeState(GameState.INVENTORY);
+            }
+        }
+
         // Cập nhật player
         player.update(deltaTime);
+    }
+
+    /**
+     * Update logic khi đang mở inventory.
+     */
+    private void updateInventory(double deltaTime) {
+        // Đóng inventory
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_I) || inputHandler.isKeyJustPressed(KeyEvent.VK_ESCAPE)) {
+            inventoryUI.toggle();
+            changeState(GameState.PLAYING);
+            return;
+        }
+
+        // Di chuyển cursor
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_UP)) {
+            inventoryUI.moveCursor(Direction.UP, player.getInventory());
+        }
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_DOWN)) {
+            inventoryUI.moveCursor(Direction.DOWN, player.getInventory());
+        }
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_LEFT)) {
+            inventoryUI.moveCursor(Direction.LEFT, player.getInventory());
+        }
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_RIGHT)) {
+            inventoryUI.moveCursor(Direction.RIGHT, player.getInventory());
+        }
+
+        // Sử dụng item
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER)) {
+            int idx = inventoryUI.getSelectedIndex();
+            player.getInventory().useItem(idx, player);
+        }
     }
 
     private void updateGameOver(double deltaTime) {
