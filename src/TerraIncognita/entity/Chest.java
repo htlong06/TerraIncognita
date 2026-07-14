@@ -1,5 +1,7 @@
 package TerraIncognita.entity;
 
+import TerraIncognita.economy.LootTable;
+import TerraIncognita.item.Item;
 import TerraIncognita.util.Constants;
 
 /**
@@ -12,6 +14,7 @@ public class Chest extends Entity {
     private boolean locked;
     private String requiredKeyId;
     private String lootTableId;
+    private LootTable lootTable;
 
     public Chest(int tileX, int tileY, boolean locked) {
         super();
@@ -48,7 +51,13 @@ public class Chest extends Entity {
             }
         }
         opened = true;
-        // TODO (GĐ5): Sinh item vào player inventory
+        // Sinh item từ loot table vào player inventory
+        if (lootTable != null) {
+            Item loot = lootTable.generateLoot();
+            if (loot != null) {
+                player.getInventory().addItem(loot);
+            }
+        }
         return true;
     }
 
@@ -56,4 +65,5 @@ public class Chest extends Entity {
     public boolean isOpened() { return opened; }
     public boolean isLocked() { return locked; }
     public void setRequiredKeyId(String keyId) { this.requiredKeyId = keyId; }
+    public void setLootTable(LootTable table) { this.lootTable = table; }
 }
