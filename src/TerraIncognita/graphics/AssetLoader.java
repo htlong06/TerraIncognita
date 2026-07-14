@@ -42,6 +42,7 @@ public class AssetLoader {
      */
     public void loadAll() {
         loadPlayer();
+        loadMonsters();
     }
 
     private void loadPlayer() {
@@ -64,6 +65,28 @@ public class AssetLoader {
         BufferedImage[] frames = sheetCutter.getFullRow(0);
         spriteFrames.put(name, frames);
     }
+
+    private void loadMonsters() {
+    // Đường dẫn gốc: "resources/sprites/monster/"
+    String base = Constants.SPRITES_PATH + "monsters/"; 
+
+    // Nạp hoạt ảnh đứng yên (idle) cho quái vật Slime (hoặc Orc_Idle nếu bạn muốn dùng Orc)
+    loadMonsterSheet("slime_idle", base + "Slime_Idle.png");
+}
+
+private void loadMonsterSheet(String name, String path) {
+    BufferedImage sheet = loadImage(path);
+    if (sheet == null) {
+        spriteFrames.put(name, new BufferedImage[0]);
+        return;
+    }
+    
+    // Cắt sprite sheet của quái vật với kích thước frame 100x100
+    int monsterFrameSize = 100; 
+    SpriteSheet sheetCutter = new SpriteSheet(sheet, monsterFrameSize, monsterFrameSize);
+    BufferedImage[] frames = sheetCutter.getFullRow(0);
+    spriteFrames.put(name, frames);
+}
 
     private BufferedImage loadImage(String path) {
         try {
