@@ -13,8 +13,8 @@ public class Chest extends Entity {
     private boolean opened;
     private boolean locked;
     private String requiredKeyId;
-    private String lootTableId;
     private LootTable lootTable;
+    private Item lastLoot;  // item vừa nhặt từ lần open() gần nhất
 
     public Chest(int tileX, int tileY, boolean locked) {
         super();
@@ -51,11 +51,13 @@ public class Chest extends Entity {
             }
         }
         opened = true;
+        lastLoot = null;
         // Sinh item từ loot table vào player inventory
         if (lootTable != null) {
             Item loot = lootTable.generateLoot();
             if (loot != null) {
                 player.getInventory().addItem(loot);
+                lastLoot = loot;
             }
         }
         return true;
@@ -64,6 +66,7 @@ public class Chest extends Entity {
     // --- Getter ---
     public boolean isOpened() { return opened; }
     public boolean isLocked() { return locked; }
+    public Item getLastLoot() { return lastLoot; }
     public void setRequiredKeyId(String keyId) { this.requiredKeyId = keyId; }
     public void setLootTable(LootTable table) { this.lootTable = table; }
 }

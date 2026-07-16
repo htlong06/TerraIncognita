@@ -2,6 +2,7 @@ package TerraIncognita.economy;
 
 import TerraIncognita.item.Item;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Bảng loot — xác định item có thể rơi khi mở rương / đánh quái.
@@ -11,10 +12,16 @@ public class LootTable {
 
     private final List<Item> possibleItems;
     private final double dropChance;
+    private final Random random;
 
     public LootTable(List<Item> items, double dropChance) {
+        this(items, dropChance, new Random());
+    }
+
+    public LootTable(List<Item> items, double dropChance, Random random) {
         this.possibleItems = items;
         this.dropChance = dropChance;
+        this.random = random;
     }
 
     /**
@@ -25,10 +32,10 @@ public class LootTable {
         if (possibleItems == null || possibleItems.isEmpty()) {
             return null;
         }
-        if (Math.random() >= dropChance) {
+        if (random.nextDouble() >= dropChance) {
             return null;
         }
-        int index = (int) (Math.random() * possibleItems.size());
+        int index = random.nextInt(possibleItems.size());
         return possibleItems.get(index);
     }
 
