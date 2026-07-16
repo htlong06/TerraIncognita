@@ -21,6 +21,7 @@ import TerraIncognita.ui.InventoryUI;
 import TerraIncognita.ui.ShopUI;
 import TerraIncognita.ui.HUD;
 import TerraIncognita.ui.DialogBox;
+import TerraIncognita.ui.GameOverScreen;
 import TerraIncognita.util.Constants;
 
 import java.awt.Color;
@@ -58,6 +59,7 @@ public class GameEngine {
     private ShopUI shopUI;
     private HUD hud;
     private DialogBox dialogBox;
+    private GameOverScreen gameOverScreen;
 
     // TODO (GĐ2): GameMap currentMap
     // TODO (GĐ3): AssetLoader assetLoader, Renderer renderer
@@ -105,6 +107,7 @@ public class GameEngine {
         this.shopUI = new ShopUI();
         this.hud = new HUD();
         this.dialogBox = new DialogBox();
+        this.gameOverScreen = new GameOverScreen();
 
         // Cho player 100 gold để test mua đồ
         player.addGold(100);
@@ -274,6 +277,11 @@ public class GameEngine {
 
         // Cập nhật player
         player.update(deltaTime);
+
+        // Kiểm tra game over
+        if (!player.isAlive()) {
+            changeState(GameState.GAME_OVER);
+        }
     }
 
     /**
@@ -376,9 +384,21 @@ public class GameEngine {
     }
 
     private void updateGameOver(double deltaTime) {
-        // Nhấn ENTER → quay lại menu
+        // Mũi tên lên/xuống → chọn option
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_UP)) {
+            gameOverScreen.moveCursorUp();
+        }
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_DOWN)) {
+            gameOverScreen.moveCursorDown();
+        }
+        // Enter → xác nhận
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER)) {
-            changeState(GameState.MENU);
+            int opt = gameOverScreen.getSelectedOption();
+            if (opt == 0) {
+                changeState(GameState.MENU);
+            } else {
+                System.exit(0);
+            }
         }
     }
 
@@ -564,14 +584,7 @@ public class GameEngine {
     }
 
     private void renderGameOver(Graphics2D g2d) {
-        g2d.setColor(new Color(50, 10, 10));
-        g2d.fillRect(0, 0, Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
-
-        g2d.setColor(new Color(220, 50, 50));
-        g2d.setFont(g2d.getFont().deriveFont(48f));
-        String text = "GAME OVER";
-        int textWidth = g2d.getFontMetrics().stringWidth(text);
-        g2d.drawString(text, (Constants.SCREEN_WIDTH - textWidth) / 2, Constants.SCREEN_HEIGHT / 2);
+        gameOverScreen.render(g2d);
     }
 
     // --- Getter ---
