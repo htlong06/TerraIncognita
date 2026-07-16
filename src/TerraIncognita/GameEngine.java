@@ -19,6 +19,8 @@ import TerraIncognita.item.Key;
 import TerraIncognita.item.Potion;
 import TerraIncognita.ui.InventoryUI;
 import TerraIncognita.ui.ShopUI;
+import TerraIncognita.ui.HUD;
+import TerraIncognita.ui.DialogBox;
 import TerraIncognita.util.Constants;
 
 import java.awt.Color;
@@ -54,6 +56,8 @@ public class GameEngine {
     private Merchant merchant;
     private Shop activeShop;
     private ShopUI shopUI;
+    private HUD hud;
+    private DialogBox dialogBox;
 
     // TODO (GĐ2): GameMap currentMap
     // TODO (GĐ3): AssetLoader assetLoader, Renderer renderer
@@ -99,6 +103,8 @@ public class GameEngine {
         // Spawn Merchant NPC ở tile (20, 10)
         this.merchant = new Merchant(20, 10);
         this.shopUI = new ShopUI();
+        this.hud = new HUD();
+        this.dialogBox = new DialogBox();
 
         // Cho player 100 gold để test mua đồ
         player.addGold(100);
@@ -120,6 +126,9 @@ public class GameEngine {
                 break;
             case SHOP:
                 updateShop(deltaTime);
+                break;
+            case DIALOG:
+                updateDialog(deltaTime);
                 break;
             case PAUSED:
                 break;
@@ -149,6 +158,10 @@ public class GameEngine {
             case SHOP:
                 renderPlaying(g2d);
                 shopUI.render(g2d, activeShop, player);
+                break;
+            case DIALOG:
+                renderPlaying(g2d);
+                dialogBox.render(g2d);
                 break;
             case PAUSED:
                 renderPlaying(g2d); 
@@ -347,6 +360,21 @@ public class GameEngine {
         }
     }
 
+    private void updateDialog(double deltaTime) {
+        // Enter → advance hoặc đóng dialog
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER) || inputHandler.isKeyJustPressed(KeyEvent.VK_E)) {
+            dialogBox.advance();
+            if (!dialogBox.isActive()) {
+                changeState(GameState.PLAYING);
+            }
+        }
+        // ESC → đóng ngay
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_ESCAPE)) {
+            dialogBox.close();
+            changeState(GameState.PLAYING);
+        }
+    }
+
     private void updateGameOver(double deltaTime) {
         // Nhấn ENTER → quay lại menu
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER)) {
@@ -404,12 +432,12 @@ public class GameEngine {
             drawMerchant(g2d);
         }
 
-        // HUD tạm (góc trên trái)
-        g2d.setColor(Color.WHITE);
-        g2d.setFont(g2d.getFont().deriveFont(14f));
-        g2d.drawString("HP: " + player.getHp() + "/" + player.getMaxHp(), 10, 20);
-        g2d.drawString("Pos: (" + player.getTileX() + ", " + player.getTileY() + ")", 10, 40);
-        g2d.drawString("State: " + player.getState(), 10, 60);
+        // HUD
+        hud.render(g2d, player);
+        g2d.setColor(new Color(150, 150, 150));
+        g2d.setFont(g2d.getFont().deriveFont(12f));
+        g2d.drawString("Pos: (" + player.getTileX() + ", " + player.getTileY() + ")", 10, 70);
+        g2d.drawString("State: " + player.getState(), 10, 85);
 
         // Thông báo nhặt đồ
         if (pickupMessage != null && messageTimer > 0) {
