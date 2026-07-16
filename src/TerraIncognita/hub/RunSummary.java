@@ -6,33 +6,44 @@ package TerraIncognita.hub;
  */
 public class RunSummary {
 
-    // TODO: Khai báo các trường
-    // - int monstersKilled       — số quái đã giết
-    // - int goldEarned           — vàng kiếm được
-    // - int expEarned            — EXP kiếm được
-    // - int floorsCleared        — số tầng đã qua
-    // - int itemsCollected       — số item nhặt được
-    // - long timePlayed          — thời gian chơi (ms)
-    // - boolean survived         — sống sót hay chết
+    private int monstersKilled;
+    private int goldEarned;
+    private int expEarned;
+    private int floorsCleared;
+    private int itemsCollected;
+    private long timePlayed;
+    private boolean survived;
 
     public RunSummary() {
-        // TODO: Khởi tạo tất cả = 0
+        this.monstersKilled = 0;
+        this.goldEarned = 0;
+        this.expEarned = 0;
+        this.floorsCleared = 0;
+        this.itemsCollected = 0;
+        this.timePlayed = 0;
+        this.survived = false;
     }
 
-    // TODO: Phương thức cập nhật
-    // public void addMonsterKill() { monstersKilled++; }
-    // public void addGold(int amount) { goldEarned += amount; }
-    // public void addExp(int amount) { expEarned += amount; }
-    // public void addFloorCleared() { floorsCleared++; }
-
-    // TODO: Getter cho tất cả trường
+    public void addMonsterKill() { monstersKilled++; }
+    public void addGold(int amount) { goldEarned += amount; }
+    public void addExp(int amount) { expEarned += amount; }
+    public void addFloorCleared() { floorsCleared++; }
+    public void addItemCollected() { itemsCollected++; }
+    public void addTimePlayed(long ms) { timePlayed += ms; }
+    public void setSurvived(boolean survived) { this.survived = survived; }
 
     /**
      * Tính điểm tổng hợp.
      */
     public int calculateScore() {
-        // TODO: Công thức tuỳ chỉnh
-        // Ví dụ: monstersKilled * 100 + goldEarned * 10 + floorsCleared * 500
-        return 0;
+        return monstersKilled * 100 + goldEarned * 10 + floorsCleared * 500;
     }
+
+    public int getMonstersKilled() { return monstersKilled; }
+    public int getGoldEarned() { return goldEarned; }
+    public int getExpEarned() { return expEarned; }
+    public int getFloorsCleared() { return floorsCleared; }
+    public int getItemsCollected() { return itemsCollected; }
+    public long getTimePlayed() { return timePlayed; }
+    public boolean isSurvived() { return survived; }
 }
