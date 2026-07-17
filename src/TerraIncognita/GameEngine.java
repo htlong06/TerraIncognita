@@ -60,6 +60,7 @@ public class GameEngine {
     private HUD hud;
     private DialogBox dialogBox;
     private GameOverScreen gameOverScreen;
+    private List<Monster> activeMonsters;
 
     // TODO (GĐ2): GameMap currentMap
     // TODO (GĐ3): AssetLoader assetLoader, Renderer renderer
@@ -111,6 +112,12 @@ public class GameEngine {
 
         // Cho player 100 gold để test mua đồ
         player.addGold(100);
+
+        // Khởi tạo danh sách và tạo quái vật mẫu
+        this.activeMonsters = new ArrayList<>();
+        SlimeMonster slime = new SlimeMonster(12, 10);
+        slime.initAnimations(assetLoader);
+        this.activeMonsters.add(slime);
     }
 
     /**
@@ -123,6 +130,12 @@ public class GameEngine {
                 break;
             case PLAYING:
                 updatePlaying(deltaTime);
+                // --- CẬP NHẬT HOẠT ẢNH CHO QUÁI VẬT ---
+                for (Monster m : activeMonsters) {
+                    if (m.isAlive()) {
+                        m.update(deltaTime); // Cập nhật chuyển frame hoạt ảnh đứng yên
+                    }
+                }
                 break;
             case INVENTORY:
                 updateInventory(deltaTime);
@@ -468,6 +481,13 @@ public class GameEngine {
             g2d.drawString(pickupMessage, (Constants.SCREEN_WIDTH - msgWidth) / 2, Constants.SCREEN_HEIGHT - 40);
         }
 
+        // Vẽ quái vật đang hoạt động
+        for (Monster m : activeMonsters) {
+            if (m.isAlive()) {
+                drawMonster(g2d, m);
+            }
+        }
+
         // Hướng dẫn điều khiển
         g2d.setColor(new Color(150, 150, 150));
         g2d.setFont(g2d.getFont().deriveFont(12f));
@@ -585,6 +605,32 @@ public class GameEngine {
 
     private void renderGameOver(Graphics2D g2d) {
         gameOverScreen.render(g2d);
+    }
+
+    /**
+     * Phương thức bổ trợ vẽ hoạt ảnh quái vật lên màn hình
+     */
+    private void drawMonster(Graphics2D g2d, Monster monster) {
+        int worldX = (int) monster.getWorldX();
+        int worldY = (int) monster.getWorldY();
+
+        Animation anim = monster.getCurrentAnimation();
+        BufferedImage frame = (anim != null) ? anim.getCurrentFrame() : null;
+
+        // Quái vật có kích thước sprite vẽ bằng kích thước của nhân vật (Constants.PLAYER_SPRITE_SIZE = 200px)
+        int drawSize = Constants.PLAYER_SPRITE_SIZE; //
+        int drawX = worldX + Constants.TILE_SIZE / 2 - drawSize / 2;
+        int drawY = worldY + Constants.TILE_SIZE - drawSize; // Ghép chân vào đáy tile
+
+        if (frame != null) {
+            g2d.drawImage(frame, drawX, drawY, drawSize, drawSize, null);
+        } else {
+            // Fallback: Vẽ ô vuông màu đỏ đại diện nếu chưa nạp được ảnh Sprite Sheet
+            g2d.setColor(Color.RED);
+            g2d.fillRect(worldX + 2, worldY + 2, Constants.TILE_SIZE - 4, Constants.TILE_SIZE - 4);
+            g2d.setColor(Color.WHITE);
+            g2d.drawString("S", worldX + 12, worldY + 20);
+        }
     }
 
     // --- Getter ---
