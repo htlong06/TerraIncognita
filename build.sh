@@ -23,7 +23,7 @@ fi
 if [ "$1" = "test" ]; then
     echo "[2/2] Running tests..."
     echo
-    java -jar lib/junit-platform-console-standalone-1.10.2.jar --class-path out --scan-classpath -cp out
+    java -jar lib/junit-platform-console-standalone-1.10.2.jar --class-path "out;lib/sqlite-jdbc-3.46.1.3.jar" --scan-classpath
     exit $?
 fi
 

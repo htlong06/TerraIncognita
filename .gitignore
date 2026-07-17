@@ -20,6 +20,7 @@ desktop.ini
 
 # Save files (generated at runtime)
 resources/saves/*.json
+resources/saves/*.db
 !resources/saves/.gitkeep
 
 # Build artifacts
@@ -29,3 +30,4 @@ resources/saves/*.json
 
 .codegraph
 .hermes
+.specify

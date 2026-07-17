@@ -27,6 +27,9 @@ public class Main {
         // Hiển thị
         frame.setVisible(true);
 
+        // Yêu cầu focus để nhận input từ bàn phím
+        gamePanel.requestFocusInWindow();
+
         // Khởi chạy game loop
         gamePanel.startGameThread();
     }

@@ -235,6 +235,15 @@ public class Player extends Entity {
         return currentMap;
     }
 
+    // --- Setter (dùng cho load game) ---
+    public void setMaxHp(int maxHp) { this.maxHp = maxHp; }
+    public void setAtk(int atk) { this.atk = atk; }
+    public void setDef(int def) { this.def = def; }
+    public void setLevel(int level) { this.level = level; }
+    public void setExp(int exp) { this.exp = exp; }
+    public void setExpToNextLevel(int expToNextLevel) { this.expToNextLevel = expToNextLevel; }
+    public void setGold(int gold) { this.gold = gold; }
+
     private void resetAnimations(String key) {
         Animation ani = animations.get(key);
         if (ani != null) {
