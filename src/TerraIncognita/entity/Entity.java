@@ -118,6 +118,9 @@ public abstract class Entity {
         if (anim != null) {
             currentAnimation = anim;
             currentAnimation.update(deltaTime);
+        } else {
+            System.out.println("[DEBUG Entity.updateAnimation] ANIM NOT FOUND for key='" + key + "'"
+                    + " | available keys=" + animations.keySet());
         }
     }
 

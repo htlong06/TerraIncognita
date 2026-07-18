@@ -1,5 +1,6 @@
 package TerraIncognita.collision;
 
+import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Entity;
 import TerraIncognita.entity.Player;
 import TerraIncognita.event.EventSystem;
@@ -188,5 +189,68 @@ public class CollisionManager {
             return true;
         }
         return false;
+    }
+
+    // =========================================================
+    // 4) HITBOX TẤN CÔNG (đánh cận chiến)
+    // =========================================================
+    //
+    // Cơ chế lấy từ Entity.attacking() trong 2dGame: khi tấn công, game
+    // gốc tạm thời di chuyển "solidArea" của entity ra phía trước theo
+    // hướng đang quay mặt (kích thước = attackArea của vũ khí), rồi dùng
+    // CollisionChecker để xem attackArea đó có chạm ai không.
+    //
+    // Ở đây mình không cần đổi solidArea tạm thời như bản gốc (vì hitbox
+    // của TerraIncognita được tính "on the fly" từ worldX/worldY, không
+    // lưu trạng thái), nên chỉ cần tính thẳng ra 1 Rectangle độc lập đại
+    // diện cho vùng lưỡi kiếm/phạm vi đánh, rồi kiểm tra intersect với
+    // từng mục tiêu — không cần swap/restore state như bản gốc.
+
+    /**
+     * Tính hitbox tấn công: 1 hình chữ nhật nhô ra phía trước hitbox của
+     * attacker theo hướng đang quay mặt, độ dài = rangeLength (px), bề
+     * ngang/dọc bằng đúng bề ngang/dọc hitbox của attacker (giống việc
+     * attackArea trong 2dGame luôn được đặt sát cạnh solidArea gốc).
+     */
+    public Rectangle getAttackHitbox(Entity attacker, int rangeLength) {
+        Rectangle base = attacker.getHitbox();
+        Direction dir = attacker.getDirection();
+
+        switch (dir) {
+            case UP:
+                return new Rectangle(base.x, base.y - rangeLength, base.width, rangeLength);
+            case DOWN:
+                return new Rectangle(base.x, base.y + base.height, base.width, rangeLength);
+            case LEFT:
+                return new Rectangle(base.x - rangeLength, base.y, rangeLength, base.height);
+            case RIGHT:
+                return new Rectangle(base.x + base.width, base.y, rangeLength, base.height);
+            default:
+                return base;
+        }
+    }
+
+    /**
+     * Tìm mục tiêu đầu tiên trong danh sách bị hitbox tấn công chạm
+     * trúng. Bỏ qua attacker và các entity đã chết.
+     *
+     * Tương đương gp.cChecker.checkEntity(this, gp.monster) trong bản
+     * gốc — trả về đối tượng bị trúng thay vì index trong mảng.
+     *
+     * @return entity đầu tiên bị trúng đòn, hoặc null nếu không trúng ai
+     */
+    public Entity findAttackTarget(Entity attacker, Rectangle attackHitbox, List<? extends Entity> targets) {
+        if (targets == null) {
+            return null;
+        }
+        for (Entity target : targets) {
+            if (target == attacker || !target.isAlive()) {
+                continue;
+            }
+            if (attackHitbox.intersects(target.getHitbox())) {
+                return target;
+            }
+        }
+        return null;
     }
 }

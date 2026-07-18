@@ -31,9 +31,11 @@ public class GamePanel extends JPanel implements Runnable {
         setDoubleBuffered(true);
         setFocusable(true);
 
-        // Khởi tạo InputHandler và lắng nghe phím
+        // Khởi tạo InputHandler và đăng ký Key Bindings (thay vì KeyListener)
+        // Key Bindings với WHEN_IN_FOCUSED_WINDOW đảm bảo nhận SPACE và mọi
+        // phím game bất kể component nào đang có focus.
         inputHandler = new InputHandler();
-        addKeyListener(inputHandler);
+        inputHandler.bindTo(this);
 
         // Khởi tạo GameEngine
         gameEngine = new GameEngine(inputHandler);
@@ -66,10 +68,14 @@ public class GamePanel extends JPanel implements Runnable {
 
             deltaAccumulator += elapsed;
 
+            // Cập nhật input 1 lần duy nhất mỗi frame (TRƯỚC vòng fixed-step)
+            // để isKeyJustPressed() không bị mất event khi loop chạy 2+ lần.
+            inputHandler.update();
+
             // Update logic theo fixed timestep
             while (deltaAccumulator >= targetTime) {
                 double deltaTime = targetTime / 1_000_000_000.0; // chuyển sang giây
-                update(deltaTime);
+                gameEngine.update(deltaTime);
                 deltaAccumulator -= targetTime;
             }
 

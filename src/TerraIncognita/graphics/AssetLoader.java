@@ -56,14 +56,18 @@ public class AssetLoader {
     }
 
     private void loadAnimationSheet(String name, String path) {
+        System.out.println("[DEBUG AssetLoader] Loading sheet: name='" + name + "' path='" + path + "'");
         BufferedImage sheet = loadImage(path);
         if (sheet == null) {
+            System.out.println("[DEBUG AssetLoader] FAILED to load sheet: '" + name + "' — image is null!");
             spriteFrames.put(name, new BufferedImage[0]);
             return;
         }
         SpriteSheet sheetCutter = new SpriteSheet(sheet, PLAYER_FRAME_SIZE, PLAYER_FRAME_SIZE);
         BufferedImage[] frames = sheetCutter.getFullRow(0);
         spriteFrames.put(name, frames);
+        System.out.println("[DEBUG AssetLoader] Loaded '" + name + "' => " + frames.length + " frames"
+                + " (sheet " + sheet.getWidth() + "x" + sheet.getHeight() + ")");
     }
 
     private void loadMonsters() {
