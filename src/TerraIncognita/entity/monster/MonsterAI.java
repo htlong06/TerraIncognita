@@ -1,8 +1,10 @@
 package TerraIncognita.entity.monster;
 
+import TerraIncognita.collision.CollisionManager;
 import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Player;
 import TerraIncognita.map.GameMap;
+import TerraIncognita.util.Constants;
 
 /**
  * Logic AI cho quái vật.
@@ -16,9 +18,11 @@ public class MonsterAI {
 
     private AIState aiState;
     private int spawnTileX, spawnTileY;
+    private final CollisionManager collisionManager;
 
     public MonsterAI() {
         this.aiState = AIState.IDLE;
+        this.collisionManager = new CollisionManager();
     }
 
     public void update(Monster monster, Player player, GameMap map, double deltaTime) {
@@ -82,13 +86,16 @@ public class MonsterAI {
             dir = dy > 0 ? Direction.DOWN : Direction.UP;
         }
 
-        // TODO: Kiểm tra va chạm trước khi di chuyển
-        double newX = monster.getWorldX() + dir.getDx() * monster.getSpeed() * deltaTime;
-        double newY = monster.getWorldY() + dir.getDy() * monster.getSpeed() * deltaTime;
-        monster.setWorldX(newX);
-        monster.setWorldY(newY);
+        double moveX = dir.getDx() * monster.getSpeed() * deltaTime;
+        double moveY = dir.getDy() * monster.getSpeed() * deltaTime;
+
+        // Va chạm tường được CollisionManager xử lý bằng hitbox, tách
+        // trục X/Y để quái có thể trượt dọc tường thay vì bị kẹt cứng.
+        double[] resolved = collisionManager.resolveMovement(monster, map, moveX, moveY);
+        monster.setWorldX(resolved[0]);
+        monster.setWorldY(resolved[1]);
         monster.setDirection(dir);
-        monster.updateTilePosition(32);  // TODO: dùng Constants.TILE_SIZE
+        monster.updateTilePosition(Constants.TILE_SIZE);
     }
 
     private int manhattanDistance(int x1, int y1, int x2, int y2) {
