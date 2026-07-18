@@ -1,5 +1,6 @@
 package TerraIncognita.entity;
 
+import TerraIncognita.collision.CollisionManager;
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.inventory.Inventory;
@@ -22,6 +23,9 @@ public class Player extends Entity {
 
     // Tham chiếu tới map hiện tại để kiểm tra va chạm
     private GameMap currentMap;
+
+    // Xử lý va chạm (tile + entity + bẫy), tách riêng khỏi Player
+    private CollisionManager collisionManager = new CollisionManager();
 
     private double attackTimer;
     private double attackCoolDownTimer;
@@ -62,36 +66,19 @@ public class Player extends Entity {
         this.direction = dir;
         this.state = EntityState.WALK;
 
-        double newX = worldX + dir.getDx() * speed * deltaTime;
-        double newY = worldY + dir.getDy() * speed * deltaTime;
+        double dx = dir.getDx() * speed * deltaTime;
+        double dy = dir.getDy() * speed * deltaTime;
 
-        // Kiểm tra va chạm tường trước khi cập nhật vị trí
         if (currentMap != null) {
-            int tileSize = Constants.TILE_SIZE;
-
-            // Kiểm tra va chạm theo trục X
-            if (dir.getDx() != 0) {
-                int checkTileX = (int) ((dir.getDx() > 0 ? newX + tileSize - 1 : newX) / tileSize);
-                int checkTileY1 = (int) (worldY / tileSize);
-                int checkTileY2 = (int) ((worldY + tileSize - 1) / tileSize);
-                if (currentMap.isWalkable(checkTileX, checkTileY1) && currentMap.isWalkable(checkTileX, checkTileY2)) {
-                    worldX = newX;
-                }
-            }
-
-            // Kiểm tra va chạm theo trục Y
-            if (dir.getDy() != 0) {
-                int checkTileX1 = (int) (worldX / tileSize);
-                int checkTileX2 = (int) ((worldX + tileSize - 1) / tileSize);
-                int checkTileY = (int) ((dir.getDy() > 0 ? newY + tileSize - 1 : newY) / tileSize);
-                if (currentMap.isWalkable(checkTileX1, checkTileY) && currentMap.isWalkable(checkTileX2, checkTileY)) {
-                    worldY = newY;
-                }
-            }
+            // Va chạm tường được xử lý bởi CollisionManager (dựa trên
+            // hitbox, tách trục X/Y để trượt dọc tường khi đi chéo).
+            double[] resolved = collisionManager.resolveMovement(this, currentMap, dx, dy);
+            worldX = resolved[0];
+            worldY = resolved[1];
         } else {
             // Không có map → di chuyển tự do
-            worldX = newX;
-            worldY = newY;
+            worldX = worldX + dx;
+            worldY = worldY + dy;
         }
 
         // Cập nhật tileX, tileY
@@ -204,6 +191,18 @@ public class Player extends Entity {
      */
     public void setCurrentMap(GameMap map) {
         this.currentMap = map;
+    }
+
+    /**
+     * Cho phép GameEngine truyền vào 1 CollisionManager dùng chung
+     * (thay vì mỗi Player tự tạo 1 cái riêng).
+     */
+    public void setCollisionManager(CollisionManager collisionManager) {
+        this.collisionManager = collisionManager;
+    }
+
+    public CollisionManager getCollisionManager() {
+        return collisionManager;
     }
 
     // --- Getter ---
