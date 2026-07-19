@@ -44,6 +44,7 @@ public class AssetLoader {
         loadPlayer();
         loadChest();
         loadMonsters();
+        loadArrow();
     }
 
     private void loadChest() {
@@ -80,8 +81,35 @@ public class AssetLoader {
         loadAnimationSheet("player_idle", base + "Soldier_Idle.png");
         loadAnimationSheet("player_walk", base + "Soldier_Walk.png");
         loadAnimationSheet("player_attack", base + "Soldier_Attack01.png");
+        loadAnimationSheet("player_attack2", base + "Soldier_Attack02.png"); // đòn combo thứ 3
+        loadAnimationSheet("player_attack3", base + "Soldier_Attack03.png"); // tấn công cung
         loadAnimationSheet("player_hurt", base + "Soldier_Hurt.png");
         loadAnimationSheet("player_dead", base + "Soldier_Death.png");
+    }
+
+    /**
+     * Load sprite mũi tên (frame đầu tiên của Arrow01(100x100).png).
+     * Sprite gốc hướng sang phải; sẽ được xoay lúc vẽ bởi Arrow.render().
+     */
+    private void loadArrow() {
+        String path = Constants.SPRITES_PATH + "player/Arrow01(100x100).png";
+        BufferedImage sheet = loadImage(path);
+        if (sheet == null) {
+            System.err.println("[AssetLoader] Could not load arrow sprite: " + path);
+            return;
+        }
+        // Lấy frame đầu tiên (100x100) từ sprite sheet
+        SpriteSheet cutter = new SpriteSheet(sheet, PLAYER_FRAME_SIZE, PLAYER_FRAME_SIZE);
+        BufferedImage frame0 = cutter.getFrame(0, 0);
+        tileImages.put("arrow0", frame0);
+        System.out.println("[DEBUG AssetLoader] Loaded arrow0 frame (" + frame0.getWidth() + "x" + frame0.getHeight() + ")");
+    }
+
+    /**
+     * Lấy frame mũi tên (đã load sẵn).
+     */
+    public BufferedImage getArrowFrame() {
+        return tileImages.get("arrow0");
     }
 
     private void loadAnimationSheet(String name, String path) {

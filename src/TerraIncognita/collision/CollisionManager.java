@@ -216,18 +216,32 @@ public class CollisionManager {
         Rectangle base = attacker.getHitbox();
         Direction dir = attacker.getDirection();
 
+        System.out.println("[DEBUG CollisionMgr.getAttackHitbox] dir=" + dir
+                + " rangeLength=" + rangeLength
+                + " baseHitbox=[x=" + base.x + " y=" + base.y
+                + " w=" + base.width + " h=" + base.height + "]");
+
+        Rectangle result;
         switch (dir) {
             case UP:
-                return new Rectangle(base.x, base.y - rangeLength, base.width, rangeLength);
+                result = new Rectangle(base.x, base.y - rangeLength, base.width, rangeLength);
+                break;
             case DOWN:
-                return new Rectangle(base.x, base.y + base.height, base.width, rangeLength);
+                result = new Rectangle(base.x, base.y + base.height, base.width, rangeLength);
+                break;
             case LEFT:
-                return new Rectangle(base.x - rangeLength, base.y, rangeLength, base.height);
+                result = new Rectangle(base.x - rangeLength, base.y, rangeLength, base.height);
+                break;
             case RIGHT:
-                return new Rectangle(base.x + base.width, base.y, rangeLength, base.height);
+                result = new Rectangle(base.x + base.width, base.y, rangeLength, base.height);
+                break;
             default:
-                return base;
+                result = base;
+                break;
         }
+        System.out.println("[DEBUG CollisionMgr.getAttackHitbox] => result=[x=" + result.x
+                + " y=" + result.y + " w=" + result.width + " h=" + result.height + "]");
+        return result;
     }
 
     /**
@@ -240,17 +254,32 @@ public class CollisionManager {
      * @return entity đầu tiên bị trúng đòn, hoặc null nếu không trúng ai
      */
     public Entity findAttackTarget(Entity attacker, Rectangle attackHitbox, List<? extends Entity> targets) {
+        System.out.println("[DEBUG CollisionMgr.findAttackTarget] attackHitbox=["
+                + "x=" + attackHitbox.x + " y=" + attackHitbox.y
+                + " w=" + attackHitbox.width + " h=" + attackHitbox.height + "]"
+                + " targetsCount=" + (targets == null ? "null" : targets.size()));
         if (targets == null) {
             return null;
         }
-        for (Entity target : targets) {
+        for (int i = 0; i < targets.size(); i++) {
+            Entity target = targets.get(i);
             if (target == attacker || !target.isAlive()) {
+                System.out.println("[DEBUG CollisionMgr.findAttackTarget]   [" + i + "] '" + target.getName()
+                        + "' SKIPPED (self=" + (target == attacker) + " alive=" + target.isAlive() + ")");
                 continue;
             }
-            if (attackHitbox.intersects(target.getHitbox())) {
+            Rectangle tBox = target.getHitbox();
+            boolean hit = attackHitbox.intersects(tBox);
+            System.out.println("[DEBUG CollisionMgr.findAttackTarget]   [" + i + "] '" + target.getName()
+                    + "' hitbox=[x=" + tBox.x + " y=" + tBox.y
+                    + " w=" + tBox.width + " h=" + tBox.height + "]"
+                    + " INTERSECTS=" + hit);
+            if (hit) {
+                System.out.println("[DEBUG CollisionMgr.findAttackTarget] => HIT target='" + target.getName() + "'");
                 return target;
             }
         }
+        System.out.println("[DEBUG CollisionMgr.findAttackTarget] => NO TARGET found");
         return null;
     }
 }

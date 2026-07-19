@@ -33,6 +33,21 @@ public class Constants {
     public static final double PLAYER_ATTACK_DURATION = 0.3;
     public static final int PLAYER_ATTACK_RANGE = 20; // độ vươn xa của hitbox kiếm (pixel), tính từ mép hitbox
 
+    // --- Cung (bắn tầm xa) ---
+    public static final int PLAYER_BOW_RANGE = 160; // độ vươn xa của hitbox mũi tên (pixel) — xa hơn kiếm nhiều
+
+    // --- Mũi tên (Arrow projectile) ---
+    public static final double ARROW_SPEED = 400.0;    // tốc độ bay (pixel/giây)
+    public static final double ARROW_MAX_RANGE = 500.0; // quãng đường bay tối đa trước khi tự hủy (pixel)
+    public static final int ARROW_SPRITE_SIZE = 32;     // kích thước vẽ mũi tên (pixel)
+
+    // --- Combo kiếm ---
+    // Đánh 3 nhát liên tiếp (trong khoảng COMBO_RESET_WINDOW giây kể từ nhát
+    // trước) -> nhát thứ 3 dùng frame Soldier_Attack02 + sát thương cao hơn.
+    public static final double COMBO_RESET_WINDOW = 1.0; // giây — quá thời gian này không đánh tiếp thì mất chuỗi combo
+    public static final double COMBO_FINISHER_DAMAGE_MULTIPLIER = 1.3; // +30% sát thương ở đòn thứ 3
+    public static final double BOW_ATTACK_SPEED_MULTIPLIER = 0.4; // tốc độ di chuyển khi bắn cung = 40% bình thường
+
     public static final int PLAYER_SPRITE_SIZE = 200;
 
     // --- Inventory ---
