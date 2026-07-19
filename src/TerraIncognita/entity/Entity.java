@@ -2,6 +2,8 @@ package TerraIncognita.entity;
 
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.item.StatusEffect;
+import TerraIncognita.util.Constants;
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -44,6 +46,14 @@ public abstract class Entity {
     // --- Hiệu ứng trạng thái ---
     protected List<StatusEffect> activeEffects;
 
+    // --- Hitbox (vùng va chạm), tính lệch so với worldX/worldY ---
+    // Mặc định nhỏ hơn 1 tile một chút để va chạm "mượt" hơn, giống cách
+    // solidArea được làm nhỏ hơn sprite trong nhiều game 2D top-down.
+    protected int hitboxOffsetX;
+    protected int hitboxOffsetY;
+    protected int hitboxWidth;
+    protected int hitboxHeight;
+
     public Entity() {
         this.worldX = 0;
         this.worldY = 0;
@@ -61,6 +71,13 @@ public abstract class Entity {
         this.animations = new HashMap<>();
         this.currentAnimation = null;
         this.activeEffects = new ArrayList<>();
+
+        // Hitbox mặc định: thu nhỏ 4px mỗi cạnh so với 1 tile
+        int inset = 4;
+        this.hitboxOffsetX = inset;
+        this.hitboxOffsetY = inset;
+        this.hitboxWidth = Constants.TILE_SIZE - inset * 2;
+        this.hitboxHeight = Constants.TILE_SIZE - inset * 2;
     }
 
     /**
@@ -101,6 +118,9 @@ public abstract class Entity {
         if (anim != null) {
             currentAnimation = anim;
             currentAnimation.update(deltaTime);
+        } else {
+            System.out.println("[DEBUG Entity.updateAnimation] ANIM NOT FOUND for key='" + key + "'"
+                    + " | available keys=" + animations.keySet());
         }
     }
 
@@ -131,6 +151,38 @@ public abstract class Entity {
     public void updateTilePosition(int tileSize) {
         this.tileX = (int) (worldX / tileSize);
         this.tileY = (int) (worldY / tileSize);
+    }
+
+    /**
+     * Tuỳ chỉnh vùng va chạm (hitbox) của entity.
+     * Gọi trong constructor của lớp con nếu cần hitbox khác mặc định
+     * (ví dụ quái to hơn/nhỏ hơn 1 tile).
+     */
+    public void setHitbox(int offsetX, int offsetY, int width, int height) {
+        this.hitboxOffsetX = offsetX;
+        this.hitboxOffsetY = offsetY;
+        this.hitboxWidth = width;
+        this.hitboxHeight = height;
+    }
+
+    /**
+     * Hitbox tại vị trí hiện tại (worldX, worldY).
+     */
+    public Rectangle getHitbox() {
+        return getHitboxAt(worldX, worldY);
+    }
+
+    /**
+     * Hitbox nếu entity đứng tại toạ độ (x, y) — dùng để "thử" va chạm
+     * trước khi thật sự di chuyển tới đó (xem CollisionManager).
+     */
+    public Rectangle getHitboxAt(double x, double y) {
+        return new Rectangle(
+                (int) Math.round(x) + hitboxOffsetX,
+                (int) Math.round(y) + hitboxOffsetY,
+                hitboxWidth,
+                hitboxHeight
+        );
     }
 
     // --- Getter / Setter ---

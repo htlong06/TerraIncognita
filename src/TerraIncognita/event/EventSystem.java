@@ -36,6 +36,7 @@ public class EventSystem {
 
         switch (tileType) {
             case TRAP:
+            case TRAP_HIDDEN:
                 String trapKey = "trap_" + tileX + "_" + tileY;
                 GameEvent trapEvent = registeredEvents.get(trapKey);
                 if (trapEvent != null) {

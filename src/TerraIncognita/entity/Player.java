@@ -1,5 +1,6 @@
 package TerraIncognita.entity;
 
+import TerraIncognita.collision.CollisionManager;
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.inventory.Inventory;
@@ -7,6 +8,7 @@ import TerraIncognita.item.Equipment;
 import TerraIncognita.item.EquipmentSlot;
 import TerraIncognita.map.GameMap;
 import TerraIncognita.util.Constants;
+import java.awt.Rectangle;
 import java.util.EnumMap;
 import java.util.Map;
 import java.awt.image.BufferedImage;
@@ -22,6 +24,9 @@ public class Player extends Entity {
 
     // Tham chiếu tới map hiện tại để kiểm tra va chạm
     private GameMap currentMap;
+
+    // Xử lý va chạm (tile + entity + bẫy), tách riêng khỏi Player
+    private CollisionManager collisionManager = new CollisionManager();
 
     private double attackTimer;
     private double attackCoolDownTimer;
@@ -47,9 +52,41 @@ public class Player extends Entity {
 
     @Override
     public void update(double deltaTime) {
+        System.out.println("[DEBUG Player.update] START — state=" + state + " dir=" + direction
+                + " attackTimer=" + String.format("%.3f", attackTimer)
+                + " cooldown=" + String.format("%.3f", attackCoolDownTimer)
+                + " isAttacking=" + isAttacking());
         updateAnimation(deltaTime);
         updateStatusEffects(deltaTime);
         updateTilePosition(Constants.TILE_SIZE);
+        updateAttackTimers(deltaTime);
+        System.out.println("[DEBUG Player.update] END   — state=" + state
+                + " attackTimer=" + String.format("%.3f", attackTimer)
+                + " currentAnim=" + (currentAnimation != null ? currentAnimation.getFrameCount() + "frames" : "NULL"));
+    }
+
+    /**
+     * Đếm ngược thời gian đòn đánh hiện tại + thời gian hồi chiêu.
+     * (Trước đây 2 timer này được set nhưng không bao giờ giảm, khiến
+     * isAttacking() luôn true sau nhát chém đầu tiên — sửa lại ở đây.)
+     */
+    private void updateAttackTimers(double deltaTime) {
+        if (attackTimer > 0) {
+            double before = attackTimer;
+            attackTimer -= deltaTime;
+            if (attackTimer < 0) {
+                attackTimer = 0;
+            }
+            System.out.println("[DEBUG attackTimer] " + String.format("%.3f", before)
+                    + " -> " + String.format("%.3f", attackTimer)
+                    + " (dt=" + String.format("%.3f", deltaTime) + ")");
+        }
+        if (attackCoolDownTimer > 0) {
+            attackCoolDownTimer -= deltaTime;
+            if (attackCoolDownTimer < 0) {
+                attackCoolDownTimer = 0;
+            }
+        }
     }
 
     /**
@@ -60,38 +97,25 @@ public class Player extends Entity {
      */
     public void move(Direction dir, double deltaTime) {
         this.direction = dir;
-        this.state = EntityState.WALK;
+        if (!isAttacking()) {
+            this.state = EntityState.WALK;
+        } else {
+            System.out.println("[DEBUG Player.move] BLOCKED state change to WALK — isAttacking=true, keeping state=" + state);
+        }
 
-        double newX = worldX + dir.getDx() * speed * deltaTime;
-        double newY = worldY + dir.getDy() * speed * deltaTime;
+        double dx = dir.getDx() * speed * deltaTime;
+        double dy = dir.getDy() * speed * deltaTime;
 
-        // Kiểm tra va chạm tường trước khi cập nhật vị trí
         if (currentMap != null) {
-            int tileSize = Constants.TILE_SIZE;
-
-            // Kiểm tra va chạm theo trục X
-            if (dir.getDx() != 0) {
-                int checkTileX = (int) ((dir.getDx() > 0 ? newX + tileSize - 1 : newX) / tileSize);
-                int checkTileY1 = (int) (worldY / tileSize);
-                int checkTileY2 = (int) ((worldY + tileSize - 1) / tileSize);
-                if (currentMap.isWalkable(checkTileX, checkTileY1) && currentMap.isWalkable(checkTileX, checkTileY2)) {
-                    worldX = newX;
-                }
-            }
-
-            // Kiểm tra va chạm theo trục Y
-            if (dir.getDy() != 0) {
-                int checkTileX1 = (int) (worldX / tileSize);
-                int checkTileX2 = (int) ((worldX + tileSize - 1) / tileSize);
-                int checkTileY = (int) ((dir.getDy() > 0 ? newY + tileSize - 1 : newY) / tileSize);
-                if (currentMap.isWalkable(checkTileX1, checkTileY) && currentMap.isWalkable(checkTileX2, checkTileY)) {
-                    worldY = newY;
-                }
-            }
+            // Va chạm tường được xử lý bởi CollisionManager (dựa trên
+            // hitbox, tách trục X/Y để trượt dọc tường khi đi chéo).
+            double[] resolved = collisionManager.resolveMovement(this, currentMap, dx, dy);
+            worldX = resolved[0];
+            worldY = resolved[1];
         } else {
             // Không có map → di chuyển tự do
-            worldX = newX;
-            worldY = newY;
+            worldX = worldX + dx;
+            worldY = worldY + dy;
         }
 
         // Cập nhật tileX, tileY
@@ -103,8 +127,10 @@ public class Player extends Entity {
      */
     public void setIdle() {
         if (isAttacking()) {
+            System.out.println("[DEBUG Player.setIdle] BLOCKED — isAttacking=true, keeping state=" + state);
             return;
         } else {
+            System.out.println("[DEBUG Player.setIdle] state -> IDLE");
             this.state = EntityState.IDLE;
         }
     }
@@ -114,13 +140,43 @@ public class Player extends Entity {
     }
 
     public boolean canAttack() {
-        return attackCoolDownTimer <= 0 && !isAttacking();
+        boolean can = attackCoolDownTimer <= 0 && !isAttacking();
+        System.out.println("[DEBUG Player.canAttack] cooldown=" + String.format("%.3f", attackCoolDownTimer)
+                + " isAttacking=" + isAttacking() + " => canAttack=" + can);
+        return can;
     }
 
     public void stateAttack() {
+        System.out.println("[DEBUG Player.stateAttack] === ATTACK TRIGGERED ===");
+        System.out.println("[DEBUG Player.stateAttack] state: " + this.state + " -> ATTACK");
+        System.out.println("[DEBUG Player.stateAttack] attackTimer: " + String.format("%.3f", attackTimer)
+                + " -> " + Constants.PLAYER_ATTACK_DURATION);
+        System.out.println("[DEBUG Player.stateAttack] cooldown: " + String.format("%.3f", attackCoolDownTimer)
+                + " -> " + Constants.PLAYER_ATTACK_COOLDOWN);
         this.state = EntityState.ATTACK;
         this.attackTimer = Constants.PLAYER_ATTACK_DURATION;
         this.attackCoolDownTimer = Constants.PLAYER_ATTACK_COOLDOWN;
+
+        // Reset attack animation về frame 0 để chạy lại từ đầu.
+        // (Attack animation có looping=false, nên sau lần đầu finished=true
+        //  và kẹt ở frame cuối — phải reset thủ công mỗi lần tấn công.)
+        for (String dir : new String[]{"right", "left", "up", "down"}) {
+            Animation anim = animations.get("attack_" + dir);
+            if (anim != null) {
+                anim.reset();
+            }
+        }
+    }
+
+    /**
+     * Vùng va chạm của nhát chém hiện tại — 1 hình chữ nhật nhô ra phía
+     * trước player theo hướng đang quay mặt (xem
+     * CollisionManager#getAttackHitbox). Hiện chỉ có vũ khí cận chiến
+     * (kiếm) nên dùng chung 1 tầm đánh Constants.PLAYER_ATTACK_RANGE;
+     * sau này nếu thêm vũ khí tầm xa thì đổi range theo currentWeapon.
+     */
+    public Rectangle getAttackHitbox() {
+        return collisionManager.getAttackHitbox(this, Constants.PLAYER_ATTACK_RANGE);
     }
 
     /**
@@ -206,6 +262,18 @@ public class Player extends Entity {
         this.currentMap = map;
     }
 
+    /**
+     * Cho phép GameEngine truyền vào 1 CollisionManager dùng chung
+     * (thay vì mỗi Player tự tạo 1 cái riêng).
+     */
+    public void setCollisionManager(CollisionManager collisionManager) {
+        this.collisionManager = collisionManager;
+    }
+
+    public CollisionManager getCollisionManager() {
+        return collisionManager;
+    }
+
     // --- Getter ---
     public int getLevel() {
         return level;
@@ -252,16 +320,22 @@ public class Player extends Entity {
     }
 
     public void initAnimations(AssetLoader assets) {
+        System.out.println("[DEBUG Player.initAnimations] === REGISTERING ALL ANIMATIONS ===");
         registerDirectionalAnimation(assets, "player_idle", EntityState.IDLE, 130, true);
         registerDirectionalAnimation(assets, "player_walk", EntityState.WALK, 90, true);
         registerDirectionalAnimation(assets, "player_attack", EntityState.ATTACK, 40, false);
         registerDirectionalAnimation(assets, "player_hurt", EntityState.HURT, 90, false);
         registerDirectionalAnimation(assets, "player_dead", EntityState.DEAD, 150, false);
+        System.out.println("[DEBUG Player.initAnimations] All animation keys: " + animations.keySet());
     }
  
     private void registerDirectionalAnimation(AssetLoader assets, String spriteName, EntityState forState, int frameDurationMs, boolean looping) {
         BufferedImage[] facingRight = assets.getFrames(spriteName);
         BufferedImage[] facingLeft = assets.getFramesFlipped(spriteName);
+ 
+        System.out.println("[DEBUG registerAnim] sprite='" + spriteName + "' state=" + forState
+                + " framesRight=" + facingRight.length + " framesLeft=" + facingLeft.length
+                + " durationMs=" + frameDurationMs + " loop=" + looping);
  
         Animation animRight = new Animation(facingRight, frameDurationMs);
         animRight.setLooping(looping);
@@ -273,6 +347,7 @@ public class Player extends Entity {
         animations.put(prefix + "up", animRight);
         animations.put(prefix + "down", animRight);
         animations.put(prefix + "left", animLeft);
+        System.out.println("[DEBUG registerAnim] Registered keys: " + prefix + "{right,up,down,left}");
     }
 }
 

@@ -3,6 +3,7 @@ package TerraIncognita;
 import TerraIncognita.combat.CombatSystem;
 import TerraIncognita.entity.Chest;
 import TerraIncognita.entity.Direction;
+import TerraIncognita.entity.Entity;
 import TerraIncognita.entity.Player;
 import TerraIncognita.entity.monster.Monster;
 import TerraIncognita.entity.monster.SkeletonMonster;
@@ -26,6 +27,7 @@ import TerraIncognita.util.Constants;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -64,10 +66,10 @@ public class GameEngine {
     private DialogBox dialogBox;
     private GameOverScreen gameOverScreen;
     private List<Monster> activeMonsters;
+    private CombatSystem combatSystem;
 
     // TODO (GĐ2): GameMap currentMap
     // TODO (GĐ3): AssetLoader assetLoader, Renderer renderer
-    // TODO (GĐ4): CombatSystem combatSystem
     // TODO (GĐ5): EventSystem eventSystem
     // TODO (GĐ6): SaveManager saveManager
 
@@ -122,6 +124,9 @@ public class GameEngine {
         SlimeMonster slime = new SlimeMonster(12, 10);
         slime.initAnimations(assetLoader);
         this.activeMonsters.add(slime);
+
+        // Hệ thống chiến đấu — tính damage/crit/miss khi tấn công
+        this.combatSystem = new CombatSystem();
     }
 
     /**
@@ -261,6 +266,17 @@ public class GameEngine {
                 activeShop = merchant.getShop();
                 shopUI.open();
                 changeState(GameState.SHOP);
+            }
+        }
+
+        // SPACE — tấn công cận chiến bằng vũ khí hiện tại (kiếm)
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_SPACE)) {
+            System.out.println("[DEBUG GameEngine] SPACE pressed! canAttack=" + player.canAttack());
+            if (player.canAttack()) {
+                System.out.println("[DEBUG GameEngine] => calling handlePlayerAttack()");
+                handlePlayerAttack();
+            } else {
+                System.out.println("[DEBUG GameEngine] => BLOCKED (canAttack=false)");
             }
         }
 
@@ -539,6 +555,44 @@ public class GameEngine {
 
     private boolean rectsOverlap(double x1, double y1, double x2, double y2, int size) {
         return x1 < x2 + size && x1 + size > x2 && y1 < y2 + size && y1 + size > y2;
+    }
+
+    /**
+     * Xử lý 1 nhát chém cận chiến của player.
+     */
+    private void handlePlayerAttack() {
+        player.stateAttack();
+
+        Rectangle attackHitbox = player.getAttackHitbox();
+        Entity target = player.getCollisionManager().findAttackTarget(player, attackHitbox, activeMonsters);
+
+        if (target == null) {
+            return; // Vung kiếm nhưng không trúng quái nào
+        }
+
+        CombatSystem.CombatResult result = combatSystem.attack(player, target);
+
+        if (result.isMiss) {
+            pickupMessage = "Trượt!";
+        } else {
+            String critTag = result.isCrit ? "CHÍ MẠNG! " : "";
+            pickupMessage = critTag + "Gây " + result.damage + " sát thương";
+
+            if (result.targetDied && target instanceof Monster) {
+                Monster monster = (Monster) target;
+                player.addExp(monster.getExpReward());
+                player.addGold(monster.getGoldReward());
+                pickupMessage += " — hạ gục " + monster.getName()
+                        + "! +" + monster.getExpReward() + " EXP, +" + monster.getGoldReward() + " vàng";
+            }
+        }
+        messageTimer = 1.5;
+    }
+
+    private boolean isNearChest(Chest chest) {
+        int dx = Math.abs(player.getTileX() - chest.getTileX());
+        int dy = Math.abs(player.getTileY() - chest.getTileY());
+        return dx <= 1 && dy <= 1;
     }
 
     private boolean isNearMerchant() {

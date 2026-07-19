@@ -31,6 +31,7 @@ public class Constants {
     public static final int CHEST_COLS = 6;           // số frame mỗi hàng
     public static final double PLAYER_ATTACK_COOLDOWN = 0.3;
     public static final double PLAYER_ATTACK_DURATION = 0.3;
+    public static final int PLAYER_ATTACK_RANGE = 20; // độ vươn xa của hitbox kiếm (pixel), tính từ mép hitbox
 
     public static final int PLAYER_SPRITE_SIZE = 200;
 
