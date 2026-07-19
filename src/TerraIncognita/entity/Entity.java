@@ -43,6 +43,12 @@ public abstract class Entity {
     protected Map<String, Animation> animations;    // key = "idle_down", "walk_up", "attack_left"...
     protected Animation currentAnimation;
 
+    // Cho phép entity con (Player) ép dùng 1 animation key cụ thể thay vì
+    // key mặc định "state_direction" — dùng cho combo: đòn thứ 3 của kiếm
+    // vẫn ở state ATTACK nhưng cần chạy frame set "attack2_*" (Soldier_Attack02)
+    // thay vì "attack_*" (Soldier_Attack01). null = dùng key mặc định.
+    protected String animationKeyOverride;
+
     // --- Hiệu ứng trạng thái ---
     protected List<StatusEffect> activeEffects;
 
@@ -70,6 +76,7 @@ public abstract class Entity {
         this.alive = true;
         this.animations = new HashMap<>();
         this.currentAnimation = null;
+        this.animationKeyOverride = null;
         this.activeEffects = new ArrayList<>();
 
         // Hitbox mặc định: thu nhỏ 4px mỗi cạnh so với 1 tile
@@ -112,8 +119,11 @@ public abstract class Entity {
      * Cập nhật animation hiện tại dựa trên state + direction.
      */
     protected void updateAnimation(double deltaTime) {
-        // Xây key animation: "idle_down", "walk_up"...
-        String key = state.name().toLowerCase() + "_" + direction.name().toLowerCase();
+        // Xây key animation: "idle_down", "walk_up"... trừ khi bị ép dùng
+        // key khác qua animationKeyOverride (xem combo kiếm trong Player).
+        String key = (animationKeyOverride != null)
+                ? animationKeyOverride
+                : state.name().toLowerCase() + "_" + direction.name().toLowerCase();
         Animation anim = animations.get(key);
         if (anim != null) {
             currentAnimation = anim;

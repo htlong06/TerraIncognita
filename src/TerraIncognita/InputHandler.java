@@ -1,6 +1,9 @@
 package TerraIncognita;
 
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import javax.swing.AbstractAction;
 import javax.swing.ActionMap;
 import javax.swing.InputMap;
@@ -30,6 +33,19 @@ public class InputHandler {
     // press+release xảy ra giữa 2 frame
     private final boolean[] justPressedBuffer;
 
+    // --- Chuột ---
+    // Trạng thái nút trái chuột hiện tại / frame trước (dùng để phát hiện
+    // "vừa nhấn" / "vừa thả" — ví dụ: SWORD bấm 1 cái là chém ngay, còn
+    // BOW thì giữ để ngắm rồi thả ra mới bắn).
+    private volatile boolean mouseLeftDown;
+    private boolean previousMouseLeftDown;
+    // Buffer: chuột trái đã được bấm kể từ lần update() cuối — tương tự
+    // justPressedBuffer cho bàn phím, đảm bảo không bao giờ mất event click
+    private volatile boolean mouseLeftJustPressedBuffer;
+    private volatile boolean mouseLeftJustReleasedBuffer;
+    private volatile int mouseX;
+    private volatile int mouseY;
+
     // Danh sách các phím game cần bind
     private static final int[] GAME_KEYS = {
         KeyEvent.VK_UP, KeyEvent.VK_DOWN, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT,
@@ -45,7 +61,7 @@ public class InputHandler {
     }
 
     /**
-     * Đăng ký Key Bindings lên JComponent (thường là GamePanel).
+     * Đăng ký Key Bindings + Mouse Listener lên JComponent (thường là GamePanel).
      * Gọi 1 lần duy nhất sau khi tạo panel.
      */
     public void bindTo(JComponent component) {
@@ -86,6 +102,46 @@ public class InputHandler {
                 }
             });
         }
+
+        // --- Chuột: nút trái (BUTTON1) — dùng thẳng MouseListener, không
+        // gặp vấn đề "mất focus" như bàn phím vì sự kiện chuột luôn nhắm
+        // đúng component đang ở dưới con trỏ, không phụ thuộc focus. ---
+        component.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    if (!mouseLeftDown) {
+                        mouseLeftJustPressedBuffer = true;
+                        System.out.println("[DEBUG InputHandler] MOUSE LEFT PRESSED (buffer set)");
+                    }
+                    mouseLeftDown = true;
+                }
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    if (mouseLeftDown) {
+                        mouseLeftJustReleasedBuffer = true;
+                        System.out.println("[DEBUG InputHandler] MOUSE LEFT RELEASED (buffer set)");
+                    }
+                    mouseLeftDown = false;
+                }
+            }
+        });
+        component.addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                mouseX = e.getX();
+                mouseY = e.getY();
+            }
+
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                mouseX = e.getX();
+                mouseY = e.getY();
+            }
+        });
     }
 
     /**
@@ -95,6 +151,7 @@ public class InputHandler {
     public void update() {
         System.arraycopy(keys, 0, previousKeys, 0, keys.length);
         // justPressedBuffer sẽ được clear trong isKeyJustPressed() sau khi đọc
+        previousMouseLeftDown = mouseLeftDown;
     }
 
     /**
@@ -134,5 +191,56 @@ public class InputHandler {
             return result;
         }
         return false;
+    }
+
+    // =========================================
+    // CHUỘT
+    // =========================================
+
+    /** Nút trái chuột có đang được giữ không (dùng cho "giữ để ngắm" của cung). */
+    public boolean isMouseLeftPressed() {
+        return mouseLeftDown;
+    }
+
+    /** Nút trái chuột vừa được bấm xuống frame này (dùng cho chém kiếm — bấm là chém ngay). */
+    public boolean isMouseLeftJustPressed() {
+        // Ưu tiên buffer (giống justPressedBuffer cho keyboard)
+        if (mouseLeftJustPressedBuffer) {
+            mouseLeftJustPressedBuffer = false;
+            System.out.println("[DEBUG InputHandler.isMouseLeftJustPressed] => TRUE (from buffer)");
+            return true;
+        }
+        // Fallback: so sánh current vs previous
+        boolean result = mouseLeftDown && !previousMouseLeftDown;
+        if (result) {
+            System.out.println("[DEBUG InputHandler.isMouseLeftJustPressed] => TRUE (from diff)");
+        }
+        return result;
+    }
+
+    /** Nút trái chuột vừa được thả ra frame này (dùng cho bắn cung — thả ra mới bắn). */
+    public boolean isMouseLeftJustReleased() {
+        // Ưu tiên buffer
+        if (mouseLeftJustReleasedBuffer) {
+            mouseLeftJustReleasedBuffer = false;
+            System.out.println("[DEBUG InputHandler.isMouseLeftJustReleased] => TRUE (from buffer)");
+            return true;
+        }
+        // Fallback
+        boolean result = !mouseLeftDown && previousMouseLeftDown;
+        if (result) {
+            System.out.println("[DEBUG InputHandler.isMouseLeftJustReleased] => TRUE (from diff)");
+        }
+        return result;
+    }
+
+    /** Vị trí X hiện tại của chuột, tính theo toạ độ của GamePanel (== world, vì không có camera scroll). */
+    public int getMouseX() {
+        return mouseX;
+    }
+
+    /** Vị trí Y hiện tại của chuột, tính theo toạ độ của GamePanel. */
+    public int getMouseY() {
+        return mouseY;
     }
 }
