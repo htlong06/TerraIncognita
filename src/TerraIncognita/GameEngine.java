@@ -31,7 +31,9 @@ import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 /**
  * Quản lý trạng thái game (State Machine).
  *
@@ -53,6 +55,7 @@ public class GameEngine {
     private AssetLoader assetLoader;
 
     private List<Chest> chests;
+    private Set<Chest> collidingChests;
     private String pickupMessage;
     private double messageTimer;
 
@@ -88,6 +91,7 @@ public class GameEngine {
 
         // Spawn rương test
         this.chests = new ArrayList<>();
+        this.collidingChests = new HashSet<>();
 
         // Rương 1: không khóa, tile (10,5), chứa Potion
         Chest chest1 = new Chest(10, 5, false);
@@ -240,6 +244,8 @@ public class GameEngine {
             player.setIdle();
         }
 
+        updateChestCollisions();
+
         // Xử lý pause
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ESCAPE)) {
             changeState(GameState.PAUSED);
@@ -253,35 +259,13 @@ public class GameEngine {
             }
         }
 
-        // E key — mở rương hoặc tương tác merchant
+        // E key — tương tác merchant
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_E)) {
-            // Kiểm tra merchant trước
             if (isNearMerchant()) {
                 merchant.interact(player);
                 activeShop = merchant.getShop();
                 shopUI.open();
                 changeState(GameState.SHOP);
-            } else {
-                // Kiểm tra rương
-                for (Chest chest : chests) {
-                    if (isNearChest(chest)) {
-                        boolean opened = chest.open(player);
-                        if (opened) {
-                            Item loot = chest.getLastLoot();
-                            if (loot != null) {
-                                pickupMessage = "Nhặt được: " + loot.getName();
-                            } else {
-                                pickupMessage = "Rương trống!";
-                            }
-                        } else if (chest.isLocked()) {
-                            pickupMessage = "Rương bị khóa! Cần chìa khóa.";
-                        } else {
-                            pickupMessage = "Rương đã mở rồi.";
-                        }
-                        messageTimer = 3.0;
-                        break;
-                    }
-                }
             }
         }
 
@@ -532,14 +516,49 @@ public class GameEngine {
     }
 
 
+    private void updateChestCollisions() {
+        Set<Chest> currentlyColliding = new HashSet<>();
+        for (Chest chest : chests) {
+            if (isCollidingWithChest(chest)) {
+                currentlyColliding.add(chest);
+                if (!collidingChests.contains(chest)) {
+                    tryOpenChest(chest);
+                }
+            }
+        }
+        collidingChests = currentlyColliding;
+    }
+
+    private void tryOpenChest(Chest chest) {
+        boolean opened = chest.open(player);
+        if (opened) {
+            Item loot = chest.getLastLoot();
+            if (loot != null) {
+                pickupMessage = "Nhặt được: " + loot.getName();
+            } else {
+                pickupMessage = "Rương trống!";
+            }
+        } else if (chest.isLocked()) {
+            pickupMessage = "Rương bị khóa! Cần chìa khóa.";
+        } else {
+            pickupMessage = "Rương đã mở rồi.";
+        }
+        messageTimer = 3.0;
+    }
+
+    private boolean isCollidingWithChest(Chest chest) {
+        return rectsOverlap(
+                player.getWorldX(), player.getWorldY(),
+                chest.getWorldX(), chest.getWorldY(),
+                Constants.TILE_SIZE);
+    }
+
+    private boolean rectsOverlap(double x1, double y1, double x2, double y2, int size) {
+        return x1 < x2 + size && x1 + size > x2 && y1 < y2 + size && y1 + size > y2;
+    }
+
     /**
      * Xử lý 1 nhát chém cận chiến của player.
-     *
-     * Cơ chế: CollisionManager.getAttackHitbox() dựng ra 1 hình chữ nhật
-     * nhô ra phía trước player theo hướng đang quay mặt (giống attackArea
-     * trong 2dGame), CollisionManager.findAttackTarget() tìm quái đầu
-     * tiên bị hitbox đó chạm trúng, rồi CombatSystem tính damage/crit/miss
-     * và áp dụng lên quái.
      */
     private void handlePlayerAttack() {
         player.stateAttack();
@@ -587,34 +606,28 @@ public class GameEngine {
         int px = (int) chest.getWorldX();
         int py = (int) chest.getWorldY();
         int size = Constants.TILE_SIZE;
-        int pad = 4;
 
-        if (chest.isOpened()) {
-            g2d.setColor(new Color(80, 70, 50));      // xám tối
-        } else if (chest.isLocked()) {
-            g2d.setColor(new Color(120, 80, 40));     // nâu
-        } else {
-            g2d.setColor(new Color(180, 140, 60));    // vàng đồng
-        }
-        g2d.fillRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
+        // Chọn sprite key theo loại rương + trạng thái
+        String key = "chest_" + chest.getChestType() + (chest.isOpened() ? "_open" : "_closed");
+        BufferedImage frame = assetLoader.getTile(key);
 
-        // Viền
-        if (chest.isLocked() && !chest.isOpened()) {
-            g2d.setColor(new Color(200, 60, 60));      // đỏ
+        if (frame != null) {
+            // Vẽ sprite, scale 40x32 -> TILE_SIZE x TILE_SIZE (giữ tỉ lệ, neo đáy)
+            int drawW = size;
+            int drawH = (int) ((double) Constants.CHEST_FRAME_HEIGHT / Constants.CHEST_FRAME_WIDTH * size);
+            int drawY = py + size - drawH; // neo đáy tile
+            g2d.drawImage(frame, px, drawY, drawW, drawH, null);
         } else {
-            g2d.setColor(new Color(60, 50, 30));
-        }
-        g2d.drawRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
-
-        // Icon: dấu + (chưa mở), dấu - (đã mở)
-        g2d.setColor(chest.isOpened() ? new Color(50, 45, 35) : new Color(220, 200, 120));
-        int cx = px + size / 2;
-        int cy = py + size / 2;
-        if (!chest.isOpened()) {
-            g2d.fillRect(cx - 6, cy - 2, 12, 4);
-            g2d.fillRect(cx - 2, cy - 6, 4, 12);
-        } else {
-            g2d.fillRect(cx - 5, cy - 1, 10, 2);
+            // Fallback: hình vuông nếu sprite chưa load
+            int pad = 4;
+            if (chest.isOpened()) {
+                g2d.setColor(new Color(80, 70, 50));
+            } else if (chest.isLocked()) {
+                g2d.setColor(new Color(120, 80, 40));
+            } else {
+                g2d.setColor(new Color(180, 140, 60));
+            }
+            g2d.fillRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
         }
     }
 

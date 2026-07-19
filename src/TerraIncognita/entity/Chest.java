@@ -6,7 +6,7 @@ import TerraIncognita.util.Constants;
 
 /**
  * Rương báu / kho báu.
- * Là Entity đứng yên, khi player tương tác sẽ mở ra và sinh item ngẫu nhiên.
+ * Là Entity đứng yên, khi player va chạm sẽ mở ra và sinh item ngẫu nhiên.
  */
 public class Chest extends Entity {
 
@@ -15,6 +15,7 @@ public class Chest extends Entity {
     private String requiredKeyId;
     private LootTable lootTable;
     private Item lastLoot;  // item vừa nhặt từ lần open() gần nhất
+    private String chestType; // "brown", "gold", "blue"
 
     public Chest(int tileX, int tileY, boolean locked) {
         super();
@@ -27,6 +28,7 @@ public class Chest extends Entity {
         this.locked = locked;
         this.requiredKeyId = "";
         this.speed = 0;
+        this.chestType = locked ? "gold" : "brown"; // locked = gold, unlocked = brown
     }
 
     @Override
@@ -67,6 +69,7 @@ public class Chest extends Entity {
     public boolean isOpened() { return opened; }
     public boolean isLocked() { return locked; }
     public Item getLastLoot() { return lastLoot; }
+    public String getChestType() { return chestType; }
     public void setRequiredKeyId(String keyId) { this.requiredKeyId = keyId; }
     public void setLootTable(LootTable table) { this.lootTable = table; }
 }
