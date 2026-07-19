@@ -53,25 +53,23 @@ public class AssetLoader {
             return;
         }
         // Chests.png: 6 cols × 8 rows, mỗi frame 40×32
-        // Hàng 0-5: closed (brown, gold, blue), hàng 6-7: open (nếu có)
-        // Lấy 3 frame closed đầu tiên (brown, gold, blue)
+        // Layout: mỗi loại rương chiếm 2 hàng (hàng 0-1 brown, 2-3 gold, 4-5 red, 6-7 blue)
+        // Hàng chẵn (0,2,4,6): closed → mở dần
+        // Hàng lẻ (1,3,5,7): closed → mở dần (bản khác góc nhìn?)
+        // Dùng frame 0 = closed, frame 5 (cuối hàng) = open
         SpriteSheet cutter = new SpriteSheet(sheet, Constants.CHEST_FRAME_WIDTH, Constants.CHEST_FRAME_HEIGHT);
-        BufferedImage[] closed = new BufferedImage[3];
-        for (int i = 0; i < 3; i++) {
-            closed[i] = cutter.getFrame(i, 0);
-        }
-        tileImages.put("chest_brown_closed", closed[0]);
-        tileImages.put("chest_gold_closed", closed[1]);
-        tileImages.put("chest_blue_closed", closed[2]);
 
-        // Frame open: hàng 1 (nếu có)
-        BufferedImage[] open = new BufferedImage[3];
-        for (int i = 0; i < 3; i++) {
-            open[i] = cutter.getFrame(i, 1);
-        }
-        tileImages.put("chest_brown_open", open[0]);
-        tileImages.put("chest_gold_open", open[1]);
-        tileImages.put("chest_blue_open", open[2]);
+        // Brown: hàng 0, frame 0 = closed, frame 5 = open
+        tileImages.put("chest_brown_closed", cutter.getFrame(0, 0));
+        tileImages.put("chest_brown_open", cutter.getFrame(5, 0));
+
+        // Gold: hàng 2, frame 0 = closed, frame 5 = open
+        tileImages.put("chest_gold_closed", cutter.getFrame(0, 2));
+        tileImages.put("chest_gold_open", cutter.getFrame(5, 2));
+
+        // Blue: hàng 6, frame 0 = closed, frame 5 = open
+        tileImages.put("chest_blue_closed", cutter.getFrame(0, 6));
+        tileImages.put("chest_blue_open", cutter.getFrame(5, 6));
     }
 
     private void loadPlayer() {
