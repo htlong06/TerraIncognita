@@ -42,7 +42,36 @@ public class AssetLoader {
      */
     public void loadAll() {
         loadPlayer();
+        loadChest();
         loadMonsters();
+    }
+
+    private void loadChest() {
+        String path = Constants.SPRITES_PATH + "items/chest/Chests.png";
+        BufferedImage sheet = loadImage(path);
+        if (sheet == null) {
+            return;
+        }
+        // Chests.png: 6 cols × 8 rows, mỗi frame 40×32
+        // Hàng 0-5: closed (brown, gold, blue), hàng 6-7: open (nếu có)
+        // Lấy 3 frame closed đầu tiên (brown, gold, blue)
+        SpriteSheet cutter = new SpriteSheet(sheet, Constants.CHEST_FRAME_WIDTH, Constants.CHEST_FRAME_HEIGHT);
+        BufferedImage[] closed = new BufferedImage[3];
+        for (int i = 0; i < 3; i++) {
+            closed[i] = cutter.getFrame(i, 0);
+        }
+        tileImages.put("chest_brown_closed", closed[0]);
+        tileImages.put("chest_gold_closed", closed[1]);
+        tileImages.put("chest_blue_closed", closed[2]);
+
+        // Frame open: hàng 1 (nếu có)
+        BufferedImage[] open = new BufferedImage[3];
+        for (int i = 0; i < 3; i++) {
+            open[i] = cutter.getFrame(i, 1);
+        }
+        tileImages.put("chest_brown_open", open[0]);
+        tileImages.put("chest_gold_open", open[1]);
+        tileImages.put("chest_blue_open", open[2]);
     }
 
     private void loadPlayer() {

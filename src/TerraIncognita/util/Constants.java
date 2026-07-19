@@ -23,7 +23,12 @@ public class Constants {
     public static final int PLAYER_START_HP = 100;
     public static final int PLAYER_START_ATK = 10;
     public static final int PLAYER_START_DEF = 5;
-    public static final double PLAYER_SPEED = 150.0;
+    public static final double PLAYER_SPEED = 150.0;  // pixel/giây
+
+    // --- Chest sprite ---
+    public static final int CHEST_FRAME_WIDTH = 40;   // pixel/frame trong Chests.png
+    public static final int CHEST_FRAME_HEIGHT = 32;
+    public static final int CHEST_COLS = 6;           // số frame mỗi hàng
     public static final double PLAYER_ATTACK_COOLDOWN = 0.3;
     public static final double PLAYER_ATTACK_DURATION = 0.3;
 
