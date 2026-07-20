@@ -31,6 +31,15 @@ public class Player extends Entity {
     private double attackTimer;
     private double attackCoolDownTimer;
 
+    // --- Vũ khí hiện tại: Kiếm (cận chiến, có combo) hoặc Cung (tầm xa) ---
+    private WeaponMode weaponMode = WeaponMode.SWORD;
+
+    // --- Combo kiếm: đếm số nhát chém liên tiếp (1,2,3). Đòn thứ 3 là
+    // "combo finisher" — dùng frame Soldier_Attack02 + sát thương cao hơn.
+    private int comboCount;
+    private double comboResetTimer; // còn > 0 nghĩa là vẫn trong "cửa sổ" để nối combo
+    private boolean lastAttackWasComboFinisher; // đòn vừa tung ra có phải đòn thứ 3 không
+
     public Player() {
         super();
         this.name = "Player";
@@ -80,11 +89,22 @@ public class Player extends Entity {
             System.out.println("[DEBUG attackTimer] " + String.format("%.3f", before)
                     + " -> " + String.format("%.3f", attackTimer)
                     + " (dt=" + String.format("%.3f", deltaTime) + ")");
+            if (attackTimer <= 0) {
+                // Nhát chém kết thúc → bỏ override, quay lại animation state bình thường
+                animationKeyOverride = null;
+            }
         }
         if (attackCoolDownTimer > 0) {
             attackCoolDownTimer -= deltaTime;
             if (attackCoolDownTimer < 0) {
                 attackCoolDownTimer = 0;
+            }
+        }
+        // Cửa sổ combo: quá thời gian này mà không đánh tiếp thì chuỗi combo mất
+        if (comboResetTimer > 0) {
+            comboResetTimer -= deltaTime;
+            if (comboResetTimer < 0) {
+                comboResetTimer = 0;
             }
         }
     }
@@ -96,15 +116,25 @@ public class Player extends Entity {
      * @param deltaTime thời gian frame
      */
     public void move(Direction dir, double deltaTime) {
+        // --- Kiếm: đứng im khi đang chém (khóa di chuyển hoàn toàn) ---
+        if (isAttacking() && weaponMode == WeaponMode.SWORD) {
+            // Vẫn cập nhật hướng mặt để animation đúng, nhưng không di chuyển
+            return;
+        }
+
         this.direction = dir;
         if (!isAttacking()) {
             this.state = EntityState.WALK;
-        } else {
-            System.out.println("[DEBUG Player.move] BLOCKED state change to WALK — isAttacking=true, keeping state=" + state);
         }
 
-        double dx = dir.getDx() * speed * deltaTime;
-        double dy = dir.getDy() * speed * deltaTime;
+        // --- Cung: chậm lại khi đang bắn ---
+        double moveSpeed = speed;
+        if (isAttacking() && weaponMode == WeaponMode.BOW) {
+            moveSpeed = speed * Constants.BOW_ATTACK_SPEED_MULTIPLIER;
+        }
+
+        double dx = dir.getDx() * moveSpeed * deltaTime;
+        double dy = dir.getDy() * moveSpeed * deltaTime;
 
         if (currentMap != null) {
             // Va chạm tường được xử lý bởi CollisionManager (dựa trên
@@ -147,36 +177,90 @@ public class Player extends Entity {
     }
 
     public void stateAttack() {
-        System.out.println("[DEBUG Player.stateAttack] === ATTACK TRIGGERED ===");
-        System.out.println("[DEBUG Player.stateAttack] state: " + this.state + " -> ATTACK");
-        System.out.println("[DEBUG Player.stateAttack] attackTimer: " + String.format("%.3f", attackTimer)
-                + " -> " + Constants.PLAYER_ATTACK_DURATION);
-        System.out.println("[DEBUG Player.stateAttack] cooldown: " + String.format("%.3f", attackCoolDownTimer)
-                + " -> " + Constants.PLAYER_ATTACK_COOLDOWN);
+        System.out.println("[DEBUG Player.stateAttack] === ATTACK TRIGGERED === weapon=" + weaponMode);
         this.state = EntityState.ATTACK;
         this.attackTimer = Constants.PLAYER_ATTACK_DURATION;
         this.attackCoolDownTimer = Constants.PLAYER_ATTACK_COOLDOWN;
 
+        String animKeyPrefix;
+        if (weaponMode == WeaponMode.SWORD) {
+            // --- Combo: đếm số nhát chém liên tiếp trong "cửa sổ" COMBO_RESET_WINDOW ---
+            if (comboResetTimer <= 0) {
+                comboCount = 0; // quá lâu không đánh tiếp -> chuỗi combo cũ đã hết hạn
+            }
+            comboCount++;
+            if (comboCount > 3) {
+                comboCount = 1; // bắt đầu chuỗi mới sau khi hoàn thành 1 combo
+            }
+            comboResetTimer = Constants.COMBO_RESET_WINDOW;
+            lastAttackWasComboFinisher = (comboCount == 3);
+            animKeyPrefix = lastAttackWasComboFinisher ? "attack2" : "attack";
+            System.out.println("[DEBUG Player.stateAttack] combo=" + comboCount + "/3"
+                    + " finisher=" + lastAttackWasComboFinisher);
+        } else {
+            // Cung: không tính combo, dùng frame Soldier_Attack03
+            comboCount = 0;
+            comboResetTimer = 0;
+            lastAttackWasComboFinisher = false;
+            animKeyPrefix = "attack3";
+        }
+
         // Reset attack animation về frame 0 để chạy lại từ đầu.
         // (Attack animation có looping=false, nên sau lần đầu finished=true
         //  và kẹt ở frame cuối — phải reset thủ công mỗi lần tấn công.)
-        for (String dir : new String[]{"right", "left", "up", "down"}) {
-            Animation anim = animations.get("attack_" + dir);
-            if (anim != null) {
-                anim.reset();
-            }
+        animationKeyOverride = animKeyPrefix + "_" + direction.name().toLowerCase();
+        resetAnimations(animationKeyOverride);
+    }
+
+    /**
+     * Đổi qua lại giữa Kiếm và Cung. Huỷ luôn chuỗi combo đang dang dở
+     * (đổi vũ khí giữa chừng thì không được tính tiếp combo kiếm cũ).
+     */
+    public void toggleWeaponMode() {
+        weaponMode = (weaponMode == WeaponMode.SWORD) ? WeaponMode.BOW : WeaponMode.SWORD;
+        comboCount = 0;
+        comboResetTimer = 0;
+        lastAttackWasComboFinisher = false;
+    }
+
+    /**
+     * Xoay mặt player về phía toạ độ (targetX, targetY) — dùng khi ngắm bắn
+     * cung bằng chuột. Vì sprite/animation chỉ hỗ trợ 4 hướng, hướng được
+     * "chốt" (snap) về 1 trong 4 hướng UP/DOWN/LEFT/RIGHT theo trục lệch
+     * nhiều hơn giữa dx/dy; đường ngắm vẽ trên UI vẫn theo góc thật (xem
+     * GameEngine#drawAimLine) để người chơi thấy chính xác đang ngắm đâu.
+     * Không đổi hướng khi đang giữa nhát chém, tránh "xoay người" kỳ khi
+     * animation tấn công đang chạy.
+     */
+    public void aimTowards(double targetX, double targetY) {
+        if (isAttacking()) {
+            return;
+        }
+        Rectangle box = getHitbox();
+        double centerX = box.x + box.width / 2.0;
+        double centerY = box.y + box.height / 2.0;
+        double dx = targetX - centerX;
+        double dy = targetY - centerY;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            this.direction = dx > 0 ? Direction.RIGHT : Direction.LEFT;
+        } else {
+            this.direction = dy > 0 ? Direction.DOWN : Direction.UP;
         }
     }
 
     /**
      * Vùng va chạm của nhát chém hiện tại — 1 hình chữ nhật nhô ra phía
      * trước player theo hướng đang quay mặt (xem
-     * CollisionManager#getAttackHitbox). Hiện chỉ có vũ khí cận chiến
-     * (kiếm) nên dùng chung 1 tầm đánh Constants.PLAYER_ATTACK_RANGE;
-     * sau này nếu thêm vũ khí tầm xa thì đổi range theo currentWeapon.
+     * CollisionManager#getAttackHitbox). Tầm đánh phụ thuộc vũ khí hiện
+     * tại: kiếm dùng PLAYER_ATTACK_RANGE (ngắn), cung dùng PLAYER_BOW_RANGE
+     * (dài hơn nhiều, coi như tầm bay của mũi tên).
      */
     public Rectangle getAttackHitbox() {
-        return collisionManager.getAttackHitbox(this, Constants.PLAYER_ATTACK_RANGE);
+        int range = (weaponMode == WeaponMode.BOW)
+                ? Constants.PLAYER_BOW_RANGE
+                : Constants.PLAYER_ATTACK_RANGE;
+        return collisionManager.getAttackHitbox(this, range);
     }
 
     /**
@@ -303,6 +387,19 @@ public class Player extends Entity {
         return currentMap;
     }
 
+    public WeaponMode getWeaponMode() {
+        return weaponMode;
+    }
+
+    public int getComboCount() {
+        return comboCount;
+    }
+
+    /** true nếu nhát chém VỪA tung ra (lần gọi stateAttack() gần nhất) là đòn combo thứ 3. */
+    public boolean isLastAttackComboFinisher() {
+        return lastAttackWasComboFinisher;
+    }
+
     // --- Setter (dùng cho load game) ---
     public void setMaxHp(int maxHp) { this.maxHp = maxHp; }
     public void setAtk(int atk) { this.atk = atk; }
@@ -326,14 +423,29 @@ public class Player extends Entity {
         registerDirectionalAnimation(assets, "player_attack", EntityState.ATTACK, 40, false);
         registerDirectionalAnimation(assets, "player_hurt", EntityState.HURT, 90, false);
         registerDirectionalAnimation(assets, "player_dead", EntityState.DEAD, 150, false);
+        // Đòn combo thứ 3 của kiếm — dùng key riêng "attack2_*" (không gắn
+        // với 1 EntityState nào, được chọn thủ công qua animationKeyOverride
+        // trong stateAttack()), nên đăng ký bằng overload nhận String prefix.
+        registerDirectionalAnimation(assets, "player_attack2", "attack2", 40, false);
+        // Tấn công cung — dùng Soldier_Attack03, key "attack3_*"
+        registerDirectionalAnimation(assets, "player_attack3", "attack3", 40, false);
         System.out.println("[DEBUG Player.initAnimations] All animation keys: " + animations.keySet());
     }
  
     private void registerDirectionalAnimation(AssetLoader assets, String spriteName, EntityState forState, int frameDurationMs, boolean looping) {
+        registerDirectionalAnimation(assets, spriteName, forState.name().toLowerCase(), frameDurationMs, looping);
+    }
+
+    /**
+     * Overload nhận thẳng prefix dạng String thay vì EntityState — dùng cho
+     * các bộ animation không gắn 1-1 với 1 EntityState (ví dụ "attack2"
+     * vẫn ở EntityState.ATTACK nhưng cần key riêng để phân biệt combo).
+     */
+    private void registerDirectionalAnimation(AssetLoader assets, String spriteName, String keyPrefixName, int frameDurationMs, boolean looping) {
         BufferedImage[] facingRight = assets.getFrames(spriteName);
         BufferedImage[] facingLeft = assets.getFramesFlipped(spriteName);
  
-        System.out.println("[DEBUG registerAnim] sprite='" + spriteName + "' state=" + forState
+        System.out.println("[DEBUG registerAnim] sprite='" + spriteName + "' key=" + keyPrefixName
                 + " framesRight=" + facingRight.length + " framesLeft=" + facingLeft.length
                 + " durationMs=" + frameDurationMs + " loop=" + looping);
  
@@ -342,7 +454,7 @@ public class Player extends Entity {
         Animation animLeft = new Animation(facingLeft, frameDurationMs);
         animLeft.setLooping(looping);
  
-        String prefix = forState.name().toLowerCase() + "_";
+        String prefix = keyPrefixName + "_";
         animations.put(prefix + "right", animRight);
         animations.put(prefix + "up", animRight);
         animations.put(prefix + "down", animRight);
