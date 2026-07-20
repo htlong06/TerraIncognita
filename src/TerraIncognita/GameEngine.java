@@ -4,10 +4,13 @@ import TerraIncognita.combat.CombatSystem;
 import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Player;
 import TerraIncognita.entity.monster.Monster;
-import TerraIncognita.entity.monster.SkeletonMonster;
 import TerraIncognita.entity.monster.SlimeMonster;
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.graphics.AssetLoader;
+import TerraIncognita.map.GameMap;
+import TerraIncognita.map.FileMapLoader;
+import TerraIncognita.map.Tile;
+import TerraIncognita.map.TileType;
 import TerraIncognita.ui.InventoryUI;
 import TerraIncognita.util.Constants;
  
@@ -16,65 +19,65 @@ import java.awt.Graphics2D;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-/**
- * Quản lý trạng thái game (State Machine).
- *
- * Các trạng thái: MENU → HUB → PLAYING (Dungeon) → RUN_SUMMARY → HUB → ... →
- * GAME_OVER
- *
- * Trách nhiệm:
- * - Chuyển đổi giữa các trạng thái (state transition)
- * - Gọi update/render đúng logic cho từng trạng thái
- * - Quản lý tài nguyên chung (player, map hiện tại...)
- */
+
 public class GameEngine {
 
     private GameState currentState;
     private Player player;
     private InputHandler inputHandler;
     private InventoryUI inventoryUI;
-
     private AssetLoader assetLoader;
-
-        // --- KHAI BÁO DANH SÁCH QUẢN LÝ QUÁI VẬT ---
     private List<Monster> activeMonsters;
-
-    // TODO (GĐ2): GameMap currentMap
-    // TODO (GĐ3): AssetLoader assetLoader, Renderer renderer
-    // TODO (GĐ4): CombatSystem combatSystem
-    // TODO (GĐ5): EventSystem eventSystem
-    // TODO (GĐ6): SaveManager saveManager
+    
+    // TÍCH HỢP HỆ THỐNG BẢN ĐỒ THỰC TẾ
+    private GameMap currentMap;
 
     public GameEngine(InputHandler inputHandler) {
         this.inputHandler = inputHandler;
-
-        this.player = new Player();
-        this.player.setWorldX(Constants.SCREEN_WIDTH / 2.0 - Constants.TILE_SIZE / 2.0);
-        this.player.setWorldY(Constants.SCREEN_HEIGHT / 2.0 - Constants.TILE_SIZE / 2.0);
-
         this.assetLoader = new AssetLoader();
         this.assetLoader.loadAll();
-        this.player.initAnimations(assetLoader);
 
-        this.currentState = GameState.PLAYING;
+        // 1. Tải bản đồ hầm ngục từ file text dungeon_1.txt thông qua Constants
+        String fullMapPath = Constants.MAPS_PATH + "dungeon_1.txt";
+        FileMapLoader mapLoader = new FileMapLoader(fullMapPath);
+        this.currentMap = mapLoader.generate(Constants.MAP_WIDTH, Constants.MAP_HEIGHT, 1);
 
-        // Inventory UI
-        this.inventoryUI = new InventoryUI();
-
-        // --- KHỞI TẠO DANH SÁCH VÀ TẠO 1 QUÁI SLIME ĐỨNG YÊN ---
-        this.activeMonsters = new ArrayList<>();
+        this.player = new Player();
         
-        // Thử nghiệm đặt quái vật Slime tại ô (12, 10) trên màn hình
-        SlimeMonster slime = new SlimeMonster(12, 10);
-        slime.initAnimations(assetLoader);
-        this.activeMonsters.add(slime);
+        // 2. Đồng bộ hóa vị trí nhân vật dựa trên ký tự 'P' trong file bản đồ
+        if (this.currentMap != null) {
+            int startX = this.currentMap.getPlayerStartX();
+            int startY = this.currentMap.getPlayerStartY();
+            this.player.setWorldX(startX * Constants.TILE_SIZE);
+            this.player.setWorldY(startY * Constants.TILE_SIZE);
+            this.player.updateTilePosition(Constants.TILE_SIZE);
+            
+            // Kích hoạt tính năng chống đi xuyên tường bằng cách truyền tham chiếu map
+            this.player.setCurrentMap(this.currentMap);
+        } else {
+            // Mức dự phòng ban đầu nếu file lỗi
+            this.player.setWorldX(Constants.SCREEN_WIDTH / 2.0 - Constants.TILE_SIZE / 2.0);
+            this.player.setWorldY(Constants.SCREEN_HEIGHT / 2.0 - Constants.TILE_SIZE / 2.0);
+        }
+
+        this.player.initAnimations(assetLoader);
+        this.currentState = GameState.PLAYING;
+        this.inventoryUI = new InventoryUI();
+        this.activeMonsters = new ArrayList<>();
+
+        // 3. Tự động chuyển toàn bộ quái vật được nạp tự động từ file text vào Engine
+        if (this.currentMap != null) {
+            this.currentMap.getEntities().forEach(entity -> {
+                if (entity instanceof Monster) {
+                    Monster m = (Monster) entity;
+                    m.initAnimations(assetLoader);
+                    this.activeMonsters.add(m);
+                }
+            });
+        }
     }
 
-    /**
-     * Cập nhật logic theo trạng thái hiện tại.
-     */
     public void update(double deltaTime) {
         switch (currentState) {
             case MENU:
@@ -82,10 +85,9 @@ public class GameEngine {
                 break;
             case PLAYING:
                 updatePlaying(deltaTime);
-                // --- CẬP NHẬT HOẠT ẢNH CHO QUÁI VẬT ---
                 for (Monster m : activeMonsters) {
                     if (m.isAlive()) {
-                        m.update(deltaTime); // Cập nhật chuyển frame hoạt ảnh đứng yên
+                        m.update(deltaTime);
                     }
                 }
                 break;
@@ -102,9 +104,6 @@ public class GameEngine {
         }
     }
 
-    /**
-     * Vẽ mọi thứ theo trạng thái hiện tại.
-     */
     public void render(Graphics2D g2d) {
         switch (currentState) {
             case MENU:
@@ -129,29 +128,18 @@ public class GameEngine {
         }
     }
 
-    /**
-     * Chuyển sang trạng thái mới.
-     */
     public void changeState(GameState newState) {
         this.currentState = newState;
     }
 
-    // =========================================
-    // UPDATE riêng cho từng state
-    // =========================================
-
     private void updateMenu(double deltaTime) {
-        // TODO (GĐ6): Xử lý menu input
-        // Tạm thời: nhấn ENTER → chuyển sang PLAYING
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER)) {
             changeState(GameState.PLAYING);
         }
     }
 
     private void updatePlaying(double deltaTime) {
-        // Xử lý di chuyển player
         boolean moved = false;
-
         if (inputHandler.isKeyPressed(KeyEvent.VK_UP) || inputHandler.isKeyPressed(KeyEvent.VK_W)) {
             player.move(Direction.UP, deltaTime);
             moved = true;
@@ -168,40 +156,27 @@ public class GameEngine {
             player.move(Direction.RIGHT, deltaTime);
             moved = true;
         }
-
         if (!moved) {
             player.setIdle();
         }
-
-        // Xử lý pause
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ESCAPE)) {
             changeState(GameState.PAUSED);
         }
-
-        // Mở inventory
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_I)) {
             inventoryUI.toggle();
             if (inventoryUI.isOpen()) {
                 changeState(GameState.INVENTORY);
             }
         }
-
-        // Cập nhật player
         player.update(deltaTime);
     }
 
-    /**
-     * Update logic khi đang mở inventory.
-     */
     private void updateInventory(double deltaTime) {
-        // Đóng inventory
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_I) || inputHandler.isKeyJustPressed(KeyEvent.VK_ESCAPE)) {
             inventoryUI.toggle();
             changeState(GameState.PLAYING);
             return;
         }
-
-        // Di chuyển cursor
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_UP)) {
             inventoryUI.moveCursor(Direction.UP, player.getInventory());
         }
@@ -214,8 +189,6 @@ public class GameEngine {
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_RIGHT)) {
             inventoryUI.moveCursor(Direction.RIGHT, player.getInventory());
         }
-
-        // Sử dụng item
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER)) {
             int idx = inventoryUI.getSelectedIndex();
             player.getInventory().useItem(idx, player);
@@ -223,86 +196,81 @@ public class GameEngine {
     }
 
     private void updateGameOver(double deltaTime) {
-        // Nhấn ENTER → quay lại menu
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER)) {
             changeState(GameState.MENU);
         }
     }
 
-    // =========================================
-    // RENDER riêng cho từng state
-    // =========================================
-
     private void renderMenu(Graphics2D g2d) {
-        // Nền đen
         g2d.setColor(Color.BLACK);
         g2d.fillRect(0, 0, Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
-
-        // Title
         g2d.setColor(Color.WHITE);
         g2d.setFont(g2d.getFont().deriveFont(32f));
         String title = Constants.GAME_TITLE;
         int titleWidth = g2d.getFontMetrics().stringWidth(title);
         g2d.drawString(title, (Constants.SCREEN_WIDTH - titleWidth) / 2, Constants.SCREEN_HEIGHT / 3);
-
-        // Hướng dẫn
         g2d.setFont(g2d.getFont().deriveFont(16f));
         String hint = "Nhan ENTER de bat dau";
         int hintWidth = g2d.getFontMetrics().stringWidth(hint);
         g2d.drawString(hint, (Constants.SCREEN_WIDTH - hintWidth) / 2, Constants.SCREEN_HEIGHT / 2);
     }
 
+    // PHƯƠNG THỨC ĐÃ THAY ĐỔI ĐỂ DỰNG HẦM NGỤC THỰC TẾ
     private void renderPlaying(Graphics2D g2d) {
-        // TODO (GĐ2): Vẽ map bằng Renderer
-        // Nền tối (tạm thời mô phỏng dungeon)
+        // Nền tối hầm ngục
         g2d.setColor(new Color(30, 30, 40));
         g2d.fillRect(0, 0, Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
 
-        // Vẽ lưới tile nhạt (debug, để thấy rõ hơn)
-        g2d.setColor(new Color(50, 50, 60));
-        for (int x = 0; x < Constants.SCREEN_WIDTH; x += Constants.TILE_SIZE) {
-            g2d.drawLine(x, 0, x, Constants.SCREEN_HEIGHT);
-        }
-        for (int y = 0; y < Constants.SCREEN_HEIGHT; y += Constants.TILE_SIZE) {
-            g2d.drawLine(0, y, Constants.SCREEN_WIDTH, y);
+        // Duyệt ma trận dữ liệu của currentMap để kết xuất đồ họa cụ thể
+        if (currentMap != null) {
+            int tileSize = Constants.TILE_SIZE;
+            for (int y = 0; y < currentMap.getHeight(); y++) {
+                for (int x = 0; x < currentMap.getWidth(); x++) {
+                    Tile tile = currentMap.getTile(x, y);
+                    if (tile.getType() == TileType.WALL) {
+                        g2d.setColor(new Color(60, 60, 70)); // Khối tường đá xám đậm
+                        g2d.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                        g2d.setColor(new Color(40, 40, 45)); // Khung viền tường
+                        g2d.drawRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                    } else if (tile.getType() == TileType.DOOR) {
+                        g2d.setColor(new Color(139, 69, 19)); // Khối gỗ cửa nâu
+                        g2d.fillRect(x * tileSize + 4, y * tileSize, tileSize - 8, tileSize);
+                    } else if (tile.getType() == TileType.STAIR_DOWN) {
+                        g2d.setColor(new Color(100, 149, 237)); // Cầu thang thoát màu lam
+                        g2d.fillRect(x * tileSize + 2, y * tileSize + 2, tileSize - 4, tileSize - 4);
+                    }
+                }
+            }
         }
 
         drawPlayer(g2d);
 
-        // --- VẼ TOÀN BỘ QUÁI VẬT ĐANG HOẠT ĐỘNG LÊN MÀN HÌNH ---
         for (Monster m : activeMonsters) {
             if (m.isAlive()) {
                 drawMonster(g2d, m);
             }
         }
 
-        // HUD tạm (góc trên trái)
+        // HUD thông tin đồng bộ thời gian thực
         g2d.setColor(Color.WHITE);
         g2d.setFont(g2d.getFont().deriveFont(14f));
         g2d.drawString("HP: " + player.getHp() + "/" + player.getMaxHp(), 10, 20);
         g2d.drawString("Pos: (" + player.getTileX() + ", " + player.getTileY() + ")", 10, 40);
         g2d.drawString("State: " + player.getState(), 10, 60);
-
-        // Hướng dẫn điều khiển
-        g2d.setColor(new Color(150, 150, 150));
-        g2d.setFont(g2d.getFont().deriveFont(12f));
     }
 
     private void drawPlayer(Graphics2D g2d) {
         int tileX = (int) player.getWorldX();
         int tileY = (int) player.getWorldY();
- 
         Animation anim = player.getCurrentAnimation();
         BufferedImage frame = (anim != null) ? anim.getCurrentFrame() : null;
- 
         int drawSize = Constants.PLAYER_SPRITE_SIZE;
         int drawX = tileX + Constants.TILE_SIZE / 2 - drawSize / 2;
-        int drawY = tileY + Constants.TILE_SIZE - drawSize; // neo chân sprite vào đáy tile
+        int drawY = tileY + Constants.TILE_SIZE - drawSize;
  
         if (frame != null) {
             g2d.drawImage(frame, drawX, drawY, drawSize, drawSize, null);
         } else {
-            // Fallback: hình vuông màu xanh nếu sprite chưa sẵn sàng
             g2d.setColor(player.isAttacking() ? new Color(230, 150, 60) : new Color(70, 130, 230));
             g2d.fillRect(tileX + 2, tileY + 2, Constants.TILE_SIZE - 4, Constants.TILE_SIZE - 4);
             g2d.setColor(new Color(120, 180, 255));
@@ -310,19 +278,14 @@ public class GameEngine {
         }
     }
 
-
     private void renderPauseOverlay(Graphics2D g2d) {
-        // Overlay mờ
         g2d.setColor(new Color(0, 0, 0, 150));
         g2d.fillRect(0, 0, Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
-
-        // Text PAUSED
         g2d.setColor(Color.WHITE);
         g2d.setFont(g2d.getFont().deriveFont(48f));
         String text = "PAUSED";
         int textWidth = g2d.getFontMetrics().stringWidth(text);
         g2d.drawString(text, (Constants.SCREEN_WIDTH - textWidth) / 2, Constants.SCREEN_HEIGHT / 2);
-
         g2d.setFont(g2d.getFont().deriveFont(16f));
         String hint = "ESC de tiep tuc";
         int hintWidth = g2d.getFontMetrics().stringWidth(hint);
@@ -332,7 +295,6 @@ public class GameEngine {
     private void renderGameOver(Graphics2D g2d) {
         g2d.setColor(new Color(50, 10, 10));
         g2d.fillRect(0, 0, Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
-
         g2d.setColor(new Color(220, 50, 50));
         g2d.setFont(g2d.getFont().deriveFont(48f));
         String text = "GAME OVER";
@@ -340,25 +302,18 @@ public class GameEngine {
         g2d.drawString(text, (Constants.SCREEN_WIDTH - textWidth) / 2, Constants.SCREEN_HEIGHT / 2);
     }
 
-    /**
-     * Phương thức bổ trợ vẽ hoạt ảnh quái vật lên màn hình
-     */
     private void drawMonster(Graphics2D g2d, Monster monster) {
         int worldX = (int) monster.getWorldX();
         int worldY = (int) monster.getWorldY();
-
         Animation anim = monster.getCurrentAnimation();
         BufferedImage frame = (anim != null) ? anim.getCurrentFrame() : null;
-
-        // Quái vật có kích thước sprite vẽ bằng kích thước của nhân vật (Constants.PLAYER_SPRITE_SIZE = 200px)
-        int drawSize = Constants.PLAYER_SPRITE_SIZE; //
+        int drawSize = Constants.PLAYER_SPRITE_SIZE;
         int drawX = worldX + Constants.TILE_SIZE / 2 - drawSize / 2;
-        int drawY = worldY + Constants.TILE_SIZE - drawSize; // Ghép chân vào đáy tile
+        int drawY = worldY + Constants.TILE_SIZE - drawSize;
 
         if (frame != null) {
             g2d.drawImage(frame, drawX, drawY, drawSize, drawSize, null);
         } else {
-            // Fallback: Vẽ ô vuông màu đỏ đại diện nếu chưa nạp được ảnh Sprite Sheet
             g2d.setColor(Color.RED);
             g2d.fillRect(worldX + 2, worldY + 2, Constants.TILE_SIZE - 4, Constants.TILE_SIZE - 4);
             g2d.setColor(Color.WHITE);
@@ -366,12 +321,6 @@ public class GameEngine {
         }
     }
 
-    // --- Getter ---
-    public GameState getCurrentState() {
-        return currentState;
-    }
-
-    public Player getPlayer() {
-        return player;
-    }
+    public GameState getCurrentState() { return currentState; }
+    public Player getPlayer() { return player; }
 }

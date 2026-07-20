@@ -1,6 +1,7 @@
 package TerraIncognita.entity;
 
 import TerraIncognita.graphics.Animation;
+import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.item.StatusEffect;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -90,6 +91,12 @@ public abstract class Entity {
     public void heal(int amount) {
         hp = Math.min(hp + amount, maxHp);
     }
+
+
+    /**
+     * Khởi tạo bộ hoạt ảnh cho thực thể từ AssetLoader.
+     */
+    public abstract void initAnimations(AssetLoader assets);
 
     /**
      * Cập nhật animation hiện tại dựa trên state + direction.

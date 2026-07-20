@@ -4,6 +4,7 @@ import TerraIncognita.entity.Entity;
 import TerraIncognita.entity.EntityState;
 import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Player;
+import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.map.GameMap;
 import TerraIncognita.util.Constants;
 
@@ -37,6 +38,8 @@ public abstract class Monster extends Entity {
         this.speed = 60;   // Quái di chuyển chậm hơn player
         this.ai = new MonsterAI();
     }
+
+    public abstract void initAnimations(AssetLoader assets);
 
     @Override
     public void update(double deltaTime) {
