@@ -623,10 +623,8 @@ public class GameEngine {
 
 
     /**
-     * Vẽ đường kẻ mờ từ tâm player tới vị trí chuột — chỉ hướng nhắm bắn
-     * khi đang giữ chuột trái ở chế độ Cung. Đường này theo đúng góc thật
-     * tới chuột (không bị "chốt" về 4 hướng như direction thật của player),
-     * để người chơi thấy chính xác đang ngắm đâu.
+     * Vẽ đường kẻ mờ từ tâm player tới hướng ngắm (đã clamp ±60° từ ngang)
+     * khi đang giữ chuột trái ở chế độ Cung.
      */
     private void drawAimLine(Graphics2D g2d) {
         // Tâm hiển thị thực tế của sprite player (không phải hitbox)
@@ -635,20 +633,54 @@ public class GameEngine {
         int mx = inputHandler.getMouseX();
         int my = inputHandler.getMouseY();
 
-        // Đường nét đứt mờ từ tâm sprite player tới chuột
+        // Clamp góc ngắm trong ±60° từ hướng ngang
+        double clampedAngle = clampBowAngle(cx, cy, mx, my);
+        double dx = mx - cx;
+        double dy = my - cy;
+        double dist = Math.sqrt(dx * dx + dy * dy);
+        int aimX = (int) (cx + Math.cos(clampedAngle) * dist);
+        int aimY = (int) (cy + Math.sin(clampedAngle) * dist);
+
+        // Đường nét đứt mờ từ tâm sprite player tới điểm ngắm (đã clamp)
         java.awt.Stroke oldStroke = g2d.getStroke();
         float[] dash = {8f, 6f};
         g2d.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, dash, 0));
         g2d.setColor(new Color(255, 255, 255, 90));
-        g2d.drawLine(cx, cy, mx, my);
+        g2d.drawLine(cx, cy, aimX, aimY);
         g2d.setStroke(oldStroke);
 
-        // Chấm nhỏ tại điểm ngắm
+        // Chấm nhỏ tại điểm ngắm (đã clamp)
         g2d.setColor(new Color(255, 220, 120, 180));
-        g2d.fillOval(mx - 4, my - 4, 8, 8);
+        g2d.fillOval(aimX - 4, aimY - 4, 8, 8);
         // Viền chấm ngắm
         g2d.setColor(new Color(255, 160, 60, 140));
-        g2d.drawOval(mx - 6, my - 6, 12, 12);
+        g2d.drawOval(aimX - 6, aimY - 6, 12, 12);
+    }
+
+    /**
+     * Clamp góc ngắm cung trong phạm vi ±60° so với hướng ngang.
+     * Nếu chuột ở bên phải player → góc clamp trong [-60°, +60°] (hướng phải).
+     * Nếu chuột ở bên trái player → góc clamp trong ±60° quanh 180° (hướng trái).
+     * Kết quả: không thể bắn lên trên (quá 60° so với ngang).
+     *
+     * @return góc đã clamp (radian), dùng cho cả aim line và spawn mũi tên.
+     */
+    private double clampBowAngle(double cx, double cy, double mx, double my) {
+        double dx = mx - cx;
+        double dy = my - cy;
+        double rawAngle = Math.atan2(dy, dx);
+        double maxDev = Math.toRadians(60);
+
+        if (dx >= 0) {
+            // Ngắm sang phải — base = 0
+            return Math.max(-maxDev, Math.min(maxDev, rawAngle));
+        } else {
+            // Ngắm sang trái — base = π
+            // Tính độ lệch so với hướng trái rồi clamp
+            double dev = Math.atan2(Math.sin(rawAngle - Math.PI), Math.cos(rawAngle - Math.PI));
+            dev = Math.max(-maxDev, Math.min(maxDev, dev));
+            return Math.atan2(Math.sin(dev + Math.PI), Math.cos(dev + Math.PI));
+        }
     }
 
     private void updateChestCollisions() {
@@ -712,7 +744,12 @@ public class GameEngine {
             double mx = inputHandler.getMouseX();
             double my = inputHandler.getMouseY();
 
-            Arrow arrow = new Arrow(cx, cy, mx, my, arrowSprite);
+            // Clamp góc bắn trong ±60° từ hướng ngang
+            double clampedAngle = clampBowAngle(cx, cy, mx, my);
+            double tmx = cx + Math.cos(clampedAngle);
+            double tmy = cy + Math.sin(clampedAngle);
+
+            Arrow arrow = new Arrow(cx, cy, tmx, tmy, arrowSprite);
             activeArrows.add(arrow);
             System.out.println("[DEBUG handlePlayerAttack] ARROW spawned at (" + String.format("%.1f", cx)
                     + ", " + String.format("%.1f", cy) + ") -> (" + mx + ", " + my + ")");
