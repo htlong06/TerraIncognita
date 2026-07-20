@@ -25,6 +25,7 @@ import TerraIncognita.ui.ShopUI;
 import TerraIncognita.ui.HUD;
 import TerraIncognita.ui.DialogBox;
 import TerraIncognita.ui.GameOverScreen;
+import TerraIncognita.ui.RadialMenu;
 import TerraIncognita.util.Constants;
 
 import java.awt.BasicStroke;
@@ -69,6 +70,7 @@ public class GameEngine {
     private HUD hud;
     private DialogBox dialogBox;
     private GameOverScreen gameOverScreen;
+    private RadialMenu radialMenu;
     private List<Monster> activeMonsters;
     private CombatSystem combatSystem;
 
@@ -123,6 +125,7 @@ public class GameEngine {
         this.hud = new HUD();
         this.dialogBox = new DialogBox();
         this.gameOverScreen = new GameOverScreen();
+        this.radialMenu = new RadialMenu();
 
         // Cho player 100 gold để test mua đồ
         player.addGold(100);
@@ -164,6 +167,9 @@ public class GameEngine {
             case SHOP:
                 updateShop(deltaTime);
                 break;
+            case RADIAL_MENU:
+                updateRadialMenu(deltaTime);
+                break;
             case DIALOG:
                 updateDialog(deltaTime);
                 break;
@@ -199,6 +205,10 @@ public class GameEngine {
             case DIALOG:
                 renderPlaying(g2d);
                 dialogBox.render(g2d);
+                break;
+            case RADIAL_MENU:
+                renderPlaying(g2d);
+                radialMenu.render(g2d);
                 break;
             case PAUSED:
                 renderPlaying(g2d); 
@@ -269,6 +279,12 @@ public class GameEngine {
             if (inventoryUI.isOpen()) {
                 changeState(GameState.INVENTORY);
             }
+        }
+
+        // TAB — mở radial menu
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_TAB)) {
+            radialMenu.open();
+            changeState(GameState.RADIAL_MENU);
         }
 
         // E key — gần merchant thì tương tác/mở shop; ngược lại đổi vũ khí Kiếm/Cung
@@ -371,18 +387,16 @@ public class GameEngine {
      * Update logic khi đang mở shop.
      */
     private void updateShop(double deltaTime) {
-        // ESC → đóng shop
+        // Đóng shop
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ESCAPE)) {
             shopUI.close();
             changeState(GameState.PLAYING);
             return;
         }
-
-        // S → chuyển mode buy/sell
+        // Chuyển mode buy/sell
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_S)) {
             shopUI.toggleMode();
         }
-
         // Di chuyển cursor
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_UP)) {
             shopUI.moveCursor(Direction.UP, activeShop, player);
@@ -396,29 +410,64 @@ public class GameEngine {
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_RIGHT)) {
             shopUI.moveCursor(Direction.RIGHT, activeShop, player);
         }
-
-        // Enter → mua hoặc bán
+        // Enter — mua/bán
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER)) {
             int idx = shopUI.getSelectedIndex();
             if (shopUI.isBuyMode()) {
                 boolean success = activeShop.buyItem(player, idx);
                 if (success) {
-                    pickupMessage = "Đã mua: " + activeShop.getItems().get(idx).getName();
+                    pickupMessage = "Đã mua!";
                 } else {
-                    pickupMessage = "Không thể mua! (Thiếu gold hoặc túi đầy)";
+                    pickupMessage = "Không đủ vàng hoặc túi đầy!";
                 }
             } else {
                 boolean success = activeShop.sellItem(player, idx);
                 if (success) {
-                    pickupMessage = "Đã bán đồ thành công!";
+                    pickupMessage = "Đã bán!";
                 } else {
-                    pickupMessage = "Không thể bán!";
+                    pickupMessage = "Không bán được!";
                 }
             }
             messageTimer = 2.0;
         }
     }
 
+    private void updateRadialMenu(double deltaTime) {
+        // Cập nhật hover theo chuột
+        radialMenu.updateHover(inputHandler.getMouseX(), inputHandler.getMouseY());
+
+        // Thả TAB → chọn option
+        if (!inputHandler.isKeyPressed(KeyEvent.VK_TAB)) {
+            RadialMenu.Option selected = radialMenu.getHoveredOption();
+            radialMenu.close();
+            if (selected != null) {
+                switch (selected) {
+                    case INVENTORY:
+                        inventoryUI.toggle();
+                        if (inventoryUI.isOpen()) {
+                            changeState(GameState.INVENTORY);
+                        } else {
+                            changeState(GameState.PLAYING);
+                        }
+                        break;
+                    case TALENT:
+                        // TODO: talent tree state khi Person 2 xong
+                        pickupMessage = "Talent tree — chưa implement";
+                        messageTimer = 2.0;
+                        changeState(GameState.PLAYING);
+                        break;
+                    case MAP:
+                        // TODO: map state khi Person 1 xong
+                        pickupMessage = "Map — chưa implement";
+                        messageTimer = 2.0;
+                        changeState(GameState.PLAYING);
+                        break;
+                }
+            } else {
+                changeState(GameState.PLAYING);
+            }
+        }
+    }
     private void updateDialog(double deltaTime) {
         // Enter → advance hoặc đóng dialog
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER) || inputHandler.isKeyJustPressed(KeyEvent.VK_E)) {

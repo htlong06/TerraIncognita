@@ -13,6 +13,7 @@ public enum GameState {
     INVENTORY,      // Đang mở túi đồ
     SHOP,           // Đang giao dịch với NPC
     DIALOG,         // Đang hiện hộp thoại
+    RADIAL_MENU,    // Menu vòng tròn (giữ TAB)
     RUN_SUMMARY,    // Màn hình tổng kết sau lượt chơi
     GAME_OVER       // Thua — hiện kết quả
 }
