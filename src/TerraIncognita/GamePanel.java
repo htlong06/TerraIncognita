@@ -30,10 +30,10 @@ public class GamePanel extends JPanel implements Runnable {
         setBackground(Color.BLACK);
         setDoubleBuffered(true);
         setFocusable(true);
+        // Vô hiệu hóa focus traversal keys (TAB, Shift+TAB) để dùng cho game
+        setFocusTraversalKeysEnabled(false);
 
-        // Khởi tạo InputHandler và đăng ký Key Bindings (thay vì KeyListener)
-        // Key Bindings với WHEN_IN_FOCUSED_WINDOW đảm bảo nhận SPACE và mọi
-        // phím game bất kể component nào đang có focus.
+        // Khởi tạo InputHandler và lắng nghe phím
         inputHandler = new InputHandler();
         inputHandler.bindTo(this);
 
