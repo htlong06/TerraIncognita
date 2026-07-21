@@ -48,29 +48,19 @@ public class AssetLoader {
     }
 
     private void loadChest() {
-        String path = Constants.SPRITES_PATH + "items/chest/Chests.png";
-        BufferedImage sheet = loadImage(path);
-        if (sheet == null) {
-            return;
-        }
-        // Chests.png: 6 cols × 8 rows, mỗi frame 40×32
-        // Layout: mỗi loại rương chiếm 2 hàng (hàng 0-1 brown, 2-3 gold, 4-5 red, 6-7 blue)
-        // Hàng chẵn (0,2,4,6): closed → mở dần
-        // Hàng lẻ (1,3,5,7): closed → mở dần (bản khác góc nhìn?)
-        // Dùng frame 0 = closed, frame 5 (cuối hàng) = open
-        SpriteSheet cutter = new SpriteSheet(sheet, Constants.CHEST_FRAME_WIDTH, Constants.CHEST_FRAME_HEIGHT);
+        String base = Constants.SPRITES_PATH + "items/chest/";
 
-        // Brown: hàng 0, frame 0 = closed, frame 5 = open
-        tileImages.put("chest_brown_closed", cutter.getFrame(0, 0));
-        tileImages.put("chest_brown_open", cutter.getFrame(5, 0));
+        // Common chest (brown)
+        tileImages.put("chest_common_closed", loadImage(base + "common/common_closed.png"));
+        tileImages.put("chest_common_open", loadImage(base + "common/common_open.png"));
 
-        // Gold: hàng 2, frame 0 = closed, frame 5 = open
-        tileImages.put("chest_gold_closed", cutter.getFrame(0, 2));
-        tileImages.put("chest_gold_open", cutter.getFrame(5, 2));
+        // Rare chest (blue)
+        tileImages.put("chest_rare_closed", loadImage(base + "rare/rare_closed.png"));
+        tileImages.put("chest_rare_open", loadImage(base + "rare/rare_open.png"));
 
-        // Blue: hàng 6, frame 0 = closed, frame 5 = open
-        tileImages.put("chest_blue_closed", cutter.getFrame(0, 6));
-        tileImages.put("chest_blue_open", cutter.getFrame(5, 6));
+        // Mythic chest (gold/purple gem)
+        tileImages.put("chest_mythic_closed", loadImage(base + "mythic/mythic_closed.png"));
+        tileImages.put("chest_mythic_open", loadImage(base + "mythic/mythic_open.png"));
     }
 
     private void loadPlayer() {

@@ -24,6 +24,9 @@ import TerraIncognita.ui.InventoryUI;
 import TerraIncognita.ui.ShopUI;
 import TerraIncognita.ui.HUD;
 import TerraIncognita.ui.DialogBox;
+import TerraIncognita.event.EventSystem;
+import TerraIncognita.event.TrapEvent;
+import TerraIncognita.save.SaveManager;
 import TerraIncognita.ui.GameOverScreen;
 import TerraIncognita.ui.RadialMenu;
 import TerraIncognita.util.Constants;
@@ -71,6 +74,8 @@ public class GameEngine {
     private DialogBox dialogBox;
     private GameOverScreen gameOverScreen;
     private RadialMenu radialMenu;
+    private EventSystem eventSystem;
+    private SaveManager saveManager;
     private List<Monster> activeMonsters;
     private CombatSystem combatSystem;
 
@@ -99,25 +104,27 @@ public class GameEngine {
         // Inventory UI
         this.inventoryUI = new InventoryUI();
 
-        // Spawn rương test
+        // Spawn rương test — 3 rarity
         this.chests = new ArrayList<>();
         this.collidingChests = new HashSet<>();
 
-        // Rương 1: không khóa, tile (10,5), chứa Potion
-        Chest chest1 = new Chest(10, 5, false);
+        // Common chest (brown), tile (10,5), chứa Potion
+        Chest commonChest = new Chest(10, 5, "common");
         Potion potion = new Potion("hp1", "Health Potion", 30);
-        chest1.setLootTable(new LootTable(List.of(potion), 1.0));
-        chests.add(chest1);
+        commonChest.setLootTable(new LootTable(List.of(potion), 1.0));
+        chests.add(commonChest);
 
-        // Rương 2: khóa, tile (15,8), chứa Equipment, cần "dungeon_key"
-        Chest chest2 = new Chest(15, 8, true);
-        chest2.setRequiredKeyId("dungeon_key");
+        // Rare chest (blue), tile (15,8), chứa Equipment
+        Chest rareChest = new Chest(15, 8, "rare");
         Equipment sword = new Equipment("sword1", "Iron Sword", EquipmentSlot.WEAPON, 5, 0);
-        chest2.setLootTable(new LootTable(List.of(sword), 1.0));
-        chests.add(chest2);
+        rareChest.setLootTable(new LootTable(List.of(sword), 1.0));
+        chests.add(rareChest);
 
-        // Cho player chìa khóa để test rương khóa
-        player.getInventory().addItem(new Key("dungeon_key", "Dungeon Key", "dungeon_key"));
+        // Mythic chest (gold/purple gem), tile (20,12), chứa nhiều vàng
+        Chest mythicChest = new Chest(20, 12, "mythic");
+        // TODO: thêm item mythic sau — tạm dùng sword
+        mythicChest.setLootTable(new LootTable(List.of(sword), 1.0));
+        chests.add(mythicChest);
 
         // Spawn Merchant NPC ở tile (20, 10)
         this.merchant = new Merchant(20, 10);
@@ -126,6 +133,8 @@ public class GameEngine {
         this.dialogBox = new DialogBox();
         this.gameOverScreen = new GameOverScreen();
         this.radialMenu = new RadialMenu();
+        this.eventSystem = new EventSystem();
+        this.saveManager = new SaveManager(Constants.SAVES_PATH + "terra_incognita.db");
 
         // Cho player 100 gold để test mua đồ
         player.addGold(100);
@@ -720,8 +729,6 @@ public class GameEngine {
             } else {
                 pickupMessage = "Rương trống!";
             }
-        } else if (chest.isLocked()) {
-            pickupMessage = "Rương bị khóa! Cần chìa khóa.";
         } else {
             pickupMessage = "Rương đã mở rồi.";
         }
@@ -913,22 +920,20 @@ public class GameEngine {
         int size = Constants.TILE_SIZE;
 
         // Chọn sprite key theo loại rương + trạng thái
-        String key = "chest_" + chest.getChestType() + (chest.isOpened() ? "_open" : "_closed");
+        String key = "chest_" + chest.getRarity() + (chest.isOpened() ? "_open" : "_closed");
         BufferedImage frame = assetLoader.getTile(key);
 
         if (frame != null) {
-            // Vẽ sprite, scale 40x32 -> TILE_SIZE x TILE_SIZE (giữ tỉ lệ, neo đáy)
+            // Sprite mới 64×64, scale về TILE_SIZE, neo đáy tile
             int drawW = size;
-            int drawH = (int) ((double) Constants.CHEST_FRAME_HEIGHT / Constants.CHEST_FRAME_WIDTH * size);
-            int drawY = py + size - drawH; // neo đáy tile
+            int drawH = size;
+            int drawY = py; // 64×64 vuông → neo trên
             g2d.drawImage(frame, px, drawY, drawW, drawH, null);
         } else {
             // Fallback: hình vuông nếu sprite chưa load
             int pad = 4;
             if (chest.isOpened()) {
                 g2d.setColor(new Color(80, 70, 50));
-            } else if (chest.isLocked()) {
-                g2d.setColor(new Color(120, 80, 40));
             } else {
                 g2d.setColor(new Color(180, 140, 60));
             }
