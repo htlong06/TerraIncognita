@@ -1,7 +1,5 @@
 package TerraIncognita.entity.monster;
 
-import TerraIncognita.graphics.AssetLoader;
-
 /**
  * Quái Skeleton — loại quái mạnh hơn Slime.
  *
@@ -17,10 +15,5 @@ public class SkeletonMonster extends Monster {
         this.detectionRange = 5;
         this.expReward = 25;
         this.goldReward = 8;
-    }
-
-    @Override
-    public void initAnimations(AssetLoader assets) {
-        // TODO: Đăng ký directional animation cho Skeleton tương tự SlimeMonster khi có tài nguyên ảnh
     }
 }
