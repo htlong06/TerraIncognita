@@ -264,6 +264,22 @@ public class Player extends Entity {
     }
 
     /**
+     * Vùng tương tác của player — hình chữ nhật mở rộng 1 ô TILE_SIZE
+     * ra mỗi phía so với vị trí world hiện tại. Dùng để kiểm tra xem
+     * player có đang ở gần chest/merchant/NPC nào không.
+     * @return Rectangle bao phủ vùng tương tác
+     */
+    @Override
+    public Rectangle getInteractionBounds() {
+        int ts = Constants.TILE_SIZE;
+        int x = (int) Math.round(worldX) - ts;
+        int y = (int) Math.round(worldY) - ts;
+        int w = ts * 3;  // 1 ô lề + player (1 ô) + 1 ô lề = 3 ô
+        int h = ts * 3;
+        return new Rectangle(x, y, w, h);
+    }
+
+    /**
      * Thêm EXP, kiểm tra lên level.
      * 
      * @param amount lượng EXP nhận

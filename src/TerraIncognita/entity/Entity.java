@@ -94,6 +94,10 @@ public abstract class Entity {
     public abstract void update(double deltaTime);
 
     /**
+     * Vùng tương tác — hình chữ nhật đại diện cho khu vực mà entity
+     * có thể được tương tác (mở rương, nói chuyện với NPC...).
+     * Mặc định mở rộng 1 ô TILE_SIZE ra mỗi phía so với vị trí world.
+    /**
      * Nhận sát thương.
      * @param damage lượng sát thương
      */
@@ -195,6 +199,20 @@ public abstract class Entity {
         );
     }
 
+    /**
+     * Vùng tương tác — lớn hơn hitbox một chút để player không cần chạm trực tiếp.
+     * Mặc định mở rộng 1 tile xung quanh hitbox.
+     */
+    public Rectangle getInteractionBounds() {
+        Rectangle hb = getHitbox();
+        int expand = Constants.TILE_SIZE;
+        return new Rectangle(
+            hb.x - expand,
+            hb.y - expand,
+            hb.width + expand * 2,
+            hb.height + expand * 2
+        );
+    }
     // --- Getter / Setter ---
     public double getWorldX() { return worldX; }
     public double getWorldY() { return worldY; }

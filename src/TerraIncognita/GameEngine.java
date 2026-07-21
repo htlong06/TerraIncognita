@@ -902,16 +902,12 @@ public class GameEngine {
     }
 
     private boolean isNearChest(Chest chest) {
-        int dx = Math.abs(player.getTileX() - chest.getTileX());
-        int dy = Math.abs(player.getTileY() - chest.getTileY());
-        return dx <= 1 && dy <= 1;
+        return player.getHitbox().intersects(chest.getInteractionBounds());
     }
 
     private boolean isNearMerchant() {
         if (merchant == null) return false;
-        int dx = Math.abs(player.getTileX() - merchant.getTileX());
-        int dy = Math.abs(player.getTileY() - merchant.getTileY());
-        return dx <= 1 && dy <= 1;
+        return player.getHitbox().intersects(merchant.getInteractionBounds());
     }
 
     private void drawChest(Graphics2D g2d, Chest chest) {

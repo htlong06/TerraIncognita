@@ -3,6 +3,7 @@ package TerraIncognita.entity;
 import TerraIncognita.economy.LootTable;
 import TerraIncognita.item.Item;
 import TerraIncognita.util.Constants;
+import java.awt.Rectangle;
 
 /**
  * Rương báu / kho báu.
@@ -30,6 +31,22 @@ public class Chest extends Entity {
     @Override
     public void update(double deltaTime) {
         updateAnimation(deltaTime);
+    }
+
+    /**
+     * Vùng tương tác của rương — hình chữ nhật mở rộng 1 ô TILE_SIZE
+     * ra mỗi phía so với vị trí world. Player đứng trong vùng này thì
+     * có thể mở rương (nhấn F).
+     * @return Rectangle bao phủ vùng tương tác
+     */
+    @Override
+    public Rectangle getInteractionBounds() {
+        int ts = Constants.TILE_SIZE;
+        int x = (int) Math.round(worldX) - ts;
+        int y = (int) Math.round(worldY) - ts;
+        int w = ts * 3;
+        int h = ts * 3;
+        return new Rectangle(x, y, w, h);
     }
 
     /**
