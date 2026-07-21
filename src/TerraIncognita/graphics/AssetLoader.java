@@ -42,9 +42,26 @@ public class AssetLoader {
      */
     public void loadAll() {
         loadPlayer();
+        loadTiles();
         loadChest();
         loadMonsters();
         loadArrow();
+    }
+
+    /**
+     * Load ảnh tile bản đồ (nền/tường/cửa) — mỗi loại 1 file ảnh riêng.
+     * Tên key PHẢI khớp với TileType.getSpriteName() ("wall", "floor",
+     * "door"...) để DungeonMapManager.drawTile() tra đúng ảnh.
+     *
+     * Giả định đường dẫn: Constants.SPRITES_PATH + "tiles/<ten>.png"
+     * — nếu ảnh của bạn đặt ở thư mục khác, sửa lại biến `base` bên dưới.
+     */
+    private void loadTiles() {
+        String base = Constants.SPRITES_PATH + "tiles/";
+
+        tileImages.put("wall", loadImage(base + "wall.png"));
+        tileImages.put("floor", loadImage(base + "floor.png"));
+        tileImages.put("door", loadImage(base + "door.png"));
     }
 
     private void loadChest() {
