@@ -8,6 +8,8 @@ import TerraIncognita.entity.Player;
 import TerraIncognita.entity.Arrow;
 import TerraIncognita.entity.WeaponMode;
 import TerraIncognita.entity.monster.Monster;
+import TerraIncognita.entity.monster.SkeletonMonster;
+import TerraIncognita.entity.monster.SlimeMonster;
 import TerraIncognita.economy.LootTable;
 import TerraIncognita.economy.Shop;
 import TerraIncognita.entity.npc.Merchant;
@@ -89,6 +91,8 @@ public class GameEngine {
     private List<Arrow> activeArrows;
     private java.awt.image.BufferedImage arrowSprite;
 
+    // TODO (GĐ2): GameMap currentMap
+    // TODO (GĐ3): AssetLoader assetLoader, Renderer renderer
     // TODO (GĐ5): EventSystem eventSystem
     // TODO (GĐ6): SaveManager saveManager
 
@@ -339,8 +343,12 @@ public class GameEngine {
         //   thả chuột ra mới thực sự bắn (isMouseLeftJustReleased)
         if (player.getWeaponMode() == WeaponMode.SWORD) {
             if (inputHandler.isMouseLeftJustPressed()) {
+                System.out.println("[DEBUG GameEngine] Mouse LEFT just pressed (SWORD mode)");
                 if (player.canAttack()) {
+                    System.out.println("[DEBUG GameEngine] canAttack=true => calling handlePlayerAttack()");
                     handlePlayerAttack();
+                } else {
+                    System.out.println("[DEBUG GameEngine] canAttack=false => SKIPPED attack");
                 }
             }
         } else {
@@ -348,8 +356,12 @@ public class GameEngine {
                 player.aimTowards(inputHandler.getMouseX(), inputHandler.getMouseY());
             }
             if (inputHandler.isMouseLeftJustReleased()) {
+                System.out.println("[DEBUG GameEngine] Mouse LEFT just released (BOW mode)");
                 if (player.canAttack()) {
+                    System.out.println("[DEBUG GameEngine] canAttack=true => calling handlePlayerAttack()");
                     handlePlayerAttack();
+                } else {
+                    System.out.println("[DEBUG GameEngine] canAttack=false => SKIPPED attack");
                 }
             }
         }
@@ -405,14 +417,17 @@ public class GameEngine {
      * Update logic khi đang mở shop.
      */
     private void updateShop(double deltaTime) {
+        // Đóng shop
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ESCAPE)) {
             shopUI.close();
             changeState(GameState.PLAYING);
             return;
         }
+        // Chuyển mode buy/sell
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_S)) {
             shopUI.toggleMode();
         }
+        // Di chuyển cursor
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_UP)) {
             shopUI.moveCursor(Direction.UP, activeShop, player);
         }
@@ -425,20 +440,30 @@ public class GameEngine {
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_RIGHT)) {
             shopUI.moveCursor(Direction.RIGHT, activeShop, player);
         }
+        // Enter — mua/bán
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER)) {
             int idx = shopUI.getSelectedIndex();
             if (shopUI.isBuyMode()) {
                 boolean success = activeShop.buyItem(player, idx);
-                pickupMessage = success ? "Đã mua!" : "Không đủ vàng hoặc túi đầy!";
+                if (success) {
+                    pickupMessage = "Đã mua!";
+                } else {
+                    pickupMessage = "Không đủ vàng hoặc túi đầy!";
+                }
             } else {
                 boolean success = activeShop.sellItem(player, idx);
-                pickupMessage = success ? "Đã bán!" : "Không bán được!";
+                if (success) {
+                    pickupMessage = "Đã bán!";
+                } else {
+                    pickupMessage = "Không bán được!";
+                }
             }
             messageTimer = 2.0;
         }
     }
 
     private void updateRadialMenu(double deltaTime) {
+        // Cập nhật hover theo chuột
         radialMenu.updateHover(inputHandler.getMouseX(), inputHandler.getMouseY());
 
         // Thả TAB → chọn option
@@ -473,14 +498,15 @@ public class GameEngine {
             }
         }
     }
-
     private void updateDialog(double deltaTime) {
+        // Enter → advance hoặc đóng dialog
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER) || inputHandler.isKeyJustPressed(KeyEvent.VK_E)) {
             dialogBox.advance();
             if (!dialogBox.isActive()) {
                 changeState(GameState.PLAYING);
             }
         }
+        // ESC → đóng ngay
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ESCAPE)) {
             dialogBox.close();
             changeState(GameState.PLAYING);
@@ -488,12 +514,14 @@ public class GameEngine {
     }
 
     private void updateGameOver(double deltaTime) {
+        // Mũi tên lên/xuống → chọn option
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_UP)) {
             gameOverScreen.moveCursorUp();
         }
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_DOWN)) {
             gameOverScreen.moveCursorDown();
         }
+        // Enter → xác nhận
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER)) {
             int opt = gameOverScreen.getSelectedOption();
             if (opt == 0) {
@@ -608,6 +636,10 @@ public class GameEngine {
         for (Arrow arrow : activeArrows) {
             arrow.render(g2d);
         }
+
+        // Hướng dẫn điều khiển
+        g2d.setColor(new Color(150, 150, 150));
+        g2d.setFont(g2d.getFont().deriveFont(12f));
     }
 
     private void drawPlayer(Graphics2D g2d) {
@@ -873,6 +905,326 @@ public class GameEngine {
         g2d.setFont(g2d.getFont().deriveFont(16f));
         g2d.drawString("$", px + size / 2 - 4, py + size / 2 + 6);
     }
+
+    /**
+     * Vẽ đường kẻ mờ từ tâm player tới hướng ngắm (đã clamp ±60° từ ngang)
+     * khi đang giữ chuột trái ở chế độ Cung.
+     */
+    private void drawAimLine(Graphics2D g2d) {
+        // Tâm hiển thị thực tế của sprite player (không phải hitbox)
+        int cx = (int) player.getWorldX() + Constants.TILE_SIZE / 2;
+        int cy = (int) player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2;
+        int mx = inputHandler.getMouseX();
+        int my = inputHandler.getMouseY();
+
+        // Clamp góc ngắm trong ±60° từ hướng ngang
+        double clampedAngle = clampBowAngle(cx, cy, mx, my);
+        double dx = mx - cx;
+        double dy = my - cy;
+        double dist = Math.sqrt(dx * dx + dy * dy);
+        int aimX = (int) (cx + Math.cos(clampedAngle) * dist);
+        int aimY = (int) (cy + Math.sin(clampedAngle) * dist);
+
+        // Đường nét đứt mờ từ tâm sprite player tới điểm ngắm (đã clamp)
+        java.awt.Stroke oldStroke = g2d.getStroke();
+        float[] dash = {8f, 6f};
+        g2d.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, dash, 0));
+        g2d.setColor(new Color(255, 255, 255, 90));
+        g2d.drawLine(cx, cy, aimX, aimY);
+        g2d.setStroke(oldStroke);
+
+        // Chấm nhỏ tại điểm ngắm (đã clamp)
+        g2d.setColor(new Color(255, 220, 120, 180));
+        g2d.fillOval(aimX - 4, aimY - 4, 8, 8);
+        // Viền chấm ngắm
+        g2d.setColor(new Color(255, 160, 60, 140));
+        g2d.drawOval(aimX - 6, aimY - 6, 12, 12);
+    }
+
+    /**
+     * Clamp góc ngắm cung trong phạm vi ±60° so với hướng ngang.
+     * Nếu chuột ở bên phải player → góc clamp trong [-60°, +60°] (hướng phải).
+     * Nếu chuột ở bên trái player → góc clamp trong ±60° quanh 180° (hướng trái).
+     * Kết quả: không thể bắn lên trên (quá 60° so với ngang).
+     *
+     * @return góc đã clamp (radian), dùng cho cả aim line và spawn mũi tên.
+     */
+    private double clampBowAngle(double cx, double cy, double mx, double my) {
+        double dx = mx - cx;
+        double dy = my - cy;
+        double rawAngle = Math.atan2(dy, dx);
+        double maxDev = Math.toRadians(60);
+
+        if (dx >= 0) {
+            // Ngắm sang phải — base = 0
+            return Math.max(-maxDev, Math.min(maxDev, rawAngle));
+        } else {
+            // Ngắm sang trái — base = π
+            // Tính độ lệch so với hướng trái rồi clamp
+            double dev = Math.atan2(Math.sin(rawAngle - Math.PI), Math.cos(rawAngle - Math.PI));
+            dev = Math.max(-maxDev, Math.min(maxDev, dev));
+            return Math.atan2(Math.sin(dev + Math.PI), Math.cos(dev + Math.PI));
+        }
+    }
+
+    private void updateChestCollisions() {
+        Set<Chest> currentlyColliding = new HashSet<>();
+        for (Chest chest : chests) {
+            if (isCollidingWithChest(chest)) {
+                currentlyColliding.add(chest);
+                if (!collidingChests.contains(chest)) {
+                    tryOpenChest(chest);
+                }
+            }
+        }
+        collidingChests = currentlyColliding;
+    }
+
+    private void tryOpenChest(Chest chest) {
+        boolean opened = chest.open(player);
+        if (opened) {
+            Item loot = chest.getLastLoot();
+            if (loot != null) {
+                pickupMessage = "Nhặt được: " + loot.getName();
+            } else {
+                pickupMessage = "Rương trống!";
+            }
+        } else if (chest.isLocked()) {
+            pickupMessage = "Rương bị khóa! Cần chìa khóa.";
+        } else {
+            pickupMessage = "Rương đã mở rồi.";
+        }
+        messageTimer = 3.0;
+    }
+
+    private boolean isCollidingWithChest(Chest chest) {
+        return rectsOverlap(
+                player.getWorldX(), player.getWorldY(),
+                chest.getWorldX(), chest.getWorldY(),
+                Constants.TILE_SIZE);
+    }
+
+    private boolean rectsOverlap(double x1, double y1, double x2, double y2, int size) {
+        return x1 < x2 + size && x1 + size > x2 && y1 < y2 + size && y1 + size > y2;
+    }
+
+    /**
+     * Xử lý 1 nhát tấn công của player — kiếm (cận chiến, có combo) hoặc
+     * cung (tầm xa, bắn mũi tên), tuỳ theo player.getWeaponMode().
+     */
+    private void handlePlayerAttack() {
+        System.out.println("\n[DEBUG handlePlayerAttack] ====== BẮT ĐẦU TẤN CÔNG ======");
+        System.out.println("[DEBUG handlePlayerAttack] weapon=" + player.getWeaponMode()
+                + " dir=" + player.getDirection()
+                + " playerPos=(" + String.format("%.1f", player.getWorldX()) + ", " + String.format("%.1f", player.getWorldY()) + ")"
+                + " playerTile=(" + player.getTileX() + ", " + player.getTileY() + ")");
+
+        player.stateAttack();
+
+        if (player.getWeaponMode() == WeaponMode.BOW) {
+            // --- CUNG: spawn mũi tên từ tâm hiển thị sprite player ---
+            double cx = player.getWorldX() + Constants.TILE_SIZE / 2.0;
+            double cy = player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2.0;
+            double mx = inputHandler.getMouseX();
+            double my = inputHandler.getMouseY();
+
+            // Clamp góc bắn trong ±60° từ hướng ngang
+            double clampedAngle = clampBowAngle(cx, cy, mx, my);
+            double tmx = cx + Math.cos(clampedAngle);
+            double tmy = cy + Math.sin(clampedAngle);
+
+            Arrow arrow = new Arrow(cx, cy, tmx, tmy, arrowSprite);
+            activeArrows.add(arrow);
+            System.out.println("[DEBUG handlePlayerAttack] ARROW spawned at (" + String.format("%.1f", cx)
+                    + ", " + String.format("%.1f", cy) + ") -> (" + mx + ", " + my + ")");
+            System.out.println("[DEBUG handlePlayerAttack] ====== KẾT THÚC (ARROW SPAWNED) ======\n");
+            return;
+        }
+
+        // --- KIẾM: kiểm tra hitbox tức thời (cận chiến) ---
+        System.out.println("[DEBUG handlePlayerAttack] Sau stateAttack(): state=" + player.getState()
+                + " combo=" + player.getComboCount() + "/3"
+                + " finisher=" + player.isLastAttackComboFinisher());
+
+        Rectangle attackHitbox = player.getAttackHitbox();
+        System.out.println("[DEBUG handlePlayerAttack] attackHitbox=["
+                + "x=" + attackHitbox.x + " y=" + attackHitbox.y
+                + " w=" + attackHitbox.width + " h=" + attackHitbox.height + "]");
+
+        Rectangle playerHitbox = player.getHitbox();
+        System.out.println("[DEBUG handlePlayerAttack] playerHitbox=["
+                + "x=" + playerHitbox.x + " y=" + playerHitbox.y
+                + " w=" + playerHitbox.width + " h=" + playerHitbox.height + "]");
+
+        // Log vị trí từng quái vật để so sánh
+        System.out.println("[DEBUG handlePlayerAttack] Số quái đang sống: "
+                + activeMonsters.stream().filter(Entity::isAlive).count() + "/" + activeMonsters.size());
+        for (int i = 0; i < activeMonsters.size(); i++) {
+            Monster m = activeMonsters.get(i);
+            Rectangle mBox = m.getHitbox();
+            boolean intersects = attackHitbox.intersects(mBox);
+            System.out.println("[DEBUG handlePlayerAttack]   monster[" + i + "] '" + m.getName() + "'"
+                    + " alive=" + m.isAlive()
+                    + " pos=(" + String.format("%.1f", m.getWorldX()) + ", " + String.format("%.1f", m.getWorldY()) + ")"
+                    + " hitbox=[x=" + mBox.x + " y=" + mBox.y + " w=" + mBox.width + " h=" + mBox.height + "]"
+                    + " INTERSECTS=" + intersects);
+        }
+
+        Entity target = player.getCollisionManager().findAttackTarget(player, attackHitbox, activeMonsters);
+
+        if (target == null) {
+            System.out.println("[DEBUG handlePlayerAttack] target=NULL — không trúng quái nào!");
+            System.out.println("[DEBUG handlePlayerAttack] ====== KẾT THÚC (MISS) ======\n");
+            return;
+        }
+
+        System.out.println("[DEBUG handlePlayerAttack] target='" + target.getName() + "'"
+                + " hp=" + target.getHp() + "/" + target.getMaxHp()
+                + " def=" + target.getDef());
+
+        // Đòn combo thứ 3 của kiếm gây sát thương cao hơn
+        double damageMultiplier = player.isLastAttackComboFinisher()
+                ? Constants.COMBO_FINISHER_DAMAGE_MULTIPLIER
+                : 1.0;
+        System.out.println("[DEBUG handlePlayerAttack] damageMultiplier=" + damageMultiplier
+                + " playerATK=" + player.getAtk() + " targetDEF=" + target.getDef());
+
+        CombatSystem.CombatResult result = combatSystem.attack(player, target, damageMultiplier);
+        System.out.println("[DEBUG handlePlayerAttack] CombatResult: damage=" + result.damage
+                + " isCrit=" + result.isCrit + " isMiss=" + result.isMiss
+                + " targetDied=" + result.targetDied
+                + " targetHP_after=" + target.getHp());
+
+        if (result.isMiss) {
+            pickupMessage = "Trượt!";
+        } else {
+            String comboTag = player.isLastAttackComboFinisher() ? "COMBO x3! " : "";
+            String critTag = result.isCrit ? "CHÍ MẠNG! " : "";
+            pickupMessage = comboTag + critTag + "Gây " + result.damage + " sát thương";
+
+            if (result.targetDied && target instanceof Monster) {
+                Monster monster = (Monster) target;
+                player.addExp(monster.getExpReward());
+                player.addGold(monster.getGoldReward());
+                pickupMessage += " — hạ gục " + monster.getName()
+                        + "! +" + monster.getExpReward() + " EXP, +" + monster.getGoldReward() + " vàng";
+            }
+        }
+        System.out.println("[DEBUG handlePlayerAttack] message='" + pickupMessage + "'");
+        System.out.println("[DEBUG handlePlayerAttack] ====== KẾT THÚC TẤN CÔNG ======\n");
+        messageTimer = 1.5;
+    }
+
+    /**
+     * Cập nhật tất cả mũi tên đang bay: di chuyển, kiểm tra va chạm quái,
+     * gây sát thương khi trúng, và xoá mũi tên đã chết.
+     */
+    private void updateArrows(double deltaTime) {
+        Iterator<Arrow> it = activeArrows.iterator();
+        while (it.hasNext()) {
+            Arrow arrow = it.next();
+            arrow.update(deltaTime);
+
+            if (!arrow.isAlive()) {
+                it.remove();
+                continue;
+            }
+
+            // Kiểm tra va chạm mũi tên với quái vật
+            Rectangle arrowBox = arrow.getHitbox();
+            for (Monster m : activeMonsters) {
+                if (!m.isAlive()) continue;
+                if (arrowBox.intersects(m.getHitbox())) {
+                    // Trúng! Gây sát thương
+                    CombatSystem.CombatResult result = combatSystem.attack(player, m, 1.0);
+                    arrow.kill();
+
+                    if (result.isMiss) {
+                        pickupMessage = "Mũi tên trượt!";
+                    } else {
+                        String critTag = result.isCrit ? "CHÍ MẠNG! " : "";
+                        pickupMessage = "🏹 " + critTag + "Gây " + result.damage + " sát thương";
+                        if (result.targetDied) {
+                            player.addExp(m.getExpReward());
+                            player.addGold(m.getGoldReward());
+                            pickupMessage += " — hạ gục " + m.getName()
+                                    + "! +" + m.getExpReward() + " EXP, +" + m.getGoldReward() + " vàng";
+                        }
+                    }
+                    messageTimer = 1.5;
+                    break; // mỗi mũi tên chỉ trúng 1 mục tiêu
+                }
+            }
+
+            // Xoá nếu đã chết (sau va chạm)
+            if (!arrow.isAlive()) {
+                it.remove();
+            }
+        }
+    }
+
+    private boolean isNearChest(Chest chest) {
+        int dx = Math.abs(player.getTileX() - chest.getTileX());
+        int dy = Math.abs(player.getTileY() - chest.getTileY());
+        return dx <= 1 && dy <= 1;
+    }
+
+    private boolean isNearMerchant() {
+        if (merchant == null) return false;
+        int dx = Math.abs(player.getTileX() - merchant.getTileX());
+        int dy = Math.abs(player.getTileY() - merchant.getTileY());
+        return dx <= 1 && dy <= 1;
+    }
+
+    private void drawChest(Graphics2D g2d, Chest chest) {
+        int px = (int) chest.getWorldX();
+        int py = (int) chest.getWorldY();
+        int size = Constants.TILE_SIZE;
+
+        // Chọn sprite key theo loại rương + trạng thái
+        String key = "chest_" + chest.getChestType() + (chest.isOpened() ? "_open" : "_closed");
+        BufferedImage frame = assetLoader.getTile(key);
+
+        if (frame != null) {
+            // Vẽ sprite, scale 40x32 -> TILE_SIZE x TILE_SIZE (giữ tỉ lệ, neo đáy)
+            int drawW = size;
+            int drawH = (int) ((double) Constants.CHEST_FRAME_HEIGHT / Constants.CHEST_FRAME_WIDTH * size);
+            int drawY = py + size - drawH; // neo đáy tile
+            g2d.drawImage(frame, px, drawY, drawW, drawH, null);
+        } else {
+            // Fallback: hình vuông nếu sprite chưa load
+            int pad = 4;
+            if (chest.isOpened()) {
+                g2d.setColor(new Color(80, 70, 50));
+            } else if (chest.isLocked()) {
+                g2d.setColor(new Color(120, 80, 40));
+            } else {
+                g2d.setColor(new Color(180, 140, 60));
+            }
+            g2d.fillRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
+        }
+    }
+
+    private void drawMerchant(Graphics2D g2d) {
+        int px = (int) merchant.getWorldX();
+        int py = (int) merchant.getWorldY();
+        int size = Constants.TILE_SIZE;
+        int pad = 4;
+
+        // Thân merchant — màu xanh lá
+        g2d.setColor(new Color(60, 180, 100));
+        g2d.fillRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
+
+        // Viền
+        g2d.setColor(new Color(30, 100, 50));
+        g2d.drawRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
+
+        // Icon: dấu $ 
+        g2d.setColor(new Color(255, 230, 80));
+        g2d.setFont(g2d.getFont().deriveFont(16f));
+        g2d.drawString("$", px + size / 2 - 4, py + size / 2 + 6);
+    }
+
 
     private void renderPauseOverlay(Graphics2D g2d) {
         g2d.setColor(new Color(0, 0, 0, 150));

@@ -42,7 +42,35 @@ public class AssetLoader {
      */
     public void loadAll() {
         loadPlayer();
+        loadChest();
         loadMonsters();
+        loadArrow();
+    }
+
+    private void loadChest() {
+        String path = Constants.SPRITES_PATH + "items/chest/Chests.png";
+        BufferedImage sheet = loadImage(path);
+        if (sheet == null) {
+            return;
+        }
+        // Chests.png: 6 cols × 8 rows, mỗi frame 40×32
+        // Layout: mỗi loại rương chiếm 2 hàng (hàng 0-1 brown, 2-3 gold, 4-5 red, 6-7 blue)
+        // Hàng chẵn (0,2,4,6): closed → mở dần
+        // Hàng lẻ (1,3,5,7): closed → mở dần (bản khác góc nhìn?)
+        // Dùng frame 0 = closed, frame 5 (cuối hàng) = open
+        SpriteSheet cutter = new SpriteSheet(sheet, Constants.CHEST_FRAME_WIDTH, Constants.CHEST_FRAME_HEIGHT);
+
+        // Brown: hàng 0, frame 0 = closed, frame 5 = open
+        tileImages.put("chest_brown_closed", cutter.getFrame(0, 0));
+        tileImages.put("chest_brown_open", cutter.getFrame(5, 0));
+
+        // Gold: hàng 2, frame 0 = closed, frame 5 = open
+        tileImages.put("chest_gold_closed", cutter.getFrame(0, 2));
+        tileImages.put("chest_gold_open", cutter.getFrame(5, 2));
+
+        // Blue: hàng 6, frame 0 = closed, frame 5 = open
+        tileImages.put("chest_blue_closed", cutter.getFrame(0, 6));
+        tileImages.put("chest_blue_open", cutter.getFrame(5, 6));
     }
 
     private void loadPlayer() {
@@ -51,19 +79,50 @@ public class AssetLoader {
         loadAnimationSheet("player_idle", base + "Soldier_Idle.png");
         loadAnimationSheet("player_walk", base + "Soldier_Walk.png");
         loadAnimationSheet("player_attack", base + "Soldier_Attack01.png");
+        loadAnimationSheet("player_attack2", base + "Soldier_Attack02.png"); // đòn combo thứ 3
+        loadAnimationSheet("player_attack3", base + "Soldier_Attack03.png"); // tấn công cung
         loadAnimationSheet("player_hurt", base + "Soldier_Hurt.png");
         loadAnimationSheet("player_dead", base + "Soldier_Death.png");
     }
 
-    private void loadAnimationSheet(String name, String path) {
+    /**
+     * Load sprite mũi tên (frame đầu tiên của Arrow01(100x100).png).
+     * Sprite gốc hướng sang phải; sẽ được xoay lúc vẽ bởi Arrow.render().
+     */
+    private void loadArrow() {
+        String path = Constants.SPRITES_PATH + "player/Arrow01(100x100).png";
         BufferedImage sheet = loadImage(path);
         if (sheet == null) {
+            System.err.println("[AssetLoader] Could not load arrow sprite: " + path);
+            return;
+        }
+        // Lấy frame đầu tiên (100x100) từ sprite sheet
+        SpriteSheet cutter = new SpriteSheet(sheet, PLAYER_FRAME_SIZE, PLAYER_FRAME_SIZE);
+        BufferedImage frame0 = cutter.getFrame(0, 0);
+        tileImages.put("arrow0", frame0);
+        System.out.println("[DEBUG AssetLoader] Loaded arrow0 frame (" + frame0.getWidth() + "x" + frame0.getHeight() + ")");
+    }
+
+    /**
+     * Lấy frame mũi tên (đã load sẵn).
+     */
+    public BufferedImage getArrowFrame() {
+        return tileImages.get("arrow0");
+    }
+
+    private void loadAnimationSheet(String name, String path) {
+        System.out.println("[DEBUG AssetLoader] Loading sheet: name='" + name + "' path='" + path + "'");
+        BufferedImage sheet = loadImage(path);
+        if (sheet == null) {
+            System.out.println("[DEBUG AssetLoader] FAILED to load sheet: '" + name + "' — image is null!");
             spriteFrames.put(name, new BufferedImage[0]);
             return;
         }
         SpriteSheet sheetCutter = new SpriteSheet(sheet, PLAYER_FRAME_SIZE, PLAYER_FRAME_SIZE);
         BufferedImage[] frames = sheetCutter.getFullRow(0);
         spriteFrames.put(name, frames);
+        System.out.println("[DEBUG AssetLoader] Loaded '" + name + "' => " + frames.length + " frames"
+                + " (sheet " + sheet.getWidth() + "x" + sheet.getHeight() + ")");
     }
 
     private void loadMonsters() {

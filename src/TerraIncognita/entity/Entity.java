@@ -3,6 +3,8 @@ package TerraIncognita.entity;
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.item.StatusEffect;
+import TerraIncognita.util.Constants;
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -42,8 +44,22 @@ public abstract class Entity {
     protected Map<String, Animation> animations;    // key = "idle_down", "walk_up", "attack_left"...
     protected Animation currentAnimation;
 
+    // Cho phép entity con (Player) ép dùng 1 animation key cụ thể thay vì
+    // key mặc định "state_direction" — dùng cho combo: đòn thứ 3 của kiếm
+    // vẫn ở state ATTACK nhưng cần chạy frame set "attack2_*" (Soldier_Attack02)
+    // thay vì "attack_*" (Soldier_Attack01). null = dùng key mặc định.
+    protected String animationKeyOverride;
+
     // --- Hiệu ứng trạng thái ---
     protected List<StatusEffect> activeEffects;
+
+    // --- Hitbox (vùng va chạm), tính lệch so với worldX/worldY ---
+    // Mặc định nhỏ hơn 1 tile một chút để va chạm "mượt" hơn, giống cách
+    // solidArea được làm nhỏ hơn sprite trong nhiều game 2D top-down.
+    protected int hitboxOffsetX;
+    protected int hitboxOffsetY;
+    protected int hitboxWidth;
+    protected int hitboxHeight;
 
     public Entity() {
         this.worldX = 0;
@@ -61,7 +77,15 @@ public abstract class Entity {
         this.alive = true;
         this.animations = new HashMap<>();
         this.currentAnimation = null;
+        this.animationKeyOverride = null;
         this.activeEffects = new ArrayList<>();
+
+        // Hitbox mặc định: thu nhỏ 4px mỗi cạnh so với 1 tile
+        int inset = 4;
+        this.hitboxOffsetX = inset;
+        this.hitboxOffsetY = inset;
+        this.hitboxWidth = Constants.TILE_SIZE - inset * 2;
+        this.hitboxHeight = Constants.TILE_SIZE - inset * 2;
     }
 
     /**
@@ -102,12 +126,18 @@ public abstract class Entity {
      * Cập nhật animation hiện tại dựa trên state + direction.
      */
     protected void updateAnimation(double deltaTime) {
-        // Xây key animation: "idle_down", "walk_up"...
-        String key = state.name().toLowerCase() + "_" + direction.name().toLowerCase();
+        // Xây key animation: "idle_down", "walk_up"... trừ khi bị ép dùng
+        // key khác qua animationKeyOverride (xem combo kiếm trong Player).
+        String key = (animationKeyOverride != null)
+                ? animationKeyOverride
+                : state.name().toLowerCase() + "_" + direction.name().toLowerCase();
         Animation anim = animations.get(key);
         if (anim != null) {
             currentAnimation = anim;
             currentAnimation.update(deltaTime);
+        } else {
+            System.out.println("[DEBUG Entity.updateAnimation] ANIM NOT FOUND for key='" + key + "'"
+                    + " | available keys=" + animations.keySet());
         }
     }
 
@@ -138,6 +168,38 @@ public abstract class Entity {
     public void updateTilePosition(int tileSize) {
         this.tileX = (int) (worldX / tileSize);
         this.tileY = (int) (worldY / tileSize);
+    }
+
+    /**
+     * Tuỳ chỉnh vùng va chạm (hitbox) của entity.
+     * Gọi trong constructor của lớp con nếu cần hitbox khác mặc định
+     * (ví dụ quái to hơn/nhỏ hơn 1 tile).
+     */
+    public void setHitbox(int offsetX, int offsetY, int width, int height) {
+        this.hitboxOffsetX = offsetX;
+        this.hitboxOffsetY = offsetY;
+        this.hitboxWidth = width;
+        this.hitboxHeight = height;
+    }
+
+    /**
+     * Hitbox tại vị trí hiện tại (worldX, worldY).
+     */
+    public Rectangle getHitbox() {
+        return getHitboxAt(worldX, worldY);
+    }
+
+    /**
+     * Hitbox nếu entity đứng tại toạ độ (x, y) — dùng để "thử" va chạm
+     * trước khi thật sự di chuyển tới đó (xem CollisionManager).
+     */
+    public Rectangle getHitboxAt(double x, double y) {
+        return new Rectangle(
+                (int) Math.round(x) + hitboxOffsetX,
+                (int) Math.round(y) + hitboxOffsetY,
+                hitboxWidth,
+                hitboxHeight
+        );
     }
 
     // --- Getter / Setter ---

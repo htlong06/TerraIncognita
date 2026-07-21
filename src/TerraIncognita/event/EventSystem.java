@@ -1,5 +1,11 @@
 package TerraIncognita.event;
 
+import TerraIncognita.entity.Player;
+import TerraIncognita.map.GameMap;
+import TerraIncognita.map.TileType;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Hệ thống xử lý sự kiện.
  * Quản lý và kích hoạt các sự kiện (trap, switch, room event, checkpoint...).
@@ -7,28 +13,48 @@ package TerraIncognita.event;
  */
 public class EventSystem {
 
-    // TODO: Khai báo các trường
-    // - Map<String, GameEvent> registeredEvents   — sự kiện đăng ký theo ID
+    private Map<String, GameEvent> registeredEvents;
 
     public EventSystem() {
-        // TODO
+        this.registeredEvents = new HashMap<>();
+    }
+
+    /**
+     * Đăng ký sự kiện theo ID.
+     */
+    public void registerEvent(String id, GameEvent event) {
+        registeredEvents.put(id, event);
     }
 
     /**
      * Kiểm tra và kích hoạt sự kiện tại vị trí (tileX, tileY).
      * Gọi mỗi khi player bước vào ô mới.
      */
-    public void checkTileEvent(int tileX, int tileY /*, Player player, GameMap map */) {
-        // TODO: Kiểm tra tile type tại vị trí
-        // TODO: Nếu TRAP → kích hoạt TrapEvent
-        // TODO: Nếu SWITCH → kích hoạt SwitchEvent
-        // TODO: Nếu CHECKPOINT → lưu game
+    public void checkTileEvent(GameMap map, Player player, int tileX, int tileY) {
+        if (map == null || player == null) return;
+        TileType tileType = map.getTile(tileX, tileY).getType();
+
+        switch (tileType) {
+            case TRAP:
+            case TRAP_HIDDEN:
+                String trapKey = "trap_" + tileX + "_" + tileY;
+                GameEvent trapEvent = registeredEvents.get(trapKey);
+                if (trapEvent != null) {
+                    trapEvent.execute(player, map);
+                }
+                break;
+            case CHECKPOINT:
+                // TODO: trigger SaveManager when Task 9 is done
+                break;
+            default:
+                break;
+        }
     }
 
     /**
      * Kiểm tra room event khi player vào phòng mới.
      */
-    public void checkRoomEvent(/* Room room, Player player */) {
-        // TODO: Nếu room chưa visited → xác suất sinh event
+    public void checkRoomEvent() {
+        // TODO: check when player enters new room
     }
 }
