@@ -150,8 +150,8 @@ public class InventoryUI {
             g2d.setColor(new Color(80, 90, 110));
             g2d.drawRect(x, y, SLOT_SIZE, SLOT_SIZE);
 
-            // Selected highlight
-            if (i == selectedIndex && i < inv.getUsedSlots()) {
+            // Selected highlight — viền vàng luôn vẽ ở ô đang chọn (kể cả ô trống)
+            if (i == selectedIndex) {
                 g2d.setColor(Color.YELLOW);
                 g2d.drawRect(x - 1, y - 1, SLOT_SIZE + 2, SLOT_SIZE + 2);
                 g2d.drawRect(x - 2, y - 2, SLOT_SIZE + 4, SLOT_SIZE + 4);
