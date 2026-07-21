@@ -59,8 +59,8 @@ public class InventoryUI {
      * Di chuyển cursor trong lưới. Không vượt qua số slot đã dùng.
      */
     public void moveCursor(Direction dir, Inventory inv) {
-        int used = inv.getUsedSlots();
-        if (used == 0) return;
+        int maxSlots = inv.getMaxSlots();
+        if (maxSlots == 0) return;
 
         int col = selectedIndex % COLS;
         int row = selectedIndex / COLS;
@@ -71,20 +71,20 @@ public class InventoryUI {
                 break;
             case DOWN:
                 int newRow = row + 1;
-                if (newRow * COLS + col < used) row = newRow;
+                if (newRow * COLS + col < maxSlots) row = newRow;
                 break;
             case LEFT:
                 if (col > 0) col--;
                 break;
             case RIGHT:
-                if (col < COLS - 1 && row * COLS + col + 1 < used) col++;
+                if (col < COLS - 1 && row * COLS + col + 1 < maxSlots) col++;
                 break;
             default:
                 break;
         }
 
         int newIndex = row * COLS + col;
-        if (newIndex >= 0 && newIndex < used) {
+        if (newIndex >= 0 && newIndex < maxSlots) {
             selectedIndex = newIndex;
         }
     }
