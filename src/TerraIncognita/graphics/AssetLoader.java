@@ -2,6 +2,7 @@ package TerraIncognita.graphics;
 
 import javax.imageio.ImageIO;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -47,20 +48,22 @@ public class AssetLoader {
         loadArrow();
     }
 
+    private static final int CHEST_SIZE = 64;
+
     private void loadChest() {
         String base = Constants.SPRITES_PATH + "items/chest/";
 
         // Common chest (brown)
-        tileImages.put("chest_common_closed", loadImage(base + "common/common_closed.png"));
-        tileImages.put("chest_common_open", loadImage(base + "common/common_open.png"));
+        tileImages.put("chest_common_closed", loadImageScaled(base + "common/common_no_glow.png", CHEST_SIZE, CHEST_SIZE));
+        tileImages.put("chest_common_open", loadImageScaled(base + "common/common_empty_no_glow.png", CHEST_SIZE, CHEST_SIZE));
 
         // Rare chest (blue)
-        tileImages.put("chest_rare_closed", loadImage(base + "rare/rare_closed.png"));
-        tileImages.put("chest_rare_open", loadImage(base + "rare/rare_open.png"));
+        tileImages.put("chest_rare_closed", loadImageScaled(base + "rare/rare_no_glow.png", CHEST_SIZE, CHEST_SIZE));
+        tileImages.put("chest_rare_open", loadImageScaled(base + "rare/rare_empty_no_glow.png", CHEST_SIZE, CHEST_SIZE));
 
         // Mythic chest (gold/purple gem)
-        tileImages.put("chest_mythic_closed", loadImage(base + "mythic/mythic_closed.png"));
-        tileImages.put("chest_mythic_open", loadImage(base + "mythic/mythic_open.png"));
+        tileImages.put("chest_mythic_closed", loadImageScaled(base + "mythic/mythical_no_glow.png", CHEST_SIZE, CHEST_SIZE));
+        tileImages.put("chest_mythic_open", loadImageScaled(base + "mythic/mythical_empty_no_glow.png", CHEST_SIZE, CHEST_SIZE));
     }
 
     private void loadPlayer() {
@@ -149,6 +152,22 @@ private void loadMonsterSheet(String name, String path) {
             System.err.println("[AssetLoader] Loi doc anh " + path + ": " + e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Load ảnh và resize về đúng kích thước (dùng cho ảnh gốc lớn, vd chest 2000x2000).
+     */
+    private BufferedImage loadImageScaled(String path, int width, int height) {
+        BufferedImage src = loadImage(path);
+        if (src == null) {
+            return null;
+        }
+        Image scaled = src.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = result.createGraphics();
+        g2d.drawImage(scaled, 0, 0, null);
+        g2d.dispose();
+        return result;
     }
 
     /**
