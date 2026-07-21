@@ -287,19 +287,34 @@ public class GameEngine {
             changeState(GameState.RADIAL_MENU);
         }
 
-        // E key — gần merchant thì tương tác/mở shop; ngược lại đổi vũ khí Kiếm/Cung
-        if (inputHandler.isKeyJustPressed(KeyEvent.VK_E)) {
+        // F — gần merchant thì mở shop, gần rương thì mở rương
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_F)) {
             if (isNearMerchant()) {
                 merchant.interact(player);
                 activeShop = merchant.getShop();
                 shopUI.open();
                 changeState(GameState.SHOP);
             } else {
-                player.toggleWeaponMode();
-                pickupMessage = "Đã chuyển sang "
-                        + (player.getWeaponMode() == WeaponMode.SWORD ? "Kiếm" : "Cung");
-                messageTimer = 1.2;
+                // Tìm rương gần nhất để mở
+                Chest nearestChest = null;
+                for (Chest chest : chests) {
+                    if (isNearChest(chest)) {
+                        nearestChest = chest;
+                        break;
+                    }
+                }
+                if (nearestChest != null) {
+                    tryOpenChest(nearestChest);
+                }
             }
+        }
+
+        // E key — đổi vũ khí Kiếm/Cung
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_E)) {
+            player.toggleWeaponMode();
+            pickupMessage = "Đã chuyển sang "
+                    + (player.getWeaponMode() == WeaponMode.SWORD ? "Kiếm" : "Cung");
+            messageTimer = 1.2;
         }
 
         // Tấn công bằng chuột trái — hành vi khác nhau theo vũ khí hiện tại:

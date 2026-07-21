@@ -50,7 +50,7 @@ public class InputHandler {
     private static final int[] GAME_KEYS = {
         KeyEvent.VK_UP, KeyEvent.VK_DOWN, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT,
         KeyEvent.VK_W, KeyEvent.VK_A, KeyEvent.VK_S, KeyEvent.VK_D,
-        KeyEvent.VK_SPACE, KeyEvent.VK_E, KeyEvent.VK_I,
+        KeyEvent.VK_SPACE, KeyEvent.VK_E, KeyEvent.VK_F, KeyEvent.VK_I,
         KeyEvent.VK_ESCAPE, KeyEvent.VK_ENTER,
         KeyEvent.VK_TAB  // radial menu
     };
