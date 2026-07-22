@@ -20,6 +20,7 @@ import TerraIncognita.item.EquipmentSlot;
 import TerraIncognita.item.Item;
 import TerraIncognita.item.Key;
 import TerraIncognita.item.Potion;
+import TerraIncognita.map.DungeonMapManager;
 import TerraIncognita.ui.InventoryUI;
 import TerraIncognita.ui.ShopUI;
 import TerraIncognita.ui.HUD;
@@ -61,6 +62,7 @@ public class GameEngine {
     private InventoryUI inventoryUI;
 
     private AssetLoader assetLoader;
+    private DungeonMapManager mapManager;
 
     private List<Chest> chests;
     private Set<Chest> collidingChests;
@@ -94,6 +96,9 @@ public class GameEngine {
         this.player = new Player();
         this.player.setWorldX(Constants.SCREEN_WIDTH / 2.0 - Constants.TILE_SIZE / 2.0);
         this.player.setWorldY(Constants.SCREEN_HEIGHT / 2.0 - Constants.TILE_SIZE / 2.0);
+
+        this.mapManager = new DungeonMapManager("dungeon_1");
+        this.mapManager.placePlayer(this.player);
 
         this.assetLoader = new AssetLoader();
         this.assetLoader.loadAll();
@@ -550,19 +555,7 @@ public class GameEngine {
     }
 
     private void renderPlaying(Graphics2D g2d) {
-        // TODO (GĐ2): Vẽ map bằng Renderer
-        // Nền tối (tạm thời mô phỏng dungeon)
-        g2d.setColor(new Color(30, 30, 40));
-        g2d.fillRect(0, 0, Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
-
-        // Vẽ lưới tile nhạt (debug, để thấy rõ hơn)
-        g2d.setColor(new Color(50, 50, 60));
-        for (int x = 0; x < Constants.SCREEN_WIDTH; x += Constants.TILE_SIZE) {
-            g2d.drawLine(x, 0, x, Constants.SCREEN_HEIGHT);
-        }
-        for (int y = 0; y < Constants.SCREEN_HEIGHT; y += Constants.TILE_SIZE) {
-            g2d.drawLine(0, y, Constants.SCREEN_WIDTH, y);
-        }
+        mapManager.renderTiles(g2d, assetLoader);
 
         drawPlayer(g2d);
 
