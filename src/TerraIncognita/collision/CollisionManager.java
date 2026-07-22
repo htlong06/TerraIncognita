@@ -13,34 +13,12 @@ import java.util.List;
 
 /**
  * Lớp riêng chịu trách nhiệm xử lý va chạm cho toàn bộ game.
- *
- * Cơ chế lấy cảm hứng từ CollisionChecker trong dự án 2dGame
- * (https://github.com/thinhnguyendev1601/2dGame): mỗi Entity có một
- * "hitbox" (vùng va chạm) nhỏ hơn kích thước 1 tile một chút, và việc
- * kiểm tra va chạm luôn dựa trên hitbox đó — KHÔNG dựa trên toạ độ
- * worldX/worldY thô — để tránh trường hợp entity "dính" vào tường vì
- * phần rìa sprite trong suốt.
- *
- * Khác với 2dGame (di chuyển theo pixel nguyên, từng bước bằng speed),
- * project này di chuyển bằng double + deltaTime nên các phép kiểm tra
- * được viết lại để nhận toạ độ "thử" (candidate position) thay vì chỉ
- * dựa vào hướng di chuyển hiện tại.
- *
- * Class này KHÔNG giữ trạng thái game — chỉ chứa logic kiểm tra/xử lý,
- * nên có thể dùng chung cho Player, Monster, NPC.
  */
 public class CollisionManager {
-
-    // =========================================================
-    // 1) VA CHẠM VỚI TILE (tường, nước, ô ngoài map...)
-    // =========================================================
 
     /**
      * Kiểm tra nếu entity di chuyển tới vị trí (newX, newY) thì hitbox
      * của nó có chồng lên tile không đi được không.
-     *
-     * Tương đương checkTile() trong CollisionChecker của 2dGame, nhưng
-     * kiểm tra hitbox tại vị trí "thử" thay vì tính lùi 1 bước theo speed.
      *
      * @return true nếu bị chặn (có va chạm), false nếu đi được
      */
@@ -57,8 +35,6 @@ public class CollisionManager {
         int topRow = box.y / tileSize;
         int bottomRow = (box.y + box.height - 1) / tileSize;
 
-        // Kiểm tra cả 4 góc của hitbox, giống 4 điểm được CollisionChecker
-        // gốc kiểm tra (entityLeftCol/RightCol/TopRow/BottomRow).
         return !map.isWalkable(leftCol, topRow)
                 || !map.isWalkable(rightCol, topRow)
                 || !map.isWalkable(leftCol, bottomRow)
@@ -95,16 +71,8 @@ public class CollisionManager {
         return new double[] { resultX, resultY };
     }
 
-    // =========================================================
-    // 2) VA CHẠM GIỮA CÁC ENTITY (player <-> monster, monster <-> monster...)
-    // =========================================================
-
     /**
      * Kiểm tra 2 entity có đang chồng hitbox lên nhau không.
-     * Tương đương checkPlayer()/checkEntity() trong CollisionChecker gốc,
-     * nhưng dùng java.awt.Rectangle#intersects trực tiếp (project này
-     * không cần double-buffer lại solidArea vì hitbox luôn tính theo
-     * worldX/worldY hiện tại).
      */
     public boolean checkEntityCollision(Entity a, Entity b) {
         if (a == null || b == null || a == b) {
@@ -158,10 +126,6 @@ public class CollisionManager {
         return false;
     }
 
-    // =========================================================
-    // 3) VA CHẠM VỚI BẪY (TRAP / TRAP_HIDDEN)
-    // =========================================================
-
     /**
      * Kiểm tra hitbox của player có đang đứng trên ô bẫy (TRAP hoặc
      * TRAP_HIDDEN) không; nếu có thì kích hoạt sự kiện tương ứng qua
@@ -191,26 +155,10 @@ public class CollisionManager {
         return false;
     }
 
-    // =========================================================
-    // 4) HITBOX TẤN CÔNG (đánh cận chiến)
-    // =========================================================
-    //
-    // Cơ chế lấy từ Entity.attacking() trong 2dGame: khi tấn công, game
-    // gốc tạm thời di chuyển "solidArea" của entity ra phía trước theo
-    // hướng đang quay mặt (kích thước = attackArea của vũ khí), rồi dùng
-    // CollisionChecker để xem attackArea đó có chạm ai không.
-    //
-    // Ở đây mình không cần đổi solidArea tạm thời như bản gốc (vì hitbox
-    // của TerraIncognita được tính "on the fly" từ worldX/worldY, không
-    // lưu trạng thái), nên chỉ cần tính thẳng ra 1 Rectangle độc lập đại
-    // diện cho vùng lưỡi kiếm/phạm vi đánh, rồi kiểm tra intersect với
-    // từng mục tiêu — không cần swap/restore state như bản gốc.
-
     /**
      * Tính hitbox tấn công: 1 hình chữ nhật nhô ra phía trước hitbox của
      * attacker theo hướng đang quay mặt, độ dài = rangeLength (px), bề
-     * ngang/dọc bằng đúng bề ngang/dọc hitbox của attacker (giống việc
-     * attackArea trong 2dGame luôn được đặt sát cạnh solidArea gốc).
+     * ngang/dọc bằng đúng bề ngang/dọc hitbox của attacker.
      */
     public Rectangle getAttackHitbox(Entity attacker, int rangeLength) {
         Rectangle base = attacker.getHitbox();
@@ -247,9 +195,6 @@ public class CollisionManager {
     /**
      * Tìm mục tiêu đầu tiên trong danh sách bị hitbox tấn công chạm
      * trúng. Bỏ qua attacker và các entity đã chết.
-     *
-     * Tương đương gp.cChecker.checkEntity(this, gp.monster) trong bản
-     * gốc — trả về đối tượng bị trúng thay vì index trong mảng.
      *
      * @return entity đầu tiên bị trúng đòn, hoặc null nếu không trúng ai
      */
