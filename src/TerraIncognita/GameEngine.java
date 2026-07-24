@@ -63,6 +63,7 @@ public class GameEngine {
 
     private AssetLoader assetLoader;
     private DungeonMapManager mapManager;
+    private TerraIncognita.graphics.Camera camera;
 
     private List<Chest> chests;
     private Set<Chest> collidingChests;
@@ -99,6 +100,17 @@ public class GameEngine {
 
         this.mapManager = new DungeonMapManager("dungeon_1");
         this.mapManager.placePlayer(this.player);
+
+        // Camera theo dõi player — kích thước map lấy từ map hiện tại (tính bằng pixel)
+        this.camera = new TerraIncognita.graphics.Camera(Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
+        if (mapManager.isLoaded()) {
+            this.camera.setMapSize(
+                    mapManager.getCurrentMap().getWidth() * Constants.TILE_SIZE,
+                    mapManager.getCurrentMap().getHeight() * Constants.TILE_SIZE
+            );
+        }
+        this.camera.update((int) (player.getWorldX() + Constants.TILE_SIZE / 2.0),
+                (int) (player.getWorldY() + Constants.TILE_SIZE / 2.0));
 
         this.assetLoader = new AssetLoader();
         this.assetLoader.loadAll();
@@ -347,7 +359,9 @@ public class GameEngine {
             }
         } else {
             if (inputHandler.isMouseLeftPressed()) {
-                player.aimTowards(inputHandler.getMouseX(), inputHandler.getMouseY());
+                player.aimTowards(
+                        camera.screenToWorldX(inputHandler.getMouseX()),
+                        camera.screenToWorldY(inputHandler.getMouseY()));
             }
             if (inputHandler.isMouseLeftJustReleased()) {
                 System.out.println("[DEBUG GameEngine] Mouse LEFT just released (BOW mode)");
@@ -370,6 +384,10 @@ public class GameEngine {
 
         // Cập nhật player
         player.update(deltaTime);
+
+        // Camera bám theo tâm sprite player, kẹp trong biên map
+        camera.update((int) (player.getWorldX() + Constants.TILE_SIZE / 2.0),
+                (int) (player.getWorldY() + Constants.TILE_SIZE / 2.0));
 
         // Cập nhật mũi tên đang bay
         updateArrows(deltaTime);
@@ -555,6 +573,11 @@ public class GameEngine {
     }
 
     private void renderPlaying(Graphics2D g2d) {
+        // Dịch chuyển toàn bộ hệ toạ độ theo camera — từ đây, mọi lệnh vẽ
+        // dùng toạ độ world (worldX/worldY) sẽ tự động hiển thị đúng vị trí
+        // trên màn hình theo vùng nhìn hiện tại của camera.
+        g2d.translate(-camera.getOffsetX(), -camera.getOffsetY());
+
         mapManager.renderTiles(g2d, assetLoader);
 
         drawPlayer(g2d);
@@ -573,6 +596,22 @@ public class GameEngine {
         if (merchant != null) {
             drawMerchant(g2d);
         }
+
+        // Vẽ quái vật đang hoạt động
+        for (Monster m : activeMonsters) {
+            if (m.isAlive()) {
+                drawMonster(g2d, m);
+            }
+        }
+
+        // Vẽ mũi tên đang bay
+        for (Arrow arrow : activeArrows) {
+            arrow.render(g2d);
+        }
+
+        // Trả lại hệ toạ độ màn hình (screen-space) — HUD, text debug, thông
+        // báo... không bị ảnh hưởng bởi camera, luôn cố định trên màn hình.
+        g2d.translate(camera.getOffsetX(), camera.getOffsetY());
 
         // HUD
         hud.render(g2d, player);
@@ -597,18 +636,6 @@ public class GameEngine {
             g2d.setFont(g2d.getFont().deriveFont(16f));
             int msgWidth = g2d.getFontMetrics().stringWidth(pickupMessage);
             g2d.drawString(pickupMessage, (Constants.SCREEN_WIDTH - msgWidth) / 2, Constants.SCREEN_HEIGHT - 40);
-        }
-
-        // Vẽ quái vật đang hoạt động
-        for (Monster m : activeMonsters) {
-            if (m.isAlive()) {
-                drawMonster(g2d, m);
-            }
-        }
-
-        // Vẽ mũi tên đang bay
-        for (Arrow arrow : activeArrows) {
-            arrow.render(g2d);
         }
 
         // Hướng dẫn điều khiển
@@ -647,8 +674,8 @@ public class GameEngine {
         // Tâm hiển thị thực tế của sprite player (không phải hitbox)
         int cx = (int) player.getWorldX() + Constants.TILE_SIZE / 2;
         int cy = (int) player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2;
-        int mx = inputHandler.getMouseX();
-        int my = inputHandler.getMouseY();
+        int mx = camera.screenToWorldX(inputHandler.getMouseX());
+        int my = camera.screenToWorldY(inputHandler.getMouseY());
 
         // Clamp góc ngắm trong ±60° từ hướng ngang
         double clampedAngle = clampBowAngle(cx, cy, mx, my);
@@ -756,8 +783,8 @@ public class GameEngine {
             // --- CUNG: spawn mũi tên từ tâm hiển thị sprite player ---
             double cx = player.getWorldX() + Constants.TILE_SIZE / 2.0;
             double cy = player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2.0;
-            double mx = inputHandler.getMouseX();
-            double my = inputHandler.getMouseY();
+            double mx = camera.screenToWorldX(inputHandler.getMouseX());
+            double my = camera.screenToWorldY(inputHandler.getMouseY());
 
             // Clamp góc bắn trong ±60° từ hướng ngang
             double clampedAngle = clampBowAngle(cx, cy, mx, my);
