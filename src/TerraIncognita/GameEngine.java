@@ -555,7 +555,7 @@ public class GameEngine {
     }
 
     private void renderPlaying(Graphics2D g2d) {
-        mapManager.renderTiles(g2d, assetLoader);
+        mapManager.renderTiles(g2d);
 
         drawPlayer(g2d);
 

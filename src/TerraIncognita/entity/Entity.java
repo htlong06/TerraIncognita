@@ -80,7 +80,7 @@ public abstract class Entity {
         this.activeEffects = new ArrayList<>();
 
         // Hitbox mặc định: thu nhỏ 4px mỗi cạnh so với 1 tile
-        int inset = 4;
+        int inset = 8;
         this.hitboxOffsetX = inset;
         this.hitboxOffsetY = inset;
         this.hitboxWidth = Constants.TILE_SIZE - inset * 2;
