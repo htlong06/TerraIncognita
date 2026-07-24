@@ -7,13 +7,16 @@ import java.util.Random;
 /**
  * Hệ thống chiến đấu.
  * Xử lý tính sát thương, kết quả trận đánh, turn-based logic.
+ *
+ * Công thức gợi ý: damage = max(1, ATK_tấn_công - DEF_phòng_thủ)
+ * Có thể thêm: crit hit, miss, bonus từ equipment.
  */
 public class CombatSystem {
 
     private Random random;
-    private double critChance;      
-    private double critMultiplier;  
-    private double missChance;      
+    private double critChance;      // xác suất crit (ví dụ 0.1 = 10%)
+    private double critMultiplier;  // hệ số crit (ví dụ 1.5x)
+    private double missChance;      // xác suất trượt (ví dụ 0.05 = 5%)
 
     public CombatSystem() {
         this.random = new Random();
