@@ -578,7 +578,7 @@ public class GameEngine {
         // trên màn hình theo vùng nhìn hiện tại của camera.
         g2d.translate(-camera.getOffsetX(), -camera.getOffsetY());
 
-        mapManager.renderTiles(g2d, assetLoader);
+        mapManager.renderTiles(g2d);
 
         drawPlayer(g2d);
 
