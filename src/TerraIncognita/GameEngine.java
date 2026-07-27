@@ -28,6 +28,7 @@ import TerraIncognita.event.EventSystem;
 import TerraIncognita.event.TrapEvent;
 import TerraIncognita.save.SaveManager;
 import TerraIncognita.ui.GameOverScreen;
+import TerraIncognita.ui.MenuScreen;
 import TerraIncognita.ui.RadialMenu;
 import TerraIncognita.util.Constants;
 
@@ -76,6 +77,7 @@ public class GameEngine {
     private RadialMenu radialMenu;
     private EventSystem eventSystem;
     private SaveManager saveManager;
+    private MenuScreen menuScreen;
     private List<Monster> activeMonsters;
     private CombatSystem combatSystem;
 
@@ -99,7 +101,7 @@ public class GameEngine {
         this.assetLoader.loadAll();
         this.player.initAnimations(assetLoader);
 
-        this.currentState = GameState.PLAYING;
+        this.currentState = GameState.MENU;
 
         // Inventory UI
         this.inventoryUI = new InventoryUI();
@@ -135,6 +137,8 @@ public class GameEngine {
         this.radialMenu = new RadialMenu();
         this.eventSystem = new EventSystem();
         this.saveManager = new SaveManager(Constants.SAVES_PATH + "terra_incognita.db");
+        boolean hasSave = saveManager.listSaveSlots().size() > 0;
+        this.menuScreen = new MenuScreen(hasSave);
 
         // Cho player 100 gold để test mua đồ
         player.addGold(100);
@@ -243,10 +247,24 @@ public class GameEngine {
     // =========================================
 
     private void updateMenu(double deltaTime) {
-        // TODO (GĐ6): Xử lý menu input
-        // Tạm thời: nhấn ENTER → chuyển sang PLAYING
-        if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER)) {
-            changeState(GameState.PLAYING);
+        menuScreen.update(inputHandler);
+        if (menuScreen.isConfirmed()) {
+            String selected = menuScreen.getSelectedOption();
+            switch (selected) {
+                case "New Game":
+                    changeState(GameState.PLAYING);
+                    break;
+                case "Continue":
+                    saveManager.loadGame("default", player);
+                    changeState(GameState.PLAYING);
+                    break;
+                case "Exit":
+                    System.exit(0);
+                    break;
+                default:
+                    break;
+            }
+            menuScreen.reset();
         }
     }
 
@@ -531,22 +549,9 @@ public class GameEngine {
     // =========================================
 
     private void renderMenu(Graphics2D g2d) {
-        // Nền đen
         g2d.setColor(Color.BLACK);
         g2d.fillRect(0, 0, Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
-
-        // Title
-        g2d.setColor(Color.WHITE);
-        g2d.setFont(g2d.getFont().deriveFont(32f));
-        String title = Constants.GAME_TITLE;
-        int titleWidth = g2d.getFontMetrics().stringWidth(title);
-        g2d.drawString(title, (Constants.SCREEN_WIDTH - titleWidth) / 2, Constants.SCREEN_HEIGHT / 3);
-
-        // Hướng dẫn
-        g2d.setFont(g2d.getFont().deriveFont(16f));
-        String hint = "Nhan ENTER de bat dau";
-        int hintWidth = g2d.getFontMetrics().stringWidth(hint);
-        g2d.drawString(hint, (Constants.SCREEN_WIDTH - hintWidth) / 2, Constants.SCREEN_HEIGHT / 2);
+        menuScreen.render(g2d);
     }
 
     private void renderPlaying(Graphics2D g2d) {
@@ -902,12 +907,12 @@ public class GameEngine {
     }
 
     private boolean isNearChest(Chest chest) {
-        return player.getHitbox().intersects(chest.getInteractionBounds());
+        return player.getInteractionBounds().intersects(chest.getInteractionBounds());
     }
 
     private boolean isNearMerchant() {
         if (merchant == null) return false;
-        return player.getHitbox().intersects(merchant.getInteractionBounds());
+        return player.getInteractionBounds().intersects(merchant.getInteractionBounds());
     }
 
     private void drawChest(Graphics2D g2d, Chest chest) {

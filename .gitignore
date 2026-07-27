@@ -29,5 +29,5 @@ resources/saves/*.db
 !lib/*.jar
 
 .codegraph
-.hermes
-.specify
+docs
+CLAUDE.md

@@ -97,6 +97,7 @@ public abstract class Entity {
      * Vùng tương tác — hình chữ nhật đại diện cho khu vực mà entity
      * có thể được tương tác (mở rương, nói chuyện với NPC...).
      * Mặc định mở rộng 1 ô TILE_SIZE ra mỗi phía so với vị trí world.
+     */
     /**
      * Nhận sát thương.
      * @param damage lượng sát thương
