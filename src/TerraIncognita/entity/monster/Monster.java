@@ -6,6 +6,7 @@ import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Player;
 import TerraIncognita.map.GameMap;
 import TerraIncognita.util.Constants;
+import java.awt.Rectangle;
 
 /**
  * Abstract class quái vật cơ sở.
@@ -42,6 +43,17 @@ public abstract class Monster extends Entity {
     public void update(double deltaTime) {
         updateAnimation(deltaTime);
         updateStatusEffects(deltaTime);
+    }
+
+    /**
+     * Vùng tương tác mặc định của quái — dùng hitbox (vùng va chạm).
+     * Quái không có "tương tác" theo nghĩa mở rương/nói chuyện, nhưng
+     * phải cài đặt phương thức trừu tượng từ Entity.
+     * @return Rectangle hitbox tại vị trí hiện tại
+     */
+    @Override
+    public Rectangle getInteractionBounds() {
+        return getHitbox();
     }
 
     /**

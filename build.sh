@@ -31,4 +31,4 @@ echo "[2/2] Running..."
 echo
 
 # Chay game
-java -cp "out:resources" TerraIncognita.Main
+java -cp "out:lib/*:resources" TerraIncognita.Main

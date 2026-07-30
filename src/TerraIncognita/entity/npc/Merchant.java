@@ -6,6 +6,8 @@ import TerraIncognita.item.Equipment;
 import TerraIncognita.item.EquipmentSlot;
 import TerraIncognita.item.Item;
 import TerraIncognita.item.Potion;
+import TerraIncognita.util.Constants;
+import java.awt.Rectangle;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +50,22 @@ public class Merchant extends NPC {
     public void interact(Player player) {
         // GameEngine sẽ wire state SHOP ở Task 6.
         // Hiện tại chỉ stub — caller kiểm tra getShop() để mở UI.
+    }
+
+    /**
+     * Vùng tương tác của merchant — hình chữ nhật mở rộng 1 ô TILE_SIZE
+     * ra mỗi phía so với vị trí world. Player đứng trong vùng này thì
+     * có thể mở shop (nhấn F). Merchant có ưu tiên cao hơn chest.
+     * @return Rectangle bao phủ vùng tương tác
+     */
+    @Override
+    public Rectangle getInteractionBounds() {
+        int ts = Constants.TILE_SIZE;
+        int x = (int) Math.round(worldX) - ts;
+        int y = (int) Math.round(worldY) - ts;
+        int w = ts * 3;
+        int h = ts * 3;
+        return new Rectangle(x, y, w, h);
     }
 
     public Shop getShop() {
