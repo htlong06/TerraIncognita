@@ -112,7 +112,7 @@ public class GameEngine {
             );
         }
         this.camera.update((int) (player.getWorldX() + Constants.TILE_SIZE / 2.0),
-                (int) (player.getWorldY() + Constants.TILE_SIZE / 2.0));
+                (int) (player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2.0));
 
         this.assetLoader = new AssetLoader();
         this.assetLoader.loadAll();
@@ -403,9 +403,11 @@ public class GameEngine {
         // Cập nhật player
         player.update(deltaTime);
 
-        // Camera bám theo tâm sprite player, kẹp trong biên map
+        // Camera bám theo tâm THỊ GIÁC của sprite player (không phải tâm tile/hitbox),
+        // vì sprite được vẽ neo chân vào đáy tile và cao hơn tile rất nhiều
+        // (PLAYER_SPRITE_SIZE=200 vs TILE_SIZE=32) — xem drawPlayer()/drawAimLine().
         camera.update((int) (player.getWorldX() + Constants.TILE_SIZE / 2.0),
-                (int) (player.getWorldY() + Constants.TILE_SIZE / 2.0));
+                (int) (player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2.0));
 
         // Cập nhật mũi tên đang bay
         updateArrows(deltaTime);
