@@ -110,19 +110,36 @@ public class Player extends Entity {
     }
 
     /**
-     * Di chuyển theo hướng.
-     * 
+     * Di chuyển theo hướng (chỉ 4 hướng thẳng — tương thích ngược).
+     * Dùng {@link #move(double, double, Direction, double)} nếu cần di chuyển
+     * chéo (VD: 2 phím cùng lúc) để tốc độ không bị cộng dồn nhanh hơn bình thường.
+     *
      * @param dir       hướng di chuyển
      * @param deltaTime thời gian frame
      */
     public void move(Direction dir, double deltaTime) {
+        move(dir.getDx(), dir.getDy(), dir, deltaTime);
+    }
+
+    /**
+     * Di chuyển theo một vector hướng (dirX, dirY) bất kỳ, kèm hướng mặt hiển thị.
+     * (dirX, dirY) sẽ được CHUẨN HÓA (normalize) về độ dài 1 nếu khác 0, để
+     * khi đi chéo (cả dirX và dirY đều khác 0) tốc độ thực tế vẫn bằng đúng
+     * {@code speed}, không bị nhanh hơn √2 lần như khi cộng dồn 2 trục riêng.
+     *
+     * @param dirX      thành phần hướng theo X (âm/dương/0, chưa cần chuẩn hóa)
+     * @param dirY      thành phần hướng theo Y (âm/dương/0, chưa cần chuẩn hóa)
+     * @param facing    hướng mặt để hiển thị animation (UP/DOWN/LEFT/RIGHT)
+     * @param deltaTime thời gian frame
+     */
+    public void move(double dirX, double dirY, Direction facing, double deltaTime) {
         // --- Kiếm: đứng im khi đang chém (khóa di chuyển hoàn toàn) ---
         if (isAttacking() && weaponMode == WeaponMode.SWORD) {
             // Vẫn cập nhật hướng mặt để animation đúng, nhưng không di chuyển
             return;
         }
 
-        this.direction = dir;
+        this.direction = facing;
         if (!isAttacking()) {
             this.state = EntityState.WALK;
         }
@@ -133,8 +150,16 @@ public class Player extends Entity {
             moveSpeed = speed * Constants.BOW_ATTACK_SPEED_MULTIPLIER;
         }
 
-        double dx = dir.getDx() * moveSpeed * deltaTime;
-        double dy = dir.getDy() * moveSpeed * deltaTime;
+        // Chuẩn hóa vector hướng: nếu đi chéo (VD dirX=1, dirY=1), độ dài vector
+        // gốc là √2 ≈ 1.414 — chia cho độ dài này để đưa về vector đơn vị,
+        // tránh việc dx và dy mỗi trục đều đạt full tốc độ khiến đi chéo
+        // nhanh hơn đi thẳng.
+        double length = Math.sqrt(dirX * dirX + dirY * dirY);
+        double normX = (length > 0) ? dirX / length : 0;
+        double normY = (length > 0) ? dirY / length : 0;
+
+        double dx = normX * moveSpeed * deltaTime;
+        double dy = normY * moveSpeed * deltaTime;
 
         if (currentMap != null) {
             // Va chạm tường được xử lý bởi CollisionManager (dựa trên

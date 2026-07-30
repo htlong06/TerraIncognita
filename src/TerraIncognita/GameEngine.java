@@ -112,7 +112,7 @@ public class GameEngine {
             );
         }
         this.camera.update((int) (player.getWorldX() + Constants.TILE_SIZE / 2.0),
-                (int) (player.getWorldY() + Constants.TILE_SIZE / 2.0));
+                (int) (player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2.0));
 
         this.assetLoader = new AssetLoader();
         this.assetLoader.loadAll();
@@ -289,20 +289,30 @@ public class GameEngine {
         // Xử lý di chuyển player
         boolean moved = false;
 
+        // Gộp input thành 1 vector hướng duy nhất (thay vì gọi player.move()
+        // riêng cho từng trục), để Player.move() chuẩn hóa vector trước khi
+        // áp dụng tốc độ — tránh đi chéo nhanh hơn đi thẳng.
+        int dirX = 0, dirY = 0;
         if (inputHandler.isKeyPressed(KeyEvent.VK_UP) || inputHandler.isKeyPressed(KeyEvent.VK_W)) {
-            player.move(Direction.UP, deltaTime);
-            moved = true;
+            dirY -= 1;
         }
         if (inputHandler.isKeyPressed(KeyEvent.VK_DOWN) || inputHandler.isKeyPressed(KeyEvent.VK_S)) {
-            player.move(Direction.DOWN, deltaTime);
-            moved = true;
+            dirY += 1;
         }
         if (inputHandler.isKeyPressed(KeyEvent.VK_LEFT) || inputHandler.isKeyPressed(KeyEvent.VK_A)) {
-            player.move(Direction.LEFT, deltaTime);
-            moved = true;
+            dirX -= 1;
         }
         if (inputHandler.isKeyPressed(KeyEvent.VK_RIGHT) || inputHandler.isKeyPressed(KeyEvent.VK_D)) {
-            player.move(Direction.RIGHT, deltaTime);
+            dirX += 1;
+        }
+
+        if (dirX != 0 || dirY != 0) {
+            // Hướng mặt hiển thị: ưu tiên ngang (khớp hành vi cũ khi giữ đồng
+            // thời phím ngang + dọc), nếu không có ngang thì dùng dọc.
+            Direction facing = (dirX != 0)
+                    ? (dirX > 0 ? Direction.RIGHT : Direction.LEFT)
+                    : (dirY > 0 ? Direction.DOWN : Direction.UP);
+            player.move(dirX, dirY, facing, deltaTime);
             moved = true;
         }
 
@@ -403,9 +413,11 @@ public class GameEngine {
         // Cập nhật player
         player.update(deltaTime);
 
-        // Camera bám theo tâm sprite player, kẹp trong biên map
+        // Camera bám theo tâm THỊ GIÁC của sprite player (không phải tâm tile/hitbox),
+        // vì sprite được vẽ neo chân vào đáy tile và cao hơn tile rất nhiều
+        // (PLAYER_SPRITE_SIZE=200 vs TILE_SIZE=32) — xem drawPlayer()/drawAimLine().
         camera.update((int) (player.getWorldX() + Constants.TILE_SIZE / 2.0),
-                (int) (player.getWorldY() + Constants.TILE_SIZE / 2.0));
+                (int) (player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2.0));
 
         // Cập nhật mũi tên đang bay
         updateArrows(deltaTime);
