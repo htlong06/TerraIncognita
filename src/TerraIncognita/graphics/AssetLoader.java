@@ -1,6 +1,5 @@
 package TerraIncognita.graphics;
 
-import javax.imageio.ImageIO;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.geom.AffineTransform;
@@ -9,6 +8,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.imageio.ImageIO;
+
 import TerraIncognita.util.Constants;  
 
 /**
@@ -119,26 +121,28 @@ public class AssetLoader {
     }
 
     private void loadMonsters() {
-    // Đường dẫn gốc: "resources/sprites/monster/"
-    String base = Constants.SPRITES_PATH + "monsters/"; 
+        String base = Constants.SPRITES_PATH + "monsters/";
 
-    // Nạp hoạt ảnh đứng yên (idle) cho quái vật Slime (hoặc Orc_Idle nếu bạn muốn dùng Orc)
-    loadMonsterSheet("slime_idle", base + "Slime_Idle.png");
-}
-
-private void loadMonsterSheet(String name, String path) {
-    BufferedImage sheet = loadImage(path);
-    if (sheet == null) {
-        spriteFrames.put(name, new BufferedImage[0]);
-        return;
+        // Orc (đã có sẵn asset trong resources/sprites/monsters/orc/)
+        loadMonsterSheet("orc_idle", base + "orc/Orc_Idle.png");
+        loadMonsterSheet("orc_walk", base + "orc/Orc_Walk.png");
+        loadMonsterSheet("orc_attack", base + "orc/Orc_Attack01.png");
+        loadMonsterSheet("orc_hurt", base + "orc/Orc_Hurt.png");
+        loadMonsterSheet("orc_dead", base + "orc/Orc_Death.png");
     }
-    
-    // Cắt sprite sheet của quái vật với kích thước frame 100x100
-    int monsterFrameSize = 100; 
-    SpriteSheet sheetCutter = new SpriteSheet(sheet, monsterFrameSize, monsterFrameSize);
-    BufferedImage[] frames = sheetCutter.getFullRow(0);
-    spriteFrames.put(name, frames);
-}
+
+    private void loadMonsterSheet(String name, String path) {
+        BufferedImage sheet = loadImage(path);
+        if (sheet == null) {
+            spriteFrames.put(name, new BufferedImage[0]);
+            return;
+        }
+
+        int monsterFrameSize = 100;
+        SpriteSheet sheetCutter = new SpriteSheet(sheet, monsterFrameSize, monsterFrameSize);
+        BufferedImage[] frames = sheetCutter.getFullRow(0);
+        spriteFrames.put(name, frames);
+    }
 
     private BufferedImage loadImage(String path) {
         try {
@@ -173,7 +177,7 @@ private void loadMonsterSheet(String name, String path) {
     /**
      * Lấy mảng frame animation theo tên.
      * 
-     * @param name tên sprite (ví dụ: "player_walk_down", "slime_idle")
+     * @param name tên sprite (ví dụ: "player_walk_down", "orc_idle")
      * @return mảng BufferedImage[] các frame
      */
     public BufferedImage[] getFrames(String name) {

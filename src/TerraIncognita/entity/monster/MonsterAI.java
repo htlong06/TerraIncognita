@@ -18,18 +18,20 @@ public class MonsterAI {
 
     private AIState aiState;
     private int spawnTileX, spawnTileY;
+    private boolean spawnInitialized;
     private final CollisionManager collisionManager;
 
     public MonsterAI() {
         this.aiState = AIState.IDLE;
+        this.spawnInitialized = false;
         this.collisionManager = new CollisionManager();
     }
 
     public void update(Monster monster, Player player, GameMap map, double deltaTime) {
-        // Lưu spawn nếu chưa có
-        if (spawnTileX == 0 && spawnTileY == 0) {
+        if (!spawnInitialized) {
             spawnTileX = monster.getTileX();
             spawnTileY = monster.getTileY();
+            spawnInitialized = true;
         }
 
         int dist = manhattanDistance(
@@ -47,23 +49,32 @@ public class MonsterAI {
             case CHASE:
                 if (dist <= 1) {
                     aiState = AIState.ATTACK;
+                    monster.setAggro(true);
                 } else if (dist > monster.getDetectionRange() * 2) {
                     aiState = AIState.RETURN_TO_SPAWN;
                     monster.setAggro(false);
                 } else {
-                    // Di chuyển đơn giản về phía player
                     moveTowards(monster, player.getTileX(), player.getTileY(), map, deltaTime);
                 }
                 break;
             case ATTACK:
-                // TODO (GĐ4): Gây damage cho player qua CombatSystem
                 if (dist > 1) {
                     aiState = AIState.CHASE;
+                    monster.setAggro(true);
+                    break;
+                }
+
+                if (monster.getAttackCooldown() <= 0) {
+                    int rawDamage = Math.max(1, monster.getAtk() - player.getDef());
+                    player.takeDamage(rawDamage);
+                    monster.setAttackCooldown(1.2);
+                    monster.setState(TerraIncognita.entity.EntityState.ATTACK);
                 }
                 break;
             case RETURN_TO_SPAWN:
                 if (monster.getTileX() == spawnTileX && monster.getTileY() == spawnTileY) {
                     aiState = AIState.IDLE;
+                    monster.setAggro(false);
                 } else {
                     moveTowards(monster, spawnTileX, spawnTileY, map, deltaTime);
                 }

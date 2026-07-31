@@ -1,5 +1,6 @@
 package TerraIncognita;
 
+<<<<<<< Updated upstream
 import TerraIncognita.combat.CombatSystem;
 import TerraIncognita.entity.Chest;
 import TerraIncognita.entity.Direction;
@@ -33,6 +34,8 @@ import TerraIncognita.ui.MenuScreen;
 import TerraIncognita.ui.RadialMenu;
 import TerraIncognita.util.Constants;
 
+=======
+>>>>>>> Stashed changes
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -44,6 +47,36 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
+import TerraIncognita.combat.CombatSystem;
+import TerraIncognita.economy.LootTable;
+import TerraIncognita.economy.Shop;
+import TerraIncognita.entity.Arrow;
+import TerraIncognita.entity.Chest;
+import TerraIncognita.entity.Direction;
+import TerraIncognita.entity.Entity;
+import TerraIncognita.entity.Player;
+import TerraIncognita.entity.WeaponMode;
+import TerraIncognita.entity.monster.Monster;
+import TerraIncognita.entity.monster.OrcMonster;
+import TerraIncognita.entity.npc.Merchant;
+import TerraIncognita.event.EventSystem;
+import TerraIncognita.graphics.Animation;
+import TerraIncognita.graphics.AssetLoader;
+import TerraIncognita.item.Equipment;
+import TerraIncognita.item.EquipmentSlot;
+import TerraIncognita.item.Item;
+import TerraIncognita.item.Potion;
+import TerraIncognita.map.DungeonMapManager;
+import TerraIncognita.save.SaveManager;
+import TerraIncognita.ui.DialogBox;
+import TerraIncognita.ui.GameOverScreen;
+import TerraIncognita.ui.HUD;
+import TerraIncognita.ui.InventoryUI;
+import TerraIncognita.ui.MenuScreen;
+import TerraIncognita.ui.RadialMenu;
+import TerraIncognita.ui.ShopUI;
+import TerraIncognita.util.Constants;
 /**
  * Quản lý trạng thái game (State Machine).
  *
@@ -162,9 +195,10 @@ public class GameEngine {
 
         // Khởi tạo danh sách và tạo quái vật mẫu
         this.activeMonsters = new ArrayList<>();
-        SlimeMonster slime = new SlimeMonster(12, 10);
-        slime.initAnimations(assetLoader);
-        this.activeMonsters.add(slime);
+
+        OrcMonster orc = new OrcMonster(15, 12);
+        orc.initAnimations(assetLoader);
+        this.activeMonsters.add(orc);
 
         // Hệ thống chiến đấu — tính damage/crit/miss khi tấn công
         this.combatSystem = new CombatSystem();
@@ -188,6 +222,7 @@ public class GameEngine {
                 for (Monster m : activeMonsters) {
                     if (m.isAlive()) {
                         m.update(deltaTime); // Cập nhật chuyển frame hoạt ảnh đứng yên
+                        m.updateAI(player, mapManager.getCurrentMap(), deltaTime);
                     }
                 }
                 break;
