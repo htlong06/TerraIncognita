@@ -1,8 +1,8 @@
 package TerraIncognita.entity.monster;
 
+import java.awt.Rectangle;
+
 import TerraIncognita.entity.Entity;
-import TerraIncognita.entity.EntityState;
-import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Player;
 import TerraIncognita.map.GameMap;
 import TerraIncognita.util.Constants;
@@ -19,6 +19,7 @@ public abstract class Monster extends Entity {
     protected int expReward;
     protected int goldReward;
     protected boolean aggro;
+    protected double attackCooldown;
 
     public Monster(String name, int hp, int atk, int def, int tileX, int tileY) {
         super();
@@ -35,12 +36,19 @@ public abstract class Monster extends Entity {
         this.expReward = 10;
         this.goldReward = 5;
         this.aggro = false;
+        this.attackCooldown = 0.0;
         this.speed = 60;   // Quái di chuyển chậm hơn player
         this.ai = new MonsterAI();
     }
 
     @Override
     public void update(double deltaTime) {
+        if (attackCooldown > 0) {
+            attackCooldown -= deltaTime;
+            if (attackCooldown < 0) {
+                attackCooldown = 0;
+            }
+        }
         updateAnimation(deltaTime);
         updateStatusEffects(deltaTime);
     }
@@ -69,4 +77,7 @@ public abstract class Monster extends Entity {
     public boolean isAggro() { return aggro; }
     public void setAggro(boolean aggro) { this.aggro = aggro; }
     public int getDetectionRange() { return detectionRange; }
+    public double getAttackCooldown() { return attackCooldown; }
+    public void setAttackCooldown(double attackCooldown) { this.attackCooldown = attackCooldown; }
+    public MonsterAI.AIState getAiState() { return ai.getAiState(); }
 }

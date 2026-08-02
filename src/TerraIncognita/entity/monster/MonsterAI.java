@@ -18,18 +18,20 @@ public class MonsterAI {
 
     private AIState aiState;
     private int spawnTileX, spawnTileY;
+    private boolean spawnInitialized;
     private final CollisionManager collisionManager;
 
     public MonsterAI() {
         this.aiState = AIState.IDLE;
+        this.spawnInitialized = false;
         this.collisionManager = new CollisionManager();
     }
 
     public void update(Monster monster, Player player, GameMap map, double deltaTime) {
-        // Lưu spawn nếu chưa có
-        if (spawnTileX == 0 && spawnTileY == 0) {
+        if (!spawnInitialized) {
             spawnTileX = monster.getTileX();
             spawnTileY = monster.getTileY();
+            spawnInitialized = true;
         }
 
         int dist = manhattanDistance(
@@ -39,31 +41,49 @@ public class MonsterAI {
 
         switch (aiState) {
             case IDLE:
+                monster.setState(TerraIncognita.entity.EntityState.IDLE);
                 if (dist <= monster.getDetectionRange()) {
                     aiState = AIState.CHASE;
                     monster.setAggro(true);
                 }
                 break;
             case CHASE:
+                monster.setState(TerraIncognita.entity.EntityState.WALK);
                 if (dist <= 1) {
                     aiState = AIState.ATTACK;
+                    monster.setAggro(true);
                 } else if (dist > monster.getDetectionRange() * 2) {
                     aiState = AIState.RETURN_TO_SPAWN;
                     monster.setAggro(false);
                 } else {
-                    // Di chuyển đơn giản về phía player
                     moveTowards(monster, player.getTileX(), player.getTileY(), map, deltaTime);
                 }
                 break;
             case ATTACK:
-                // TODO (GĐ4): Gây damage cho player qua CombatSystem
                 if (dist > 1) {
                     aiState = AIState.CHASE;
+                    monster.setAggro(true);
+                    break;
+                }
+
+                Direction attackDir = getAttackDirection(monster, player);
+                if (monster.getAttackCooldown() <= 0) {
+                    monster.setState(TerraIncognita.entity.EntityState.ATTACK);
+                    monster.setDirection(attackDir);
+                    monster.resetAnimationForState(TerraIncognita.entity.EntityState.ATTACK, attackDir);
+                    int rawDamage = Math.max(1, monster.getAtk() - player.getDef());
+                    player.takeDamage(rawDamage);
+                    monster.setAttackCooldown(4.0);
+                } else {
+                    monster.setState(TerraIncognita.entity.EntityState.ATTACK);
+                    monster.setDirection(attackDir);
                 }
                 break;
             case RETURN_TO_SPAWN:
+                monster.setState(TerraIncognita.entity.EntityState.WALK);
                 if (monster.getTileX() == spawnTileX && monster.getTileY() == spawnTileY) {
                     aiState = AIState.IDLE;
+                    monster.setAggro(false);
                 } else {
                     moveTowards(monster, spawnTileX, spawnTileY, map, deltaTime);
                 }
@@ -96,6 +116,16 @@ public class MonsterAI {
         monster.setWorldY(resolved[1]);
         monster.setDirection(dir);
         monster.updateTilePosition(Constants.TILE_SIZE);
+    }
+
+    private Direction getAttackDirection(Monster monster, Player player) {
+        int dx = player.getTileX() - monster.getTileX();
+        int dy = player.getTileY() - monster.getTileY();
+
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            return dx >= 0 ? Direction.RIGHT : Direction.LEFT;
+        }
+        return dy >= 0 ? Direction.DOWN : Direction.UP;
     }
 
     private int manhattanDistance(int x1, int y1, int x2, int y2) {

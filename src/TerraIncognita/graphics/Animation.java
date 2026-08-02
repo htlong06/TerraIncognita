@@ -93,4 +93,8 @@ public class Animation {
     public int getFrameCount() {
         return frames != null ? frames.length : 0;
     }
+
+    public int getCurrentFrameIndex() {
+        return currentFrameIndex;
+    }
 }
