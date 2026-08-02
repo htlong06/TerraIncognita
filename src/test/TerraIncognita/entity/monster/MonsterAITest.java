@@ -1,5 +1,7 @@
 package TerraIncognita.entity.monster;
 
+import TerraIncognita.entity.Direction;
+import TerraIncognita.entity.EntityState;
 import TerraIncognita.entity.Player;
 import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.map.GameMap;
@@ -38,5 +40,25 @@ class MonsterAITest {
         assertTrue(monster.isAggro(), "Quái phải vào trạng thái aggro khi player ở gần");
         assertTrue(monster.getAiState() == MonsterAI.AIState.CHASE || monster.getAiState() == MonsterAI.AIState.ATTACK,
                 "Quái phải đuổi theo hoặc tấn công khi phát hiện player");
+    }
+
+    @Test
+    void monsterAttackAnimationResetsWhenAttackStarts() {
+        AssetLoader loader = new AssetLoader();
+        loader.loadAll();
+
+        OrcMonster monster = new OrcMonster(1, 1);
+        monster.initAnimations(loader);
+        monster.setDirection(Direction.RIGHT);
+        monster.setState(EntityState.IDLE);
+        monster.update(0.016);
+
+        monster.setDirection(Direction.RIGHT);
+        monster.setState(EntityState.ATTACK);
+        monster.resetAnimationForState(EntityState.ATTACK, monster.getDirection());
+
+        assertNotNull(monster.getCurrentAnimation(), "Animation tấn công của quái phải có sẵn");
+        assertEquals(0, monster.getCurrentAnimation().getCurrentFrameIndex(),
+                "Animation tấn công phải reset về frame đầu khi bắt đầu tấn công");
     }
 }

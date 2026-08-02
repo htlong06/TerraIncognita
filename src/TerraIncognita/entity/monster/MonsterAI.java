@@ -41,12 +41,14 @@ public class MonsterAI {
 
         switch (aiState) {
             case IDLE:
+                monster.setState(TerraIncognita.entity.EntityState.IDLE);
                 if (dist <= monster.getDetectionRange()) {
                     aiState = AIState.CHASE;
                     monster.setAggro(true);
                 }
                 break;
             case CHASE:
+                monster.setState(TerraIncognita.entity.EntityState.WALK);
                 if (dist <= 1) {
                     aiState = AIState.ATTACK;
                     monster.setAggro(true);
@@ -64,14 +66,21 @@ public class MonsterAI {
                     break;
                 }
 
+                Direction attackDir = getAttackDirection(monster, player);
                 if (monster.getAttackCooldown() <= 0) {
+                    monster.setState(TerraIncognita.entity.EntityState.ATTACK);
+                    monster.setDirection(attackDir);
+                    monster.resetAnimationForState(TerraIncognita.entity.EntityState.ATTACK, attackDir);
                     int rawDamage = Math.max(1, monster.getAtk() - player.getDef());
                     player.takeDamage(rawDamage);
-                    monster.setAttackCooldown(1.2);
+                    monster.setAttackCooldown(4.0);
+                } else {
                     monster.setState(TerraIncognita.entity.EntityState.ATTACK);
+                    monster.setDirection(attackDir);
                 }
                 break;
             case RETURN_TO_SPAWN:
+                monster.setState(TerraIncognita.entity.EntityState.WALK);
                 if (monster.getTileX() == spawnTileX && monster.getTileY() == spawnTileY) {
                     aiState = AIState.IDLE;
                     monster.setAggro(false);
@@ -107,6 +116,16 @@ public class MonsterAI {
         monster.setWorldY(resolved[1]);
         monster.setDirection(dir);
         monster.updateTilePosition(Constants.TILE_SIZE);
+    }
+
+    private Direction getAttackDirection(Monster monster, Player player) {
+        int dx = player.getTileX() - monster.getTileX();
+        int dy = player.getTileY() - monster.getTileY();
+
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            return dx >= 0 ? Direction.RIGHT : Direction.LEFT;
+        }
+        return dy >= 0 ? Direction.DOWN : Direction.UP;
     }
 
     private int manhattanDistance(int x1, int y1, int x2, int y2) {

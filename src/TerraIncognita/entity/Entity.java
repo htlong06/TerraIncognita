@@ -1,14 +1,15 @@
 package TerraIncognita.entity;
 
-import TerraIncognita.graphics.Animation;
-import TerraIncognita.item.StatusEffect;
-import TerraIncognita.util.Constants;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import TerraIncognita.graphics.Animation;
+import TerraIncognita.item.StatusEffect;
+import TerraIncognita.util.Constants;
 
 /**
  * Abstract class cơ sở cho mọi entity trong game.
@@ -233,6 +234,24 @@ public abstract class Entity {
     public void setDirection(Direction direction) { this.direction = direction; }
     public EntityState getState() { return state; }
     public void setState(EntityState state) { this.state = state; }
+    public void resetCurrentAnimation() {
+        if (currentAnimation != null) {
+            currentAnimation.reset();
+        }
+    }
+
+    public void resetAnimationForState(EntityState state, Direction direction) {
+        String key = state.name().toLowerCase() + "_" + direction.name().toLowerCase();
+        Animation anim = animations.get(key);
+        if (anim == null) {
+            anim = animations.get(state.name().toLowerCase() + "_right");
+        }
+        if (anim != null) {
+            anim.reset();
+            currentAnimation = anim;
+        }
+    }
+
     public Animation getCurrentAnimation() { return currentAnimation; }
     public String getName() { return name; }
     public List<StatusEffect> getActiveEffects() { return activeEffects; }
