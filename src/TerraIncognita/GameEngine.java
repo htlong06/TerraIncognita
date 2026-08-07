@@ -16,6 +16,7 @@ import TerraIncognita.combat.CombatSystem;
 import TerraIncognita.economy.LootTable;
 import TerraIncognita.economy.Shop;
 import TerraIncognita.entity.Arrow;
+import TerraIncognita.entity.Bomb;
 import TerraIncognita.entity.Chest;
 import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Entity;
@@ -84,6 +85,9 @@ public class GameEngine {
     // --- Mũi tên (Arrow projectile) ---
     private List<Arrow> activeArrows;
     private java.awt.image.BufferedImage arrowSprite;
+
+    // --- Bom (Bomb) ---
+    private List<Bomb> activeBombs;
 
     // TODO (GĐ2): GameMap currentMap
     // TODO (GĐ3): AssetLoader assetLoader, Renderer renderer
@@ -170,6 +174,9 @@ public class GameEngine {
         // Danh sách mũi tên đang bay
         this.activeArrows = new ArrayList<>();
         this.arrowSprite = assetLoader.getArrowFrame();
+
+        // Danh sách bom đang tồn tại trên map (không giới hạn số lượng)
+        this.activeBombs = new ArrayList<>();
     }
 
     /**
@@ -401,6 +408,11 @@ public class GameEngine {
             }
         }
 
+        // B — đặt bom tại vị trí hiện tại của player (không giới hạn số lượng)
+        if (inputHandler.isKeyJustPressed(KeyEvent.VK_B)) {
+            placeBomb();
+        }
+
         // Đếm ngược timer message
         if (messageTimer > 0) {
             messageTimer -= deltaTime;
@@ -420,6 +432,9 @@ public class GameEngine {
 
         // Cập nhật mũi tên đang bay
         updateArrows(deltaTime);
+
+        // Cập nhật bom đang tồn tại trên map
+        updateBombs(deltaTime);
 
         // Kiểm tra game over
         if (!player.isAlive()) {
@@ -625,6 +640,11 @@ public class GameEngine {
             arrow.render(g2d);
         }
 
+        // Vẽ bom đang tồn tại trên map
+        for (Bomb bomb : activeBombs) {
+            bomb.render(g2d);
+        }
+
         // Trả lại hệ toạ độ màn hình (screen-space) — HUD, text debug, thông
         // báo... không bị ảnh hưởng bởi camera, luôn cố định trên màn hình.
         g2d.translate(camera.getOffsetX(), camera.getOffsetY());
@@ -638,7 +658,7 @@ public class GameEngine {
 
         // Vũ khí hiện tại + tiến trình combo (chỉ hiện số combo khi đang dùng Kiếm)
         String weaponLabel = (player.getWeaponMode() == WeaponMode.SWORD) ? "Kiếm" : "Cung";
-        String weaponLine = "Vũ khí: " + weaponLabel + " (E để đổi)";
+        String weaponLine = "Vũ khí: " + weaponLabel + " (E để đổi, B để đặt bom)";
         if (player.getWeaponMode() == WeaponMode.SWORD && player.getComboCount() > 0) {
             weaponLine += "  |  Combo: " + player.getComboCount() + "/3";
         }
@@ -930,9 +950,85 @@ public class GameEngine {
                 }
             }
 
+            // Kiểm tra va chạm mũi tên với bom — mũi tên kích nổ bom rồi
+            // biến mất, giống hệt như khi trúng quái vật.
+            if (arrow.isAlive()) {
+                for (Bomb bomb : activeBombs) {
+                    if (bomb.getState() != Bomb.BombState.PLACED) continue;
+                    if (arrowBox.intersects(bomb.getHitbox())) {
+                        detonateBomb(bomb);
+                        arrow.kill();
+                        pickupMessage = "💥 Mũi tên kích nổ quả bom!";
+                        messageTimer = 1.5;
+                        break; // mỗi mũi tên chỉ trúng 1 mục tiêu
+                    }
+                }
+            }
+
             // Xoá nếu đã chết (sau va chạm)
             if (!arrow.isAlive()) {
                 it.remove();
+            }
+        }
+    }
+
+    /**
+     * Cập nhật tất cả bom đang tồn tại trên map: đếm ngược hiệu ứng nổ,
+     * kiểm tra va chạm với quái vật (Player KHÔNG kích hoạt nổ, nhưng vẫn
+     * nhận sát thương nếu đứng trong phạm vi khi bom nổ), và xoá bom đã
+     * kết thúc (state GONE).
+     */
+    private void updateBombs(double deltaTime) {
+        Iterator<Bomb> it = activeBombs.iterator();
+        while (it.hasNext()) {
+            Bomb bomb = it.next();
+            bomb.update(deltaTime);
+
+            if (bomb.getState() == Bomb.BombState.PLACED) {
+                // Va chạm với bất kỳ thực thể nào NGOẠI TRỪ player — hiện tại
+                // là quái vật. Bom KHÔNG tự nổ khi va chạm bom khác.
+                for (Monster m : activeMonsters) {
+                    if (!m.isAlive()) continue;
+                    if (bomb.getHitbox().intersects(m.getHitbox())) {
+                        detonateBomb(bomb);
+                        break;
+                    }
+                }
+            }
+
+            if (bomb.getState() == Bomb.BombState.GONE) {
+                it.remove();
+            }
+        }
+    }
+
+    /**
+     * Đặt 1 quả bom mới tại vị trí hiện tại của player (giữa ô đứng).
+     * Không giới hạn số lượng bom có thể tồn tại cùng lúc.
+     */
+    private void placeBomb() {
+        double bx = player.getWorldX() + Constants.TILE_SIZE / 2.0 - Constants.BOMB_SIZE / 2.0;
+        double by = player.getWorldY() + Constants.TILE_SIZE / 2.0 - Constants.BOMB_SIZE / 2.0;
+        activeBombs.add(new Bomb(bx, by));
+        pickupMessage = "Đã đặt bom!";
+        messageTimer = 1.0;
+    }
+
+    /**
+     * Kích nổ 1 quả bom: chuyển state sang EXPLODING và gây sát thương cho
+     * mọi thứ trong vùng ảnh hưởng 3x3 ô — bao gồm cả Player (nếu đứng
+     * trong phạm vi) lẫn quái vật, không phân biệt ai là người kích hoạt.
+     */
+    private void detonateBomb(Bomb bomb) {
+        bomb.explode();
+        Rectangle area = bomb.getExplosionArea();
+
+        if (area.intersects(player.getHitbox())) {
+            player.takeDamage(Constants.BOMB_DAMAGE);
+        }
+        for (Monster m : activeMonsters) {
+            if (m.isAlive() && area.intersects(m.getHitbox())) {
+                m.takeDamage(Constants.BOMB_DAMAGE);
             }
         }
     }

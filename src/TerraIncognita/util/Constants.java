@@ -58,6 +58,12 @@ public class Constants {
     public static final double CRIT_MULTIPLIER = 1.5;
     public static final double MISS_CHANCE = 0.05; // 5%
 
+    // --- Bomb ---
+    public static final int BOMB_SIZE = TILE_SIZE / 2;         // kích thước khối vuông đặt bom (pixel)
+    public static final int BOMB_EXPLOSION_TILES = 3;          // phạm vi nổ 3x3 ô, tâm là ô đặt bom
+    public static final double BOMB_EXPLOSION_DURATION = 0.3;  // giây — thời gian hiển thị vụ nổ trước khi biến mất
+    public static final int BOMB_DAMAGE = 40;                  // sát thương gây ra cho mục tiêu trong phạm vi nổ
+
     // --- AI ---
     public static final int DEFAULT_DETECTION_RANGE = 5; // ô
 
