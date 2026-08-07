@@ -1030,7 +1030,9 @@ public class GameEngine {
     private void placeBomb() {
         double bx = player.getWorldX() + Constants.TILE_SIZE / 2.0 - Constants.BOMB_SIZE / 2.0;
         double by = player.getWorldY() + Constants.TILE_SIZE / 2.0 - Constants.BOMB_SIZE / 2.0;
-        activeBombs.add(new Bomb(bx, by));
+        Bomb bomb = new Bomb(bx, by);
+        bomb.initAnimations(assetLoader);
+        activeBombs.add(bomb);
         pickupMessage = "Đã đặt bom!";
         messageTimer = 1.0;
     }

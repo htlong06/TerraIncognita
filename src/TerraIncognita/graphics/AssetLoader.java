@@ -48,6 +48,7 @@ public class AssetLoader {
         loadChest();
         loadMonsters();
         loadArrow();
+        loadBomb();
     }
 
     private static final int CHEST_SIZE = 64;
@@ -144,6 +145,41 @@ public class AssetLoader {
         spriteFrames.put(name, frames);
     }
 
+    /**
+     * Load animation nổ bomb (Bomb_Explosion.png — sprite sheet 11 frame,
+     * mỗi frame 80x48, cắt sẵn từ asset "explosion-b" gốc).
+     * Frame 0 = quả bom (chấm đỏ) lúc chưa nổ, frame 1-10 = các giai đoạn nổ.
+     * Kích thước frame KHÁC PLAYER_FRAME_SIZE nên không dùng loadAnimationSheet().
+     */
+    private static final int BOMB_FRAME_WIDTH = 80;
+    private static final int BOMB_FRAME_HEIGHT = 48;
+
+    private void loadBomb() {
+        String path = Constants.SPRITES_PATH + "effects/bomb/Bomb_Explosion.png";
+        BufferedImage sheet = loadImage(path);
+        if (sheet == null) {
+            System.err.println("[AssetLoader] Could not load bomb explosion sprite: " + path);
+            spriteFrames.put("bomb_idle", new BufferedImage[0]);
+            spriteFrames.put("bomb_explosion", new BufferedImage[0]);
+            return;
+        }
+        SpriteSheet cutter = new SpriteSheet(sheet, BOMB_FRAME_WIDTH, BOMB_FRAME_HEIGHT);
+        BufferedImage[] allFrames = cutter.getFullRow(0);
+
+        if (allFrames.length >= 11) {
+            // Frame 0 riêng: quả bom lúc đặt xuống, chưa nổ
+            spriteFrames.put("bomb_idle", new BufferedImage[] { allFrames[0] });
+            // Frame 1-10: animation lúc nổ
+            BufferedImage[] explosionFrames = new BufferedImage[allFrames.length - 1];
+            System.arraycopy(allFrames, 1, explosionFrames, 0, explosionFrames.length);
+            spriteFrames.put("bomb_explosion", explosionFrames);
+        } else {
+            System.err.println("[AssetLoader] Bomb sheet has fewer than 11 frames: " + allFrames.length);
+            spriteFrames.put("bomb_idle", new BufferedImage[0]);
+            spriteFrames.put("bomb_explosion", new BufferedImage[0]);
+        }
+        System.out.println("[DEBUG AssetLoader] Loaded bomb sheet => " + allFrames.length + " frames total");
+    }
     private BufferedImage loadImage(String path) {
         try {
             File file = new File(path);

@@ -62,13 +62,15 @@ public class Constants {
     // --- Combat ---
     public static final double CRIT_CHANCE = 0.1; // 10%
     public static final double CRIT_MULTIPLIER = 1.5;
-    public static final double MISS_CHANCE = 0.05; // 5%
+    public static final double MISS_CHANCE = 0.01;
 
     // --- Bomb ---
     public static final int BOMB_SIZE = TILE_SIZE / 2;         // kích thước khối vuông đặt bom (pixel)
     public static final int BOMB_EXPLOSION_TILES = 3;          // phạm vi nổ 3x3 ô, tâm là ô đặt bom
-    public static final double BOMB_EXPLOSION_DURATION = 0.3;  // giây — thời gian hiển thị vụ nổ trước khi biến mất
+    public static final double BOMB_EXPLOSION_DURATION = 0.3;  // giây — dự phòng khi animation chưa load được
+    public static final int BOMB_EXPLOSION_FRAME_MS = 60;      // ms mỗi frame animation nổ (10 frame => ~600ms)
     public static final int BOMB_DAMAGE = 40;                  // sát thương gây ra cho mục tiêu trong phạm vi nổ
+    public static final int BOMB_IDLE_DRAW_SIZE = TILE_SIZE;   // kích thước vẽ sprite bom lúc chưa nổ (pixel)
 
     // --- AI ---
     public static final int DEFAULT_DETECTION_RANGE = 5; // ô
