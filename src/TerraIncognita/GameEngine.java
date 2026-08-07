@@ -113,7 +113,7 @@ public class GameEngine {
             );
         }
         this.camera.update((int) (player.getWorldX() + Constants.TILE_SIZE / 2.0),
-                (int) (player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2.0));
+                (int) getPlayerVisualCenterY());
 
         this.assetLoader = new AssetLoader();
         this.assetLoader.loadAll();
@@ -428,7 +428,7 @@ public class GameEngine {
         // vì sprite được vẽ neo chân vào đáy tile và cao hơn tile rất nhiều
         // (PLAYER_SPRITE_SIZE=200 vs TILE_SIZE=32) — xem drawPlayer()/drawAimLine().
         camera.update((int) (player.getWorldX() + Constants.TILE_SIZE / 2.0),
-                (int) (player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2.0));
+                (int) getPlayerVisualCenterY());
 
         // Cập nhật mũi tên đang bay
         updateArrows(deltaTime);
@@ -688,7 +688,13 @@ public class GameEngine {
  
         int drawSize = Constants.PLAYER_SPRITE_SIZE;
         int drawX = tileX + Constants.TILE_SIZE / 2 - drawSize / 2;
-        int drawY = tileY + Constants.TILE_SIZE - drawSize; // neo chân sprite vào đáy tile
+        // Neo CHÂN THẬT của sprite (đo được: y=60/100 trong frame gốc, ổn định
+        // qua mọi animation) vào đúng đáy tile/hitbox — không neo theo mép dưới
+        // canvas 200x200 như trước (canvas có ~40px khoảng trong suốt dưới chân,
+        // khiến nhân vật luôn hiển thị cao hơn hitbox thật ~80px sau khi scale).
+        double scale = (double) Constants.PLAYER_SPRITE_SIZE / Constants.PLAYER_FRAME_SIZE;
+        double feetOffsetScaled = Constants.PLAYER_FEET_Y_IN_FRAME * scale;
+        int drawY = (int) Math.round(tileY + Constants.TILE_SIZE - feetOffsetScaled);
  
         if (frame != null) {
             g2d.drawImage(frame, drawX, drawY, drawSize, drawSize, null);
@@ -701,6 +707,21 @@ public class GameEngine {
         }
     }
 
+    /**
+     * Tâm hiển thị (Y) của sprite player — dùng cho camera follow, đường ngắm
+     * cung, và điểm xuất phát mũi tên. Tính dựa trên đúng công thức neo chân
+     * đã sửa trong drawPlayer(): trước đây các chỗ gọi hàm này tự tính riêng
+     * theo canvas center (worldY + TILE_SIZE - PLAYER_SPRITE_SIZE/2), công
+     * thức đó chỉ đúng khi drawY còn neo theo mép canvas. Sau khi drawY đổi
+     * sang neo chân thật, phải cộng lại theo cùng drawY mới để không bị lệch.
+     */
+    private double getPlayerVisualCenterY() {
+        double scale = (double) Constants.PLAYER_SPRITE_SIZE / Constants.PLAYER_FRAME_SIZE;
+        double feetOffsetScaled = Constants.PLAYER_FEET_Y_IN_FRAME * scale;
+        double drawY = player.getWorldY() + Constants.TILE_SIZE - feetOffsetScaled;
+        return drawY + Constants.PLAYER_SPRITE_SIZE / 2.0;
+    }
+
 
     /**
      * Vẽ đường kẻ mờ từ tâm player tới hướng ngắm (đã clamp ±60° từ ngang)
@@ -709,7 +730,7 @@ public class GameEngine {
     private void drawAimLine(Graphics2D g2d) {
         // Tâm hiển thị thực tế của sprite player (không phải hitbox)
         int cx = (int) player.getWorldX() + Constants.TILE_SIZE / 2;
-        int cy = (int) player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2;
+        int cy = (int) getPlayerVisualCenterY();
         int mx = camera.screenToWorldX(inputHandler.getMouseX());
         int my = camera.screenToWorldY(inputHandler.getMouseY());
 
@@ -818,7 +839,7 @@ public class GameEngine {
         if (player.getWeaponMode() == WeaponMode.BOW) {
             // --- CUNG: spawn mũi tên từ tâm hiển thị sprite player ---
             double cx = player.getWorldX() + Constants.TILE_SIZE / 2.0;
-            double cy = player.getWorldY() + Constants.TILE_SIZE - Constants.PLAYER_SPRITE_SIZE / 2.0;
+            double cy = getPlayerVisualCenterY();
             double mx = camera.screenToWorldX(inputHandler.getMouseX());
             double my = camera.screenToWorldY(inputHandler.getMouseY());
 
@@ -1122,10 +1143,14 @@ public class GameEngine {
         Animation anim = monster.getCurrentAnimation();
         BufferedImage frame = (anim != null) ? anim.getCurrentFrame() : null;
 
-        // Quái vật có kích thước sprite vẽ bằng kích thước của nhân vật (Constants.PLAYER_SPRITE_SIZE = 200px)
-        int drawSize = Constants.PLAYER_SPRITE_SIZE; //
+        // Quái vật dùng chung kích thước sprite với nhân vật (PLAYER_SPRITE_SIZE = 200px)
+        int drawSize = Constants.PLAYER_SPRITE_SIZE;
         int drawX = worldX + Constants.TILE_SIZE / 2 - drawSize / 2;
-        int drawY = worldY + Constants.TILE_SIZE - drawSize; // Ghép chân vào đáy tile
+        // Neo CHÂN THẬT (đo được y=60/100, xem drawPlayer()) vào đáy tile/hitbox —
+        // không neo theo mép dưới canvas như công thức cũ (gây lệch ~80px lên trên).
+        double scale = (double) Constants.PLAYER_SPRITE_SIZE / Constants.PLAYER_FRAME_SIZE;
+        double feetOffsetScaled = Constants.PLAYER_FEET_Y_IN_FRAME * scale;
+        int drawY = (int) Math.round(worldY + Constants.TILE_SIZE - feetOffsetScaled);
 
         // Dùng một điểm neo "đầu nhân vật" riêng, không dựa trên tile hoặc mép trên sprite.
         int barWidth = 26;

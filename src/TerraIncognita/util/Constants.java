@@ -49,6 +49,12 @@ public class Constants {
     public static final double BOW_ATTACK_SPEED_MULTIPLIER = 0.4; // tốc độ di chuyển khi bắn cung = 40% bình thường
 
     public static final int PLAYER_SPRITE_SIZE = 200;
+    // Vị trí "chân" thật (đáy bóng đổ nhân vật) trong khung sprite gốc 100x100 —
+    // đo trực tiếp trên asset (Soldier_Idle/Walk/Attack/Hurt đều cho kết quả
+    // y=60 ổn định), KHÔNG phải y=100 (đáy canvas) như công thức cũ từng giả định.
+    // Dùng để neo sprite đúng vào đáy hitbox thay vì neo theo mép ảnh.
+    public static final int PLAYER_FRAME_SIZE = 100;
+    public static final int PLAYER_FEET_Y_IN_FRAME = 60;
 
     // --- Inventory ---
     public static final int INVENTORY_MAX_SLOTS = 20;
