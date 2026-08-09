@@ -52,7 +52,8 @@ public class InputHandler {
         KeyEvent.VK_W, KeyEvent.VK_A, KeyEvent.VK_S, KeyEvent.VK_D,
         KeyEvent.VK_SPACE, KeyEvent.VK_E, KeyEvent.VK_F, KeyEvent.VK_I,
         KeyEvent.VK_ESCAPE, KeyEvent.VK_ENTER,
-        KeyEvent.VK_TAB  // radial menu
+        KeyEvent.VK_TAB, // radial menu
+        KeyEvent.VK_B    // đặt bom
     };
 
     public InputHandler() {

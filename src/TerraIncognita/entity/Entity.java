@@ -1,14 +1,15 @@
 package TerraIncognita.entity;
 
-import TerraIncognita.graphics.Animation;
-import TerraIncognita.item.StatusEffect;
-import TerraIncognita.util.Constants;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import TerraIncognita.graphics.Animation;
+import TerraIncognita.item.StatusEffect;
+import TerraIncognita.util.Constants;
 
 /**
  * Abstract class cơ sở cho mọi entity trong game.
@@ -80,7 +81,7 @@ public abstract class Entity {
         this.activeEffects = new ArrayList<>();
 
         // Hitbox mặc định: thu nhỏ 4px mỗi cạnh so với 1 tile
-        int inset = 4;
+        int inset = 8;
         this.hitboxOffsetX = inset;
         this.hitboxOffsetY = inset;
         this.hitboxWidth = Constants.TILE_SIZE - inset * 2;
@@ -93,6 +94,11 @@ public abstract class Entity {
      */
     public abstract void update(double deltaTime);
 
+    /**
+     * Vùng tương tác — hình chữ nhật đại diện cho khu vực mà entity
+     * có thể được tương tác (mở rương, nói chuyện với NPC...).
+     * Mặc định mở rộng 1 ô TILE_SIZE ra mỗi phía so với vị trí world.
+     */
     /**
      * Nhận sát thương.
      * @param damage lượng sát thương
@@ -195,6 +201,20 @@ public abstract class Entity {
         );
     }
 
+    /**
+     * Vùng tương tác — lớn hơn hitbox một chút để player không cần chạm trực tiếp.
+     * Mặc định mở rộng 1 tile xung quanh hitbox.
+     */
+    public Rectangle getInteractionBounds() {
+        Rectangle hb = getHitbox();
+        int expand = Constants.TILE_SIZE;
+        return new Rectangle(
+            hb.x - expand,
+            hb.y - expand,
+            hb.width + expand * 2,
+            hb.height + expand * 2
+        );
+    }
     // --- Getter / Setter ---
     public double getWorldX() { return worldX; }
     public double getWorldY() { return worldY; }
@@ -214,6 +234,24 @@ public abstract class Entity {
     public void setDirection(Direction direction) { this.direction = direction; }
     public EntityState getState() { return state; }
     public void setState(EntityState state) { this.state = state; }
+    public void resetCurrentAnimation() {
+        if (currentAnimation != null) {
+            currentAnimation.reset();
+        }
+    }
+
+    public void resetAnimationForState(EntityState state, Direction direction) {
+        String key = state.name().toLowerCase() + "_" + direction.name().toLowerCase();
+        Animation anim = animations.get(key);
+        if (anim == null) {
+            anim = animations.get(state.name().toLowerCase() + "_right");
+        }
+        if (anim != null) {
+            anim.reset();
+            currentAnimation = anim;
+        }
+    }
+
     public Animation getCurrentAnimation() { return currentAnimation; }
     public String getName() { return name; }
     public List<StatusEffect> getActiveEffects() { return activeEffects; }

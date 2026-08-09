@@ -1,13 +1,16 @@
 package TerraIncognita.graphics;
 
-import javax.imageio.ImageIO;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.imageio.ImageIO;
+
 import TerraIncognita.util.Constants;  
 
 /**
@@ -42,42 +45,27 @@ public class AssetLoader {
      */
     public void loadAll() {
         loadPlayer();
-        loadTiles();
         loadChest();
         loadMonsters();
         loadArrow();
     }
 
-    /**
-     * Load ảnh tile bản đồ (nền/tường/cửa) — mỗi loại 1 file ảnh riêng.
-     * Tên key PHẢI khớp với TileType.getSpriteName() ("wall", "floor",
-     * "door"...) để DungeonMapManager.drawTile() tra đúng ảnh.
-     *
-     * Giả định đường dẫn: Constants.SPRITES_PATH + "tiles/<ten>.png"
-     * — nếu ảnh của bạn đặt ở thư mục khác, sửa lại biến `base` bên dưới.
-     */
-    private void loadTiles() {
-        String base = Constants.SPRITES_PATH + "tiles/";
-
-        tileImages.put("wall", loadImage(base + "wall.png"));
-        tileImages.put("floor", loadImage(base + "floor.png"));
-        tileImages.put("door", loadImage(base + "door.png"));
-    }
+    private static final int CHEST_SIZE = 64;
 
     private void loadChest() {
         String base = Constants.SPRITES_PATH + "items/chest/";
 
         // Common chest (brown)
-        tileImages.put("chest_common_closed", loadImage(base + "common/common_closed.png"));
-        tileImages.put("chest_common_open", loadImage(base + "common/common_open.png"));
+        tileImages.put("chest_common_closed", loadImageScaled(base + "common/common_no_glow.png", CHEST_SIZE, CHEST_SIZE));
+        tileImages.put("chest_common_open", loadImageScaled(base + "common/common_empty_no_glow.png", CHEST_SIZE, CHEST_SIZE));
 
         // Rare chest (blue)
-        tileImages.put("chest_rare_closed", loadImage(base + "rare/rare_closed.png"));
-        tileImages.put("chest_rare_open", loadImage(base + "rare/rare_open.png"));
+        tileImages.put("chest_rare_closed", loadImageScaled(base + "rare/rare_no_glow.png", CHEST_SIZE, CHEST_SIZE));
+        tileImages.put("chest_rare_open", loadImageScaled(base + "rare/rare_empty_no_glow.png", CHEST_SIZE, CHEST_SIZE));
 
         // Mythic chest (gold/purple gem)
-        tileImages.put("chest_mythic_closed", loadImage(base + "mythic/mythic_closed.png"));
-        tileImages.put("chest_mythic_open", loadImage(base + "mythic/mythic_open.png"));
+        tileImages.put("chest_mythic_closed", loadImageScaled(base + "mythic/mythical_no_glow.png", CHEST_SIZE, CHEST_SIZE));
+        tileImages.put("chest_mythic_open", loadImageScaled(base + "mythic/mythical_empty_no_glow.png", CHEST_SIZE, CHEST_SIZE));
     }
 
     private void loadPlayer() {
@@ -133,26 +121,28 @@ public class AssetLoader {
     }
 
     private void loadMonsters() {
-    // Đường dẫn gốc: "resources/sprites/monster/"
-    String base = Constants.SPRITES_PATH + "monsters/"; 
+        String base = Constants.SPRITES_PATH + "monsters/";
 
-    // Nạp hoạt ảnh đứng yên (idle) cho quái vật Slime (hoặc Orc_Idle nếu bạn muốn dùng Orc)
-    loadMonsterSheet("slime_idle", base + "Slime_Idle.png");
-}
-
-private void loadMonsterSheet(String name, String path) {
-    BufferedImage sheet = loadImage(path);
-    if (sheet == null) {
-        spriteFrames.put(name, new BufferedImage[0]);
-        return;
+        // Orc (đã có sẵn asset trong resources/sprites/monsters/orc/)
+        loadMonsterSheet("orc_idle", base + "orc/Orc_Idle.png");
+        loadMonsterSheet("orc_walk", base + "orc/Orc_Walk.png");
+        loadMonsterSheet("orc_attack", base + "orc/Orc_Attack01.png");
+        loadMonsterSheet("orc_hurt", base + "orc/Orc_Hurt.png");
+        loadMonsterSheet("orc_dead", base + "orc/Orc_Death.png");
     }
-    
-    // Cắt sprite sheet của quái vật với kích thước frame 100x100
-    int monsterFrameSize = 100; 
-    SpriteSheet sheetCutter = new SpriteSheet(sheet, monsterFrameSize, monsterFrameSize);
-    BufferedImage[] frames = sheetCutter.getFullRow(0);
-    spriteFrames.put(name, frames);
-}
+
+    private void loadMonsterSheet(String name, String path) {
+        BufferedImage sheet = loadImage(path);
+        if (sheet == null) {
+            spriteFrames.put(name, new BufferedImage[0]);
+            return;
+        }
+
+        int monsterFrameSize = 100;
+        SpriteSheet sheetCutter = new SpriteSheet(sheet, monsterFrameSize, monsterFrameSize);
+        BufferedImage[] frames = sheetCutter.getFullRow(0);
+        spriteFrames.put(name, frames);
+    }
 
     private BufferedImage loadImage(String path) {
         try {
@@ -169,9 +159,25 @@ private void loadMonsterSheet(String name, String path) {
     }
 
     /**
+     * Load ảnh và resize về đúng kích thước (dùng cho ảnh gốc lớn, vd chest 2000x2000).
+     */
+    private BufferedImage loadImageScaled(String path, int width, int height) {
+        BufferedImage src = loadImage(path);
+        if (src == null) {
+            return null;
+        }
+        Image scaled = src.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = result.createGraphics();
+        g2d.drawImage(scaled, 0, 0, null);
+        g2d.dispose();
+        return result;
+    }
+
+    /**
      * Lấy mảng frame animation theo tên.
      * 
-     * @param name tên sprite (ví dụ: "player_walk_down", "slime_idle")
+     * @param name tên sprite (ví dụ: "player_walk_down", "orc_idle")
      * @return mảng BufferedImage[] các frame
      */
     public BufferedImage[] getFrames(String name) {

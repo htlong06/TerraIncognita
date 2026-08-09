@@ -49,6 +49,12 @@ public class Constants {
     public static final double BOW_ATTACK_SPEED_MULTIPLIER = 0.4; // tốc độ di chuyển khi bắn cung = 40% bình thường
 
     public static final int PLAYER_SPRITE_SIZE = 200;
+    // Vị trí "chân" thật (đáy bóng đổ nhân vật) trong khung sprite gốc 100x100 —
+    // đo trực tiếp trên asset (Soldier_Idle/Walk/Attack/Hurt đều cho kết quả
+    // y=60 ổn định), KHÔNG phải y=100 (đáy canvas) như công thức cũ từng giả định.
+    // Dùng để neo sprite đúng vào đáy hitbox thay vì neo theo mép ảnh.
+    public static final int PLAYER_FRAME_SIZE = 100;
+    public static final int PLAYER_FEET_Y_IN_FRAME = 60;
 
     // --- Inventory ---
     public static final int INVENTORY_MAX_SLOTS = 20;
@@ -57,6 +63,12 @@ public class Constants {
     public static final double CRIT_CHANCE = 0.1; // 10%
     public static final double CRIT_MULTIPLIER = 1.5;
     public static final double MISS_CHANCE = 0.05; // 5%
+
+    // --- Bomb ---
+    public static final int BOMB_SIZE = TILE_SIZE / 2;         // kích thước khối vuông đặt bom (pixel)
+    public static final int BOMB_EXPLOSION_TILES = 3;          // phạm vi nổ 3x3 ô, tâm là ô đặt bom
+    public static final double BOMB_EXPLOSION_DURATION = 0.3;  // giây — thời gian hiển thị vụ nổ trước khi biến mất
+    public static final int BOMB_DAMAGE = 40;                  // sát thương gây ra cho mục tiêu trong phạm vi nổ
 
     // --- AI ---
     public static final int DEFAULT_DETECTION_RANGE = 5; // ô
