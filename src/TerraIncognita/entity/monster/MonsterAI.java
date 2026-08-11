@@ -49,7 +49,7 @@ public class MonsterAI {
                 break;
             case CHASE:
                 monster.setState(TerraIncognita.entity.EntityState.WALK);
-                if (dist <= 1) {
+                if (dist <= monster.getAttackRange()) {
                     aiState = AIState.ATTACK;
                     monster.setAggro(true);
                 } else if (dist > monster.getDetectionRange() * 2) {
@@ -60,7 +60,7 @@ public class MonsterAI {
                 }
                 break;
             case ATTACK:
-                if (dist > 1) {
+                if (dist > monster.getAttackRange()) {
                     aiState = AIState.CHASE;
                     monster.setAggro(true);
                     break;

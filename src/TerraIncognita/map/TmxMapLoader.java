@@ -1,13 +1,5 @@
 package TerraIncognita.map;
 
-import TerraIncognita.util.Constants;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-
-import javax.imageio.ImageIO;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.nio.file.Path;
@@ -15,17 +7,26 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import javax.imageio.ImageIO;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import TerraIncognita.util.Constants;
+
 /**
- * Load bản đồ từ file .tmx (Tiled Map Editor) — hỗ trợ map "infinite" (dữ
- * liệu layer lưu theo <chunk> rời rạc, toạ độ có thể âm) và nhiều tileset
- * ngoài (.tsx riêng, không nhúng trong .tmx).
+ * Load bản đồ từ file .tmx (Tiled Map Editor) — map kích thước cố định
+ * (không dùng "infinite"), nhiều tileset ngoài (.tsx riêng, không nhúng
+ * trong .tmx).
  *
  * QUY ƯỚC:
  *  - Va chạm xác định theo LAYER, không theo từng tile: bất kỳ ô nào có GID
  *    khác 0 ở layer tên "wall" (không phân biệt hoa/thường) → không đi qua
  *    được. Mọi layer khác (ground, props, props 2...) chỉ để vẽ trang trí.
  *  - Vị trí bắt đầu player KHÔNG đọc từ file — code Java tự đặt sau khi map
- *    được load xong (theo yêu cầu hiện tại).
+ *    được load xong.
  *  - Mỗi <tileset firstgid="X" source="Y.tsx"/> trỏ tới 1 file .tsx cùng thư
  *    mục với file .tmx; bên trong .tsx đó, <image source="..."> trỏ tới ảnh
  *    thật, tính tương đối theo thư mục CHỨA FILE .tsx (không phải .tmx).
@@ -77,9 +78,8 @@ public class TmxMapLoader implements MapGenerator {
             doc.getDocumentElement().normalize();
             Element mapEl = doc.getDocumentElement();
 
-            boolean infinite = "1".equals(mapEl.getAttribute("infinite"));
-            int mapAttrWidth = Integer.parseInt(mapEl.getAttribute("width"));
-            int mapAttrHeight = Integer.parseInt(mapEl.getAttribute("height"));
+            int mapWidth = Integer.parseInt(mapEl.getAttribute("width"));
+            int mapHeight = Integer.parseInt(mapEl.getAttribute("height"));
 
             // 1) Parse từng .tsx ngoài để biết ảnh gốc + kích thước/số cột
             List<TilesetInfo> tilesets = new ArrayList<>();
@@ -99,11 +99,6 @@ public class TmxMapLoader implements MapGenerator {
                         + " (" + ts.columns + " cột, tile " + ts.tileWidth + "x" + ts.tileHeight + ")");
             }
 
-            // 2) Tính bounding box thật (map infinite có toạ độ chunk âm)
-            NodeList layerNodes = mapEl.getElementsByTagName("layer");
-            int[] bounds = computeBounds(layerNodes, infinite, mapAttrWidth, mapAttrHeight);
-            int minX = bounds[0], minY = bounds[1], mapWidth = bounds[2], mapHeight = bounds[3];
-
             GameMap map = new GameMap(mapWidth, mapHeight);
             // GameMap mặc định fill WALL toàn bộ — map kiểu TMX coi mọi ô là
             // FLOOR trừ khi layer "wall" ghi đè lại, nên reset hết về FLOOR trước.
@@ -113,10 +108,11 @@ public class TmxMapLoader implements MapGenerator {
                 }
             }
 
-            // 3) Đổ dữ liệu từng layer (theo đúng thứ tự xuất hiện trong .tmx)
+            // 2) Đổ dữ liệu từng layer (theo đúng thứ tự xuất hiện trong .tmx)
+            NodeList layerNodes = mapEl.getElementsByTagName("layer");
             for (int i = 0; i < layerNodes.getLength(); i++) {
                 Element layerEl = (Element) layerNodes.item(i);
-                parseLayer(layerEl, tilesets, map, minX, minY, mapWidth, mapHeight, infinite);
+                parseLayer(layerEl, tilesets, map, mapWidth, mapHeight);
             }
 
             return map;
@@ -127,36 +123,8 @@ public class TmxMapLoader implements MapGenerator {
         }
     }
 
-    private int[] computeBounds(NodeList layerNodes, boolean infinite, int mapAttrWidth, int mapAttrHeight) {
-        if (!infinite) {
-            return new int[]{0, 0, mapAttrWidth, mapAttrHeight};
-        }
-        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
-        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
-        for (int i = 0; i < layerNodes.getLength(); i++) {
-            Element layerEl = (Element) layerNodes.item(i);
-            Element dataEl = (Element) layerEl.getElementsByTagName("data").item(0);
-            NodeList chunks = dataEl.getElementsByTagName("chunk");
-            for (int c = 0; c < chunks.getLength(); c++) {
-                Element chunkEl = (Element) chunks.item(c);
-                int cx = Integer.parseInt(chunkEl.getAttribute("x"));
-                int cy = Integer.parseInt(chunkEl.getAttribute("y"));
-                int cw = Integer.parseInt(chunkEl.getAttribute("width"));
-                int ch = Integer.parseInt(chunkEl.getAttribute("height"));
-                minX = Math.min(minX, cx);
-                minY = Math.min(minY, cy);
-                maxX = Math.max(maxX, cx + cw);
-                maxY = Math.max(maxY, cy + ch);
-            }
-        }
-        if (minX == Integer.MAX_VALUE) {
-            return new int[]{0, 0, mapAttrWidth, mapAttrHeight};
-        }
-        return new int[]{minX, minY, maxX - minX, maxY - minY};
-    }
-
     private void parseLayer(Element layerEl, List<TilesetInfo> tilesets, GameMap map,
-                             int minX, int minY, int mapWidth, int mapHeight, boolean infinite) {
+                             int mapWidth, int mapHeight) {
         String name = layerEl.getAttribute("name");
         int offsetXPx = parseIntOrDefault(layerEl.getAttribute("offsetx"), 0);
         int offsetYPx = parseIntOrDefault(layerEl.getAttribute("offsety"), 0);
@@ -172,45 +140,29 @@ public class TmxMapLoader implements MapGenerator {
         VisualLayer visual = new VisualLayer(name, mapWidth, mapHeight, offsetXPx, offsetYPx);
         boolean isWallLayer = WALL_LAYER_NAME.equalsIgnoreCase(name);
 
-        if (infinite) {
-            NodeList chunks = dataEl.getElementsByTagName("chunk");
-            for (int c = 0; c < chunks.getLength(); c++) {
-                Element chunkEl = (Element) chunks.item(c);
-                int cx = Integer.parseInt(chunkEl.getAttribute("x"));
-                int cy = Integer.parseInt(chunkEl.getAttribute("y"));
-                int cw = Integer.parseInt(chunkEl.getAttribute("width"));
-                int ch = Integer.parseInt(chunkEl.getAttribute("height"));
-                long[] gids = parseCsv(chunkEl.getTextContent());
-                placeGids(gids, cw, ch, cx - minX, cy - minY, tilesets, map, visual, isWallLayer);
-            }
-        } else {
-            long[] gids = parseCsv(dataEl.getTextContent());
-            placeGids(gids, mapWidth, mapHeight, 0, 0, tilesets, map, visual, isWallLayer);
-        }
+        long[] gids = parseCsv(dataEl.getTextContent());
+        placeGids(gids, mapWidth, mapHeight, tilesets, map, visual, isWallLayer);
 
         visualLayers.add(visual);
     }
 
-    private void placeGids(long[] gids, int blockWidth, int blockHeight, int originX, int originY,
+    private void placeGids(long[] gids, int mapWidth, int mapHeight,
                             List<TilesetInfo> tilesets, GameMap map, VisualLayer visual, boolean isWallLayer) {
-        for (int i = 0; i < gids.length && i < blockWidth * blockHeight; i++) {
+        for (int i = 0; i < gids.length && i < mapWidth * mapHeight; i++) {
             long raw = gids[i];
             if (raw == 0) continue;
 
             int gid = (int) (raw & ~FLIP_MASK);
-            int localX = i % blockWidth;
-            int localY = i / blockWidth;
-            int mapX = originX + localX;
-            int mapY = originY + localY;
-            if (mapX < 0 || mapX >= map.getWidth() || mapY < 0 || mapY >= map.getHeight()) continue;
+            int x = i % mapWidth;
+            int y = i / mapWidth;
 
             if (isWallLayer) {
-                map.setTile(mapX, mapY, new Tile(TileType.WALL));
+                map.setTile(x, y, new Tile(TileType.WALL));
             }
 
             BufferedImage sprite = sliceTile(gid, tilesets);
             if (sprite != null) {
-                visual.images[mapY][mapX] = sprite;
+                visual.images[y][x] = sprite;
             }
         }
     }

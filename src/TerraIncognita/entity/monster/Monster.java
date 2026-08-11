@@ -3,10 +3,11 @@ package TerraIncognita.entity.monster;
 import java.awt.Rectangle;
 
 import TerraIncognita.entity.Entity;
+import TerraIncognita.entity.EntityState;
 import TerraIncognita.entity.Player;
+import TerraIncognita.graphics.Animation;
 import TerraIncognita.map.GameMap;
 import TerraIncognita.util.Constants;
-import java.awt.Rectangle;
 
 /**
  * Abstract class quái vật cơ sở.
@@ -20,6 +21,8 @@ public abstract class Monster extends Entity {
     protected int goldReward;
     protected boolean aggro;
     protected double attackCooldown;
+    protected double hurtTimer;
+    protected int attackRange;
 
     public Monster(String name, int hp, int atk, int def, int tileX, int tileY) {
         super();
@@ -37,6 +40,8 @@ public abstract class Monster extends Entity {
         this.goldReward = 5;
         this.aggro = false;
         this.attackCooldown = 0.0;
+        this.hurtTimer = 0.0;
+        this.attackRange = 1;
         this.speed = 60;   // Quái di chuyển chậm hơn player
         this.ai = new MonsterAI();
     }
@@ -49,8 +54,53 @@ public abstract class Monster extends Entity {
                 attackCooldown = 0;
             }
         }
+
+        if (hurtTimer > 0) {
+            hurtTimer -= deltaTime;
+            if (hurtTimer <= 0) {
+                hurtTimer = 0;
+                if (state == EntityState.HURT) {
+                    state = EntityState.IDLE;
+                }
+            }
+        }
+
         updateAnimation(deltaTime);
         updateStatusEffects(deltaTime);
+    }
+
+    @Override
+    public void takeDamage(int damage) {
+        if (!alive) return;
+        triggerHurt(damage);
+    }
+
+    public void triggerHurt(int damage) {
+        if (!alive) return;
+
+        hp = Math.max(0, hp - damage);
+        if (hp <= 0) {
+            hp = 0;
+            alive = false;
+            state = EntityState.DEAD;
+            return;
+        }
+
+        state = EntityState.HURT;
+        hurtTimer = 0.25;
+        if (currentAnimation != null) {
+            currentAnimation.reset();
+        }
+
+        String key = state.name().toLowerCase() + "_" + direction.name().toLowerCase();
+        Animation anim = animations.get(key);
+        if (anim == null) {
+            anim = animations.get(state.name().toLowerCase() + "_right");
+        }
+        if (anim != null) {
+            currentAnimation = anim;
+            currentAnimation.reset();
+        }
     }
 
     /**
@@ -79,5 +129,7 @@ public abstract class Monster extends Entity {
     public int getDetectionRange() { return detectionRange; }
     public double getAttackCooldown() { return attackCooldown; }
     public void setAttackCooldown(double attackCooldown) { this.attackCooldown = attackCooldown; }
+    public int getAttackRange() { return attackRange; }
+    public void setAttackRange(int attackRange) { this.attackRange = Math.max(1, attackRange); }
     public MonsterAI.AIState getAiState() { return ai.getAiState(); }
 }
