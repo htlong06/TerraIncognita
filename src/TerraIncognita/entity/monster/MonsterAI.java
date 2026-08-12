@@ -34,6 +34,11 @@ public class MonsterAI {
             spawnInitialized = true;
         }
 
+        if (monster.isStunned()) {
+            monster.setState(TerraIncognita.entity.EntityState.HURT);
+            return;
+        }
+
         int dist = manhattanDistance(
             monster.getTileX(), monster.getTileY(),
             player.getTileX(), player.getTileY()
@@ -67,16 +72,37 @@ public class MonsterAI {
                 }
 
                 Direction attackDir = getAttackDirection(monster, player);
-                if (monster.getAttackCooldown() <= 0) {
+                monster.setDirection(attackDir);
+
+                if (monster.getAttackCooldown() > 0) {
+                    monster.setState(dist > monster.getDetectionRange() ? TerraIncognita.entity.EntityState.WALK : TerraIncognita.entity.EntityState.IDLE);
+                    break;
+                }
+
+                if (monster.getCurrentAnimation() == null || monster.getState() != TerraIncognita.entity.EntityState.ATTACK) {
                     monster.setState(TerraIncognita.entity.EntityState.ATTACK);
-                    monster.setDirection(attackDir);
+                    monster.resetAttackDamageTriggered();
                     monster.resetAnimationForState(TerraIncognita.entity.EntityState.ATTACK, attackDir);
+                    break;
+                }
+
+                if (monster.getCurrentAnimation() != null
+                        && monster.getCurrentAnimation().isFinished()
+                        && !monster.isAttackDamageTriggered()) {
                     int rawDamage = Math.max(1, monster.getAtk() - player.getDef());
                     player.takeDamage(rawDamage);
                     monster.setAttackCooldown(4.0);
-                } else {
+                    monster.resetAttackDamageTriggered();
+                    monster.setState(dist > monster.getDetectionRange() ? TerraIncognita.entity.EntityState.WALK : TerraIncognita.entity.EntityState.IDLE);
+                    break;
+                }
+
+                if (monster.getCurrentAnimation() != null && !monster.getCurrentAnimation().isFinished()) {
                     monster.setState(TerraIncognita.entity.EntityState.ATTACK);
-                    monster.setDirection(attackDir);
+                }
+
+                if (monster.getCurrentAnimation() != null && monster.getCurrentAnimation().isFinished()) {
+                    monster.resetAttackDamageTriggered();
                 }
                 break;
             case RETURN_TO_SPAWN:
