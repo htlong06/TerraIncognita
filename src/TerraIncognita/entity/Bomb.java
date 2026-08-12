@@ -42,6 +42,7 @@ public class Bomb {
 
     private Animation idleAnimation;      // 1 frame tĩnh: quả bom lúc chưa nổ
     private Animation explosionAnimation; // 10 frame: animation lúc nổ
+    private BufferedImage bombPlacedImage; // bomb.png — hình thùng bom pixel art
 
     public Bomb(double worldX, double worldY) {
         this.worldX = worldX;
@@ -57,6 +58,9 @@ public class Bomb {
      * animation tương ứng sẽ là null và render() tự rơi về vẽ hình khối.
      */
     public void initAnimations(AssetLoader assetLoader) {
+        // Ưu tiên dùng bomb.png (hình thùng bom pixel art)
+        this.bombPlacedImage = assetLoader.getTile("bomb_placed");
+
         BufferedImage[] idleFrames = assetLoader.getFrames("bomb_idle");
         if (idleFrames != null && idleFrames.length > 0) {
             this.idleAnimation = new Animation(idleFrames, 1000); // 1 frame tĩnh, tốc độ không quan trọng
@@ -136,19 +140,38 @@ public class Bomb {
     }
 
     /**
+     * Vùng render của animation nổ: nâng lên trên mặt đất một chút để hiệu ứng
+     * không bị "bám" quá sát nền và trông hơn hẳn.
+     */
+    public Rectangle getExplosionRenderBounds() {
+        Rectangle area = getExplosionArea();
+        return new Rectangle(
+                area.x,
+                area.y + Constants.BOMB_EXPLOSION_RENDER_OFFSET_Y,
+                area.width,
+                area.height
+        );
+    }
+
+    /**
      * Vẽ bom: sprite animation nếu có (idle lúc PLACED, animation nổ lúc
      * EXPLODING — vẽ phủ kín getExplosionArea()). Nếu asset không load được,
      * rơi về hình khối đơn giản như bản gốc.
      */
     public void render(Graphics2D g2d) {
         if (state == BombState.PLACED) {
-            if (idleAnimation != null && idleAnimation.getCurrentFrame() != null) {
+            int drawSize = Constants.BOMB_IDLE_DRAW_SIZE;
+            int centerX = (int) Math.round(worldX + Constants.BOMB_SIZE / 2.0);
+            int centerY = (int) Math.round(worldY + Constants.BOMB_SIZE / 2.0);
+
+            if (bombPlacedImage != null) {
+                // Ưu tiên vẽ bomb.png (hình thùng bom pixel art)
+                int drawX = centerX - drawSize / 2;
+                int drawY = centerY - drawSize / 2;
+                g2d.drawImage(bombPlacedImage, drawX, drawY, drawSize, drawSize, null);
+            } else if (idleAnimation != null && idleAnimation.getCurrentFrame() != null) {
                 BufferedImage frame = idleAnimation.getCurrentFrame();
-                int drawSize = Constants.BOMB_IDLE_DRAW_SIZE;
                 int drawHeight = (int) Math.round(drawSize * (double) frame.getHeight() / frame.getWidth());
-                // Căn giữa sprite theo tâm hitbox (tâm ô đặt bom)
-                int centerX = (int) Math.round(worldX + Constants.BOMB_SIZE / 2.0);
-                int centerY = (int) Math.round(worldY + Constants.BOMB_SIZE / 2.0);
                 int drawX = centerX - drawSize / 2;
                 int drawY = centerY - drawHeight / 2;
                 g2d.drawImage(frame, drawX, drawY, drawSize, drawHeight, null);
@@ -159,7 +182,7 @@ public class Bomb {
                         Constants.BOMB_SIZE, Constants.BOMB_SIZE);
             }
         } else if (state == BombState.EXPLODING) {
-            Rectangle area = getExplosionArea();
+            Rectangle area = getExplosionRenderBounds();
             if (explosionAnimation != null && explosionAnimation.getCurrentFrame() != null) {
                 BufferedImage frame = explosionAnimation.getCurrentFrame();
                 // Vẽ phủ kín toàn bộ vùng ảnh hưởng (kéo giãn cho khớp ô vuông area)

@@ -155,6 +155,17 @@ public class AssetLoader {
     private static final int BOMB_FRAME_HEIGHT = 48;
 
     private void loadBomb() {
+        // Load bomb.png (hình thùng bom pixel art) dùng vẽ khi PLACED
+        String bombImgPath = Constants.SPRITES_PATH + "effects/bomb.png";
+        BufferedImage bombImg = loadImageScaled(bombImgPath, Constants.BOMB_IDLE_DRAW_SIZE, Constants.BOMB_IDLE_DRAW_SIZE);
+        if (bombImg != null) {
+            tileImages.put("bomb_placed", bombImg);
+            System.out.println("[DEBUG AssetLoader] Loaded bomb_placed from bomb.png ("
+                    + bombImg.getWidth() + "x" + bombImg.getHeight() + ")");
+        } else {
+            System.err.println("[AssetLoader] Could not load bomb.png: " + bombImgPath);
+        }
+
         String path = Constants.SPRITES_PATH + "effects/bomb/Bomb_Explosion.png";
         BufferedImage sheet = loadImage(path);
         if (sheet == null) {
