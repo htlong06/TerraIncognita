@@ -94,7 +94,7 @@ public class GameMap {
     public int getHeight() { return height; }
     public Tile[][] getTiles() { return tiles; }
     public List<Entity> getEntities() { return entities; }
-\    public int getPlayerStartX() { return playerStartX; }
+    public int getPlayerStartX() { return playerStartX; }
     public int getPlayerStartY() { return playerStartY; }
     public void setPlayerStart(int x, int y) { this.playerStartX = x; this.playerStartY = y; }
     public int getStairX() { return stairX; }

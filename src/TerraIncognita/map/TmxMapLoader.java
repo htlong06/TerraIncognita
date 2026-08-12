@@ -2,40 +2,30 @@ package TerraIncognita.map;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import javax.imageio.ImageIO;
-import javax.xml.parsers.DocumentBuilderFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import org.mapeditor.core.MapLayer;
+import org.mapeditor.core.TileLayer;
+import org.mapeditor.io.TMXMapReader;
 
 import TerraIncognita.util.Constants;
 
 /**
- * Load bản đồ từ file .tmx (Tiled Map Editor) — map kích thước cố định
- * (không dùng "infinite"), nhiều tileset ngoài (.tsx riêng, không nhúng
- * trong .tmx).
+ * Loads a fixed-size TMX map through libtiled.
  *
- * QUY ƯỚC:
- *  - Va chạm xác định theo LAYER, không theo từng tile: bất kỳ ô nào có GID
- *    khác 0 ở layer tên "wall" (không phân biệt hoa/thường) → không đi qua
- *    được. Mọi layer khác (ground, props, props 2...) chỉ để vẽ trang trí.
- *  - Vị trí bắt đầu player KHÔNG đọc từ file — code Java tự đặt sau khi map
- *    được load xong.
- *  - Mỗi <tileset firstgid="X" source="Y.tsx"/> trỏ tới 1 file .tsx cùng thư
- *    mục với file .tmx; bên trong .tsx đó, <image source="..."> trỏ tới ảnh
- *    thật, tính tương đối theo thư mục CHỨA FILE .tsx (không phải .tmx).
+ * Collision rule: any non-empty tile on the "wall" layer is treated as WALL.
+ * Other tile layers are visual only and are rendered in their original order.
  */
 public class TmxMapLoader {
 
-    // 3 bit cờ lật cao nhất mà Tiled cộng vào GID (ngang/dọc/chéo)
-    private static final long FLIP_MASK = 0xE0000000L;
     private static final String WALL_LAYER_NAME = "wall";
+    private static final Pattern SOURCE_ATTRIBUTE = Pattern.compile("source=\"([^\"]+)\"");
 
     private final String filePath;
     private final List<VisualLayer> visualLayers = new ArrayList<>();
@@ -44,15 +34,15 @@ public class TmxMapLoader {
         this.filePath = Constants.MAPS_PATH + mapName + ".tmx";
     }
 
-    /** Ảnh từng layer đã cắt sẵn, theo ĐÚNG thứ tự layer gốc trong .tmx (vẽ theo thứ tự này). */
+    /** Pre-cut tile images for each source layer, in TMX layer order. */
     public List<VisualLayer> getVisualLayers() {
         return visualLayers;
     }
 
     public static class VisualLayer {
         public final String name;
-        public final BufferedImage[][] images; // [y][x], null = ô trống
-        public final int offsetXPx, offsetYPx; // offset riêng của layer (px)
+        public final BufferedImage[][] images; // [y][x], null = empty tile
+        public final int offsetXPx, offsetYPx;
 
         VisualLayer(String name, int width, int height, int offsetXPx, int offsetYPx) {
             this.name = name;
@@ -62,184 +52,113 @@ public class TmxMapLoader {
         }
     }
 
-    private static class TilesetInfo {
-        int firstGid, lastGid, tileWidth, tileHeight, columns;
-        BufferedImage sheet;
-    }
-
-    @Override
     public GameMap generate(int width, int height, int difficulty) {
         try {
-            File tmxFile = new File(filePath);
-            Path tmxDir = tmxFile.getAbsoluteFile().getParentFile().toPath();
+            visualLayers.clear();
 
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            Document doc = factory.newDocumentBuilder().parse(tmxFile);
-            doc.getDocumentElement().normalize();
-            Element mapEl = doc.getDocumentElement();
+            org.mapeditor.core.Map tiledMap = readTiledMap();
+            int mapWidth = tiledMap.getWidth();
+            int mapHeight = tiledMap.getHeight();
 
-            int mapWidth = Integer.parseInt(mapEl.getAttribute("width"));
-            int mapHeight = Integer.parseInt(mapEl.getAttribute("height"));
-
-            // 1) Parse từng .tsx ngoài để biết ảnh gốc + kích thước/số cột
-            List<TilesetInfo> tilesets = new ArrayList<>();
-            NodeList tilesetNodes = mapEl.getElementsByTagName("tileset");
-            for (int i = 0; i < tilesetNodes.getLength(); i++) {
-                Element tsEl = (Element) tilesetNodes.item(i);
-                int firstGid = Integer.parseInt(tsEl.getAttribute("firstgid"));
-                String source = tsEl.getAttribute("source");
-                TilesetInfo info = parseTsx(tmxDir.resolve(source), firstGid);
-                if (info != null) tilesets.add(info);
-            }
-            tilesets.sort(Comparator.comparingInt(t -> t.firstGid));
-
-            System.out.println("[TmxMapLoader] Đã nạp " + tilesets.size() + "/" + tilesetNodes.getLength() + " tileset:");
-            for (TilesetInfo ts : tilesets) {
-                System.out.println("  - GID " + ts.firstGid + "-" + ts.lastGid
-                        + " (" + ts.columns + " cột, tile " + ts.tileWidth + "x" + ts.tileHeight + ")");
-            }
-
-            GameMap map = new GameMap(mapWidth, mapHeight);
-            // GameMap mặc định fill WALL toàn bộ — map kiểu TMX coi mọi ô là
-            // FLOOR trừ khi layer "wall" ghi đè lại, nên reset hết về FLOOR trước.
-            for (int y = 0; y < mapHeight; y++) {
-                for (int x = 0; x < mapWidth; x++) {
-                    map.setTile(x, y, new Tile(TileType.FLOOR));
+            GameMap gameMap = createEmptyFloorMap(mapWidth, mapHeight);
+            for (MapLayer mapLayer : tiledMap) {
+                if (mapLayer instanceof TileLayer tileLayer) {
+                    parseLayer(tileLayer, gameMap, mapWidth, mapHeight);
                 }
             }
 
-            // 2) Đổ dữ liệu từng layer (theo đúng thứ tự xuất hiện trong .tmx)
-            NodeList layerNodes = mapEl.getElementsByTagName("layer");
-            for (int i = 0; i < layerNodes.getLength(); i++) {
-                Element layerEl = (Element) layerNodes.item(i);
-                parseLayer(layerEl, tilesets, map, mapWidth, mapHeight);
-            }
-
-            return map;
+            return gameMap;
         } catch (Exception e) {
-            System.err.println("[TmxMapLoader] Lỗi đọc file .tmx: " + filePath + " (" + e.getMessage() + ")");
+            System.err.println("[TmxMapLoader] Failed to read TMX map: " + filePath + " (" + e.getMessage() + ")");
             e.printStackTrace();
             return null;
         }
     }
 
-    private void parseLayer(Element layerEl, List<TilesetInfo> tilesets, GameMap map,
-                             int mapWidth, int mapHeight) {
-        String name = layerEl.getAttribute("name");
-        int offsetXPx = parseIntOrDefault(layerEl.getAttribute("offsetx"), 0);
-        int offsetYPx = parseIntOrDefault(layerEl.getAttribute("offsety"), 0);
+    private org.mapeditor.core.Map readTiledMap() throws Exception {
+        Path tmxPath = new File(filePath).toPath().toAbsolutePath().normalize();
+        Path tempDir = Files.createTempDirectory("terra-tmx-");
+        tempDir.toFile().deleteOnExit();
 
-        Element dataEl = (Element) layerEl.getElementsByTagName("data").item(0);
-        String encoding = dataEl.getAttribute("encoding");
-        if (!"csv".equals(encoding)) {
-            System.err.println("[TmxMapLoader] Layer '" + name + "' dùng encoding='" + encoding
-                    + "' — chỉ hỗ trợ csv (Map Properties > Tile Layer Format = CSV)");
-            return;
+        Path tempTmxPath = tempDir.resolve(tmxPath.getFileName().toString());
+        String normalizedTmx = normalizeSourceAttributes(
+                Files.readString(tmxPath, StandardCharsets.UTF_8),
+                tmxPath.getParent(),
+                tempDir,
+                true);
+        Files.writeString(tempTmxPath, normalizedTmx, StandardCharsets.UTF_8);
+        tempTmxPath.toFile().deleteOnExit();
+
+        return new TMXMapReader().readMap(tempTmxPath.toUri().toURL());
+    }
+
+    private String normalizeSourceAttributes(String xml, Path sourceDir, Path tempDir, boolean copyTilesets)
+            throws Exception {
+        Matcher matcher = SOURCE_ATTRIBUTE.matcher(xml);
+        StringBuffer result = new StringBuffer();
+        while (matcher.find()) {
+            Path sourcePath = sourceDir.resolve(matcher.group(1)).normalize();
+            String replacementSource = sourcePath.toUri().toASCIIString();
+
+            if (copyTilesets && matcher.group(1).toLowerCase().endsWith(".tsx")) {
+                Path tempTilesetPath = tempDir.resolve(sourcePath.getFileName().toString());
+                String normalizedTileset = normalizeSourceAttributes(
+                        Files.readString(sourcePath, StandardCharsets.UTF_8),
+                        sourcePath.getParent(),
+                        tempDir,
+                        false);
+                Files.writeString(tempTilesetPath, normalizedTileset, StandardCharsets.UTF_8);
+                tempTilesetPath.toFile().deleteOnExit();
+                replacementSource = tempTilesetPath.toUri().toASCIIString();
+            }
+
+            matcher.appendReplacement(result, "source=\"" + Matcher.quoteReplacement(replacementSource) + "\"");
         }
+        matcher.appendTail(result);
+        return result.toString();
+    }
 
-        VisualLayer visual = new VisualLayer(name, mapWidth, mapHeight, offsetXPx, offsetYPx);
+    private GameMap createEmptyFloorMap(int mapWidth, int mapHeight) {
+        GameMap map = new GameMap(mapWidth, mapHeight);
+        for (int y = 0; y < mapHeight; y++) {
+            for (int x = 0; x < mapWidth; x++) {
+                map.setTile(x, y, new Tile(TileType.FLOOR));
+            }
+        }
+        return map;
+    }
+
+    private void parseLayer(TileLayer tileLayer, GameMap gameMap, int mapWidth, int mapHeight) {
+        String name = tileLayer.getName();
         boolean isWallLayer = WALL_LAYER_NAME.equalsIgnoreCase(name);
+        VisualLayer visual = new VisualLayer(
+                name,
+                mapWidth,
+                mapHeight,
+                intOrDefault(tileLayer.getOffsetX(), 0),
+                intOrDefault(tileLayer.getOffsetY(), 0));
 
-        long[] gids = parseCsv(dataEl.getTextContent());
-        placeGids(gids, mapWidth, mapHeight, tilesets, map, visual, isWallLayer);
+        int layerWidth = Math.min(mapWidth, tileLayer.getWidth());
+        int layerHeight = Math.min(mapHeight, tileLayer.getHeight());
+        for (int y = 0; y < layerHeight; y++) {
+            for (int x = 0; x < layerWidth; x++) {
+                org.mapeditor.core.Tile tiledTile = tileLayer.getTileAt(x, y);
+                if (tiledTile == null) {
+                    continue;
+                }
+
+                if (isWallLayer) {
+                    gameMap.setTile(x, y, new Tile(TileType.WALL));
+                }
+
+                visual.images[y][x] = tiledTile.getImage();
+            }
+        }
 
         visualLayers.add(visual);
     }
 
-    private void placeGids(long[] gids, int mapWidth, int mapHeight,
-                            List<TilesetInfo> tilesets, GameMap map, VisualLayer visual, boolean isWallLayer) {
-        for (int i = 0; i < gids.length && i < mapWidth * mapHeight; i++) {
-            long raw = gids[i];
-            if (raw == 0) continue;
-
-            int gid = (int) (raw & ~FLIP_MASK);
-            int x = i % mapWidth;
-            int y = i / mapWidth;
-
-            if (isWallLayer) {
-                map.setTile(x, y, new Tile(TileType.WALL));
-            }
-
-            BufferedImage sprite = sliceTile(gid, tilesets);
-            if (sprite != null) {
-                visual.images[y][x] = sprite;
-            }
-        }
-    }
-
-    private long[] parseCsv(String text) {
-        String trimmed = text.trim();
-        if (trimmed.isEmpty()) return new long[0];
-        String[] tokens = trimmed.split("[,\\s]+");
-        long[] result = new long[tokens.length];
-        for (int i = 0; i < tokens.length; i++) {
-            result[i] = Long.parseLong(tokens[i].trim());
-        }
-        return result;
-    }
-
-    private BufferedImage sliceTile(int gid, List<TilesetInfo> tilesets) {
-        for (TilesetInfo ts : tilesets) {
-            if (gid >= ts.firstGid && gid <= ts.lastGid) {
-                int localId = gid - ts.firstGid;
-                int col = localId % ts.columns;
-                int row = localId / ts.columns;
-                int px = col * ts.tileWidth;
-                int py = row * ts.tileHeight;
-                if (px + ts.tileWidth > ts.sheet.getWidth() || py + ts.tileHeight > ts.sheet.getHeight()) {
-                    System.err.println("[TmxMapLoader] GID=" + gid + " cắt ra ngoài ảnh tileset");
-                    return null;
-                }
-                return ts.sheet.getSubimage(px, py, ts.tileWidth, ts.tileHeight);
-            }
-        }
-        System.err.println("[TmxMapLoader] GID=" + gid + " không khớp tileset nào đã nạp");
-        return null;
-    }
-
-    private TilesetInfo parseTsx(Path tsxPath, int firstGid) {
-        try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            Document doc = factory.newDocumentBuilder().parse(tsxPath.toFile());
-            doc.getDocumentElement().normalize();
-            Element tsEl = doc.getDocumentElement();
-
-            int tileWidth = Integer.parseInt(tsEl.getAttribute("tilewidth"));
-            int tileHeight = Integer.parseInt(tsEl.getAttribute("tileheight"));
-            int columns = Integer.parseInt(tsEl.getAttribute("columns"));
-            int tileCount = Integer.parseInt(tsEl.getAttribute("tilecount"));
-
-            Element imageEl = (Element) tsEl.getElementsByTagName("image").item(0);
-            String imageSource = imageEl.getAttribute("source");
-            // Đường dẫn ảnh tính tương đối theo thư mục CHỨA FILE .tsx này
-            Path imagePath = tsxPath.getParent().resolve(imageSource).normalize();
-
-            BufferedImage sheet = ImageIO.read(imagePath.toFile());
-            if (sheet == null) {
-                System.err.println("[TmxMapLoader] Không đọc được ảnh tileset: " + imagePath);
-                return null;
-            }
-
-            TilesetInfo info = new TilesetInfo();
-            info.firstGid = firstGid;
-            info.lastGid = firstGid + tileCount - 1;
-            info.tileWidth = tileWidth;
-            info.tileHeight = tileHeight;
-            info.columns = columns;
-            info.sheet = sheet;
-            return info;
-        } catch (Exception e) {
-            System.err.println("[TmxMapLoader] Lỗi đọc file .tsx: " + tsxPath + " (" + e.getMessage() + ")");
-            return null;
-        }
-    }
-
-    private int parseIntOrDefault(String s, int def) {
-        if (s == null || s.isEmpty()) return def;
-        try {
-            return (int) Double.parseDouble(s);
-        } catch (NumberFormatException e) {
-            return def;
-        }
+    private int intOrDefault(Integer value, int defaultValue) {
+        return value != null ? value : defaultValue;
     }
 }
