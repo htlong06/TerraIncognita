@@ -1,107 +1,89 @@
 package TerraIncognita.map;
 
-import TerraIncognita.entity.Entity;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Lưu trữ dữ liệu bản đồ: mảng 2D tile và danh sách entity trên map.
+ * Logical tile grid used for collision and map events.
  *
- * GameMap không tự vẽ — nó chỉ chứa dữ liệu.
- * Renderer sẽ đọc dữ liệu từ GameMap để vẽ.
+ * Rendering is handled separately by DungeonMapManager using the visual layers
+ * loaded from the TMX file.
  */
 public class GameMap {
 
-    private int width;                      // kích thước map (số ô)
-    private int height;
-    private Tile[][] tiles;                 // mảng 2D tile
-    private List<Entity> entities;          // danh sách entity trên map
-    private List<Room> rooms;               // danh sách phòng
-    private int playerStartX, playerStartY; // vị trí xuất phát player (tile)
-    private int stairX, stairY;             // vị trí cầu thang xuống (tile)
+    private final int width;
+    private final int height;
+    private final Tile[][] tiles;
+    private int playerStartX = 1;
+    private int playerStartY = 1;
 
     public GameMap(int width, int height) {
+        this(width, height, TileType.WALL);
+    }
+
+    public GameMap(int width, int height, TileType defaultType) {
         this.width = width;
         this.height = height;
         this.tiles = new Tile[height][width];
-        this.entities = new ArrayList<>();
-        this.rooms = new ArrayList<>();
-        this.playerStartX = 1;
-        this.playerStartY = 1;
-
-        // Khởi tạo tất cả tile = WALL mặc định
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                tiles[y][x] = new Tile(TileType.WALL);
-            }
-        }
+        fill(defaultType);
     }
 
-    /**
-     * Lấy tile tại vị trí (x, y).
-     * @return Tile, hoặc tile VOID nếu ngoài map
-     */
     public Tile getTile(int x, int y) {
-        if (x < 0 || x >= width || y < 0 || y >= height) {
-            return new Tile(TileType.VOID);
+        if (!contains(x, y)) {
+            return Tile.voidTile();
         }
         return tiles[y][x];
     }
 
-    /**
-     * Đặt tile tại vị trí (x, y).
-     */
+    public void setTile(int x, int y, TileType type) {
+        if (contains(x, y)) {
+            tiles[y][x] = new Tile(type);
+        }
+    }
+
     public void setTile(int x, int y, Tile tile) {
-        if (x >= 0 && x < width && y >= 0 && y < height) {
+        if (contains(x, y)) {
             tiles[y][x] = tile;
         }
     }
 
-    /**
-     * Kiểm tra vị trí (x, y) có đi qua được không.
-     */
     public boolean isWalkable(int x, int y) {
-        Tile tile = getTile(x, y);
-        return tile.isWalkable();
+        return getTile(x, y).isWalkable();
     }
 
-    /**
-     * Lấy entity tại vị trí (x, y), nếu có.
-     */
-    public Entity getEntityAt(int x, int y) {
-        for (Entity entity : entities) {
-            if (entity.getTileX() == x && entity.getTileY() == y) {
-                return entity;
+    public boolean contains(int x, int y) {
+        return x >= 0 && x < width && y >= 0 && y < height;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public int getHeight() {
+        return height;
+    }
+
+    public Tile[][] getTiles() {
+        return tiles;
+    }
+
+    public int getPlayerStartX() {
+        return playerStartX;
+    }
+
+    public int getPlayerStartY() {
+        return playerStartY;
+    }
+
+    public void setPlayerStart(int x, int y) {
+        if (contains(x, y)) {
+            this.playerStartX = x;
+            this.playerStartY = y;
+        }
+    }
+
+    private void fill(TileType type) {
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                tiles[y][x] = new Tile(type);
             }
         }
-        return null;
     }
-
-    /**
-     * Thêm entity vào map.
-     */
-    public void addEntity(Entity entity) {
-        entities.add(entity);
-    }
-
-    /**
-     * Xoá entity khỏi map.
-     */
-    public void removeEntity(Entity entity) {
-        entities.remove(entity);
-    }
-
-    // --- Getter / Setter ---
-    public int getWidth() { return width; }
-    public int getHeight() { return height; }
-    public Tile[][] getTiles() { return tiles; }
-    public List<Entity> getEntities() { return entities; }
-    public List<Room> getRooms() { return rooms; }
-    public void setRooms(List<Room> rooms) { this.rooms = rooms; }
-    public int getPlayerStartX() { return playerStartX; }
-    public int getPlayerStartY() { return playerStartY; }
-    public void setPlayerStart(int x, int y) { this.playerStartX = x; this.playerStartY = y; }
-    public int getStairX() { return stairX; }
-    public int getStairY() { return stairY; }
-    public void setStairs(int x, int y) { this.stairX = x; this.stairY = y; }
 }
