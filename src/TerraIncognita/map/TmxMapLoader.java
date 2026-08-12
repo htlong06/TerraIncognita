@@ -31,7 +31,7 @@ import TerraIncognita.util.Constants;
  *    mục với file .tmx; bên trong .tsx đó, <image source="..."> trỏ tới ảnh
  *    thật, tính tương đối theo thư mục CHỨA FILE .tsx (không phải .tmx).
  */
-public class TmxMapLoader implements MapGenerator {
+public class TmxMapLoader {
 
     // 3 bit cờ lật cao nhất mà Tiled cộng vào GID (ngang/dọc/chéo)
     private static final long FLIP_MASK = 0xE0000000L;

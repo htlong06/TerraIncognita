@@ -16,7 +16,6 @@ public class GameMap {
     private int height;
     private Tile[][] tiles;                 // mảng 2D tile
     private List<Entity> entities;          // danh sách entity trên map
-    private List<Room> rooms;               // danh sách phòng
     private int playerStartX, playerStartY; // vị trí xuất phát player (tile)
     private int stairX, stairY;             // vị trí cầu thang xuống (tile)
 
@@ -25,7 +24,6 @@ public class GameMap {
         this.height = height;
         this.tiles = new Tile[height][width];
         this.entities = new ArrayList<>();
-        this.rooms = new ArrayList<>();
         this.playerStartX = 1;
         this.playerStartY = 1;
 
@@ -96,9 +94,7 @@ public class GameMap {
     public int getHeight() { return height; }
     public Tile[][] getTiles() { return tiles; }
     public List<Entity> getEntities() { return entities; }
-    public List<Room> getRooms() { return rooms; }
-    public void setRooms(List<Room> rooms) { this.rooms = rooms; }
-    public int getPlayerStartX() { return playerStartX; }
+\    public int getPlayerStartX() { return playerStartX; }
     public int getPlayerStartY() { return playerStartY; }
     public void setPlayerStart(int x, int y) { this.playerStartX = x; this.playerStartY = y; }
     public int getStairX() { return stairX; }
