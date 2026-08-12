@@ -61,4 +61,28 @@ class MonsterAITest {
         assertEquals(0, monster.getCurrentAnimation().getCurrentFrameIndex(),
                 "Animation tấn công phải reset về frame đầu khi bắt đầu tấn công");
     }
+
+    @Test
+    void orcMonsterEntersHurtStateAndUsesHurtAnimationWhenDamaged() {
+        AssetLoader loader = new AssetLoader();
+        loader.loadAll();
+
+        OrcMonster monster = new OrcMonster(1, 1);
+        monster.initAnimations(loader);
+        monster.setDirection(Direction.RIGHT);
+        monster.setState(EntityState.IDLE);
+
+        monster.takeDamage(5);
+
+        assertEquals(EntityState.HURT, monster.getState(), "Orc phải chuyển sang trạng thái HURT khi bị đánh");
+        assertNotNull(monster.getCurrentAnimation(), "Orc phải có animation hiện tại sau khi bị đánh");
+    }
+
+    @Test
+    void monsterAttackRangeUsesConfiguredRange() {
+        OrcMonster monster = new OrcMonster(3, 3);
+        monster.setAttackRange(2);
+
+        assertEquals(2, monster.getAttackRange(), "Tầm đánh của quái phải dùng giá trị cấu hình");
+    }
 }

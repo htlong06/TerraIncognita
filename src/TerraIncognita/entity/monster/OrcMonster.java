@@ -31,6 +31,8 @@ public class OrcMonster extends Monster {
         BufferedImage[] walkLeft = assets.getFramesFlipped("orc_walk");
         BufferedImage[] attackRight = assets.getFrames("orc_attack");
         BufferedImage[] attackLeft = assets.getFramesFlipped("orc_attack");
+        BufferedImage[] hurtRight = assets.getFrames("orc_hurt");
+        BufferedImage[] hurtLeft = assets.getFramesFlipped("orc_hurt");
 
         if (idleRight != null && idleRight.length > 0) {
             Animation idleAnimRight = new Animation(idleRight, 150);
@@ -65,6 +67,17 @@ public class OrcMonster extends Monster {
             animations.put(EntityState.ATTACK.name().toLowerCase() + "_left", attackAnimLeft);
             animations.put(EntityState.ATTACK.name().toLowerCase() + "_up", attackAnimRight);
             animations.put(EntityState.ATTACK.name().toLowerCase() + "_down", attackAnimRight);
+        }
+
+        if (hurtRight != null && hurtRight.length > 0) {
+            Animation hurtAnimRight = new Animation(hurtRight, 80);
+            hurtAnimRight.setLooping(false);
+            Animation hurtAnimLeft = new Animation(hurtLeft, 80);
+            hurtAnimLeft.setLooping(false);
+            animations.put(EntityState.HURT.name().toLowerCase() + "_right", hurtAnimRight);
+            animations.put(EntityState.HURT.name().toLowerCase() + "_left", hurtAnimLeft);
+            animations.put(EntityState.HURT.name().toLowerCase() + "_up", hurtAnimRight);
+            animations.put(EntityState.HURT.name().toLowerCase() + "_down", hurtAnimRight);
         }
     }
 }
