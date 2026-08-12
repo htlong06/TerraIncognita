@@ -133,6 +133,11 @@ public class Player extends Entity {
      * @param deltaTime thời gian frame
      */
     public void move(double dirX, double dirY, Direction facing, double deltaTime) {
+        // --- Bị choáng (Soldier_Hurt) hoặc đã chết: khoá hoàn toàn di chuyển ---
+        if (isStunned() || !isAlive()) {
+            return;
+        }
+
         // --- Kiếm: đứng im khi đang chém (khóa di chuyển hoàn toàn) ---
         if (isAttacking() && weaponMode == WeaponMode.SWORD) {
             // Vẫn cập nhật hướng mặt để animation đúng, nhưng không di chuyển
@@ -181,8 +186,9 @@ public class Player extends Entity {
      * Đặt trạng thái idle khi không di chuyển.
      */
     public void setIdle() {
-        if (isAttacking()) {
-            System.out.println("[DEBUG Player.setIdle] BLOCKED — isAttacking=true, keeping state=" + state);
+        if (isAttacking() || isStunned()) {
+            System.out.println("[DEBUG Player.setIdle] BLOCKED — isAttacking=" + isAttacking()
+                    + " isStunned=" + isStunned() + ", keeping state=" + state);
             return;
         } else {
             System.out.println("[DEBUG Player.setIdle] state -> IDLE");
@@ -194,10 +200,50 @@ public class Player extends Entity {
         return attackTimer > 0;
     }
 
+    /**
+     * true trong lúc đang chạy animation Soldier_Hurt (vừa trúng đòn, chưa
+     * chết) — dùng để khoá di chuyển/tấn công, tạo cảm giác "khựng lại"
+     * (hitstun) khi bị đánh. Tự động hết hiệu lực ngay khi animation Hurt
+     * chạy xong (animation đăng ký non-looping — xem initAnimations()),
+     * không cần đếm timer riêng.
+     */
+    public boolean isStunned() {
+        return state == EntityState.HURT
+                && currentAnimation != null
+                && !currentAnimation.isFinished();
+    }
+
+    /**
+     * Nhận sát thương — override để gắn animation Soldier_Hurt (còn sống)
+     * hoặc Soldier_Death (hết máu) ngay khi trúng đòn, thay vì chỉ trừ HP
+     * như Entity.takeDamage() mặc định.
+     */
+    @Override
+    public void takeDamage(int damage) {
+        if (!isAlive()) return; // đã chết từ trước — không nhận thêm hiệu ứng
+
+        super.takeDamage(damage); // Entity: trừ HP, tự set state=DEAD nếu hp<=0
+
+        // Đòn/combo đang dang dở bị ngắt ngay khi trúng đòn
+        this.attackTimer = 0;
+        this.animationKeyOverride = null;
+
+        if (!isAlive()) {
+            // Vừa chết vì đòn này — chuyển hẳn sang animation Soldier_Death
+            resetAnimationForState(EntityState.DEAD, direction);
+            return;
+        }
+
+        // Còn sống nhưng vừa mất máu — Soldier_Hurt + khựng lại cho tới khi
+        // animation này chạy xong (xem isStunned(), move(), canAttack()).
+        this.state = EntityState.HURT;
+        resetAnimationForState(EntityState.HURT, direction);
+    }
+
     public boolean canAttack() {
-        boolean can = attackCoolDownTimer <= 0 && !isAttacking();
+        boolean can = attackCoolDownTimer <= 0 && !isAttacking() && !isStunned() && isAlive();
         System.out.println("[DEBUG Player.canAttack] cooldown=" + String.format("%.3f", attackCoolDownTimer)
-                + " isAttacking=" + isAttacking() + " => canAttack=" + can);
+                + " isAttacking=" + isAttacking() + " isStunned=" + isStunned() + " => canAttack=" + can);
         return can;
     }
 
