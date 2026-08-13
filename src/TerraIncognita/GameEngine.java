@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import TerraIncognita.audio.BackgroundMusic;
 import TerraIncognita.combat.CombatSystem;
 import TerraIncognita.economy.LootTable;
 import TerraIncognita.economy.Shop;
@@ -275,10 +276,12 @@ public class GameEngine {
             String selected = menuScreen.getSelectedOption();
             switch (selected) {
                 case "New Game":
+                    BackgroundMusic.playLoop();
                     changeState(GameState.PLAYING);
                     break;
                 case "Continue":
                     saveManager.loadGame("default", player);
+                    BackgroundMusic.playLoop();
                     changeState(GameState.PLAYING);
                     break;
                 case "Exit":
