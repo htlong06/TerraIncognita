@@ -87,6 +87,17 @@ public class GameEngine {
     private List<Monster> activeMonsters;
     private CombatSystem combatSystem;
 
+    private static final List<MonsterSpawn> ORC_SPAWN_POINTS = List.of(
+            new MonsterSpawn(15, 12),
+            new MonsterSpawn(25, 12),
+            new MonsterSpawn(35, 20),
+            new MonsterSpawn(40, 20),
+            new MonsterSpawn(75, 40),
+            new MonsterSpawn(30, 40),
+            new MonsterSpawn(60, 40),
+            new MonsterSpawn(50, 60)
+    );
+
     // --- Mũi tên (Arrow projectile) ---
     private List<Arrow> activeArrows;
     private java.awt.image.BufferedImage arrowSprite;
@@ -168,12 +179,7 @@ public class GameEngine {
         // Cho player 100 gold để test mua đồ
         player.addGold(100);
 
-        // Khởi tạo danh sách và tạo quái vật mẫu
-        this.activeMonsters = new ArrayList<>();
-
-        OrcMonster orc = new OrcMonster(15, 12);
-        orc.initAnimations(assetLoader);
-        this.activeMonsters.add(orc);
+        spawnMonsters();
 
         // Hệ thống chiến đấu — tính damage/crit/miss khi tấn công
         this.combatSystem = new CombatSystem();
@@ -184,6 +190,23 @@ public class GameEngine {
 
         // Danh sách bom đang tồn tại trên map (không giới hạn số lượng)
         this.activeBombs = new ArrayList<>();
+    }
+
+    private void spawnMonsters() {
+        this.activeMonsters = new ArrayList<>();
+
+        for (MonsterSpawn spawn : ORC_SPAWN_POINTS) {
+            spawnOrc(spawn.tileX(), spawn.tileY());
+        }
+    }
+
+    private void spawnOrc(int tileX, int tileY) {
+        OrcMonster orc = new OrcMonster(tileX, tileY);
+        orc.initAnimations(assetLoader);
+        activeMonsters.add(orc);
+    }
+
+    private record MonsterSpawn(int tileX, int tileY) {
     }
 
     /**
