@@ -25,6 +25,9 @@ import TerraIncognita.entity.WeaponMode;
 import TerraIncognita.entity.monster.Monster;
 import TerraIncognita.entity.monster.OrcMonster;
 import TerraIncognita.entity.npc.Merchant;
+import TerraIncognita.entity.npc.QuestGiver;
+import TerraIncognita.quest.Quest;
+import TerraIncognita.quest.QuestObjectiveType;
 import TerraIncognita.event.EventSystem;
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.graphics.AssetLoader;
@@ -70,6 +73,8 @@ public class GameEngine {
     private double messageTimer;
 
     private Merchant merchant;
+    private QuestGiver questGiver;
+    private Quest pendingOfferedQuest; // quest đang chờ player Nhận/Từ chối trong DialogBox
     private Shop activeShop;
     private ShopUI shopUI;
     private HUD hud;
@@ -148,6 +153,8 @@ public class GameEngine {
 
         // Spawn Merchant NPC ở tile (20, 10)
         this.merchant = new Merchant(20, 10);
+        // Spawn Quest Giver NPC ở tile (24, 10) — cạnh merchant
+        this.questGiver = new QuestGiver(24, 10);
         this.shopUI = new ShopUI();
         this.hud = new HUD();
         this.dialogBox = new DialogBox();
@@ -347,13 +354,15 @@ public class GameEngine {
             changeState(GameState.RADIAL_MENU);
         }
 
-        // F — gần merchant thì mở shop, gần rương thì mở rương
+        // F — gần merchant thì mở shop, gần quest giver thì mở dialog quest, gần rương thì mở rương
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_F)) {
             if (isNearMerchant()) {
                 merchant.interact(player);
                 activeShop = merchant.getShop();
                 shopUI.open();
                 changeState(GameState.SHOP);
+            } else if (isNearQuestGiver()) {
+                handleQuestGiverInteraction();
             } else {
                 // Tìm rương gần nhất để mở
                 Chest nearestChest = null;
@@ -560,16 +569,46 @@ public class GameEngine {
         }
     }
     private void updateDialog(double deltaTime) {
+        // --- Màn lựa chọn (VD: Nhận nhiệm vụ / Từ chối) — ưu tiên xử lý trước ---
+        if (dialogBox.isChoicePhase()) {
+            if (inputHandler.isKeyJustPressed(KeyEvent.VK_LEFT) || inputHandler.isKeyJustPressed(KeyEvent.VK_A)) {
+                dialogBox.moveChoice(-1);
+            }
+            if (inputHandler.isKeyJustPressed(KeyEvent.VK_RIGHT) || inputHandler.isKeyJustPressed(KeyEvent.VK_D)) {
+                dialogBox.moveChoice(1);
+            }
+            if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER)) {
+                int choice = dialogBox.confirmChoice(); // 0 = "Nhận nhiệm vụ", 1 = "Từ chối"
+                if (choice == 0 && pendingOfferedQuest != null) {
+                    boolean accepted = player.getQuestLog().acceptQuest(pendingOfferedQuest);
+                    if (accepted) {
+                        pickupMessage = "Đã nhận nhiệm vụ: " + pendingOfferedQuest.getTitle();
+                        messageTimer = 1.5;
+                    }
+                }
+                pendingOfferedQuest = null;
+                changeState(GameState.PLAYING);
+            }
+            if (inputHandler.isKeyJustPressed(KeyEvent.VK_ESCAPE)) {
+                dialogBox.close();
+                pendingOfferedQuest = null;
+                changeState(GameState.PLAYING);
+            }
+            return;
+        }
+
         // Enter → advance hoặc đóng dialog
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ENTER) || inputHandler.isKeyJustPressed(KeyEvent.VK_E)) {
             dialogBox.advance();
             if (!dialogBox.isActive()) {
+                pendingOfferedQuest = null;
                 changeState(GameState.PLAYING);
             }
         }
         // ESC → đóng ngay
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ESCAPE)) {
             dialogBox.close();
+            pendingOfferedQuest = null;
             changeState(GameState.PLAYING);
         }
     }
@@ -626,6 +665,11 @@ public class GameEngine {
         // Vẽ merchant
         if (merchant != null) {
             drawMerchant(g2d);
+        }
+
+        // Vẽ quest giver
+        if (questGiver != null) {
+            drawQuestGiver(g2d);
         }
 
         // Vẽ quái vật đang hoạt động
@@ -921,6 +965,7 @@ public class GameEngine {
                 Monster monster = (Monster) target;
                 player.addExp(monster.getExpReward());
                 player.addGold(monster.getGoldReward());
+                player.getQuestLog().notifyMonsterKilled(monster.getName());
                 pickupMessage += " — hạ gục " + monster.getName()
                         + "! +" + monster.getExpReward() + " EXP, +" + monster.getGoldReward() + " vàng";
             }
@@ -962,6 +1007,7 @@ public class GameEngine {
                         if (result.targetDied) {
                             player.addExp(m.getExpReward());
                             player.addGold(m.getGoldReward());
+                            player.getQuestLog().notifyMonsterKilled(m.getName());
                             pickupMessage += " — hạ gục " + m.getName()
                                     + "! +" + m.getExpReward() + " EXP, +" + m.getGoldReward() + " vàng";
                         }
@@ -1065,6 +1111,70 @@ public class GameEngine {
         return player.getInteractionBounds().intersects(merchant.getInteractionBounds());
     }
 
+    private boolean isNearQuestGiver() {
+        if (questGiver == null) return false;
+        return player.getInteractionBounds().intersects(questGiver.getInteractionBounds());
+    }
+
+    /**
+     * Xử lý bấm F khi đứng gần Quest Giver:
+     * 1) Nếu có quest đã đủ điều kiện → trả thưởng ngay + hiện lời thoại cảm ơn.
+     * 2) Ngược lại nếu còn quest mới có thể mời → hiện lời mời + 2 lựa chọn (Nhận/Từ chối).
+     * 3) Ngược lại (hết quest) → hiện lời thoại thông báo không còn nhiệm vụ.
+     */
+    private void handleQuestGiverInteraction() {
+        Quest readyQuest = questGiver.getQuestReadyToTurnIn(player);
+        if (readyQuest != null) {
+            grantQuestReward(readyQuest);
+            pendingOfferedQuest = null;
+            dialogBox.show(readyQuest.getTurnInDialog());
+            changeState(GameState.DIALOG);
+            return;
+        }
+
+        Quest offerQuest = questGiver.getNextOfferableQuest(player);
+        if (offerQuest != null) {
+            pendingOfferedQuest = offerQuest;
+            dialogBox.show(offerQuest.getOfferDialog(), new String[]{"Nhận nhiệm vụ", "Từ chối"});
+            changeState(GameState.DIALOG);
+            return;
+        }
+
+        pendingOfferedQuest = null;
+        dialogBox.show("Hiện ta không còn nhiệm vụ nào cho ngươi cả.\nQuay lại sau nhé, nhà thám hiểm.");
+        changeState(GameState.DIALOG);
+    }
+
+    /**
+     * Trả thưởng cho 1 quest đã đủ điều kiện: cộng vàng/exp, cộng item
+     * thưởng (nếu có), trừ item đã nộp (nếu là quest COLLECT_ITEM), rồi
+     * đánh dấu đã trả thưởng trong QuestLog để không nhận/trả lại lần nữa.
+     */
+    private void grantQuestReward(Quest quest) {
+        player.addGold(quest.getRewardGold());
+        player.addExp(quest.getRewardExp());
+        if (quest.getRewardItem() != null) {
+            player.getInventory().addItem(quest.getRewardItem());
+        }
+
+        if (quest.getObjectiveType() == QuestObjectiveType.COLLECT_ITEM) {
+            Item submitted = player.getInventory().findById(quest.getTargetId());
+            if (submitted != null) {
+                int remaining = submitted.getStackCount() - quest.getTargetAmount();
+                if (remaining <= 0) {
+                    player.getInventory().removeItem(submitted);
+                } else {
+                    submitted.setStackCount(remaining);
+                }
+            }
+        }
+
+        player.getQuestLog().markTurnedIn(quest.getId());
+        pickupMessage = "Hoàn thành: " + quest.getTitle()
+                + "! +" + quest.getRewardGold() + "g +" + quest.getRewardExp() + " EXP";
+        messageTimer = 2.0;
+    }
+
     private void drawChest(Graphics2D g2d, Chest chest) {
         int px = (int) chest.getWorldX();
         int py = (int) chest.getWorldY();
@@ -1110,6 +1220,42 @@ public class GameEngine {
         g2d.setColor(new Color(255, 230, 80));
         g2d.setFont(g2d.getFont().deriveFont(16f));
         g2d.drawString("$", px + size / 2 - 4, py + size / 2 + 6);
+    }
+
+    /**
+     * Vẽ NPC Quest Giver — icon phía trên đầu báo trạng thái quest:
+     * "!" xanh lá = có quest đã đủ điều kiện trả thưởng (ưu tiên cao nhất)
+     * "!" vàng    = có quest mới có thể nhận
+     * "?" xám     = hết quest (đã làm xong tất cả)
+     */
+    private void drawQuestGiver(Graphics2D g2d) {
+        int px = (int) questGiver.getWorldX();
+        int py = (int) questGiver.getWorldY();
+        int size = Constants.TILE_SIZE;
+        int pad = 4;
+
+        // Thân NPC — màu tím
+        g2d.setColor(new Color(130, 90, 200));
+        g2d.fillRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
+
+        g2d.setColor(new Color(80, 50, 140));
+        g2d.drawRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
+
+        String icon;
+        Color iconColor;
+        if (questGiver.getQuestReadyToTurnIn(player) != null) {
+            icon = "!";
+            iconColor = new Color(90, 230, 120);
+        } else if (questGiver.getNextOfferableQuest(player) != null) {
+            icon = "!";
+            iconColor = new Color(255, 220, 60);
+        } else {
+            icon = "?";
+            iconColor = new Color(160, 160, 170);
+        }
+        g2d.setColor(iconColor);
+        g2d.setFont(g2d.getFont().deriveFont(18f));
+        g2d.drawString(icon, px + size / 2 - 4, py - 6);
     }
 
 
