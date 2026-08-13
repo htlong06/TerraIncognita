@@ -24,6 +24,7 @@ resources/saves/*.db
 !resources/saves/.gitkeep
 
 # Build artifacts
+target/
 *.jar
 *.war
 !lib/*.jar

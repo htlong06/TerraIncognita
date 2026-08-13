@@ -4,14 +4,13 @@ echo "  Terra Incognita - Build & Run"
 echo "========================================"
 echo
 
-# Tao thu muc output neu chua co
-mkdir -p out
+if ! command -v mvn >/dev/null 2>&1; then
+    echo '[ERROR] Maven is required. Install Maven and make sure "mvn" is on PATH.'
+    exit 1
+fi
 
-# Bien dich tat ca file Java
 echo "[1/2] Compiling..."
-find src -name "*.java" > sources.txt
-javac -d out -sourcepath src -cp "lib/*" @sources.txt
-rm sources.txt
+mvn -q compile
 
 if [ $? -ne 0 ]; then
     echo
@@ -22,8 +21,7 @@ fi
 # Neu truyen "test" -> chay test JUnit
 if [ "$1" = "test" ]; then
     echo "[2/2] Running tests..."
-    echo
-    java -jar lib/junit-platform-console-standalone-1.10.2.jar --class-path "out;lib/sqlite-jdbc-3.46.1.3.jar" --scan-classpath
+    mvn -q test
     exit $?
 fi
 
@@ -31,4 +29,4 @@ echo "[2/2] Running..."
 echo
 
 # Chay game
-java -cp "out:lib/*:resources" TerraIncognita.Main
+mvn -q exec:java
