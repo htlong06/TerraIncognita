@@ -1,4 +1,5 @@
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\entity\npc\QuestGiver.java
+C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\quest\QuestProgress.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\map\Tile.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\entity\monster\Monster.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\graphics\AssetLoader.java
@@ -7,8 +8,10 @@ C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\util\Constants.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\item\Potion.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\entity\Chest.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\InputHandler.java
+C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\quest\QuestStatus.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\collision\CollisionManager.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\entity\npc\Blacksmith.java
+C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\quest\Quest.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\entity\Arrow.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\entity\WeaponMode.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\entity\Direction.java
@@ -24,6 +27,7 @@ C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\hub\RunSummary.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\entity\npc\NPC.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\graphics\Camera.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\item\EquipmentSlot.java
+C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\quest\QuestLog.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\entity\monster\MonsterAI.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\ui\RadialMenu.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\graphics\SpriteSheet.java
@@ -55,4 +59,5 @@ C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\map\TileType.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\save\SaveManager.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\entity\Bomb.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\item\Item.java
+C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\quest\QuestObjectiveType.java
 C:\24021551\LTNC\TerraIncognita\src\TerraIncognita\entity\monster\OrcMonster.java

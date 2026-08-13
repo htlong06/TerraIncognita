@@ -1255,15 +1255,23 @@ public class GameEngine {
         int px = (int) questGiver.getWorldX();
         int py = (int) questGiver.getWorldY();
         int size = Constants.TILE_SIZE;
-        int pad = 4;
 
-        // Thân NPC — màu tím
-        g2d.setColor(new Color(130, 90, 200));
-        g2d.fillRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
+        // Vẽ sprite NPC — animation 2 frame
+        BufferedImage[] frames = assetLoader.getFrames("npc_questgiver");
+        if (frames != null && frames.length > 0) {
+            // Chuyển frame mỗi 500ms (animation idle chậm)
+            int frameIndex = (int) ((System.currentTimeMillis() / 500) % frames.length);
+            g2d.drawImage(frames[frameIndex], px, py, size, size, null);
+        } else {
+            // Fallback: hình vuông tím nếu sprite chưa load
+            int pad = 4;
+            g2d.setColor(new Color(130, 90, 200));
+            g2d.fillRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
+            g2d.setColor(new Color(80, 50, 140));
+            g2d.drawRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
+        }
 
-        g2d.setColor(new Color(80, 50, 140));
-        g2d.drawRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
-
+        // Icon trạng thái quest phía trên đầu NPC
         String icon;
         Color iconColor;
         if (questGiver.getQuestReadyToTurnIn(player) != null) {
