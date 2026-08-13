@@ -1,0 +1,66 @@
+{
+  "levels": [
+    {
+      "floor": 1,
+      "name": "Tầng hầm nông",
+      "mapWidth": 30,
+      "mapHeight": 30,
+      "maxRooms": 6,
+      "monsterCount": 3,
+      "monsterTypes": ["slime"],
+      "itemCount": 2,
+      "trapCount": 1,
+      "chestCount": 1
+    },
+    {
+      "floor": 2,
+      "name": "Hầm mỏ bỏ hoang",
+      "mapWidth": 35,
+      "mapHeight": 35,
+      "maxRooms": 7,
+      "monsterCount": 5,
+      "monsterTypes": ["slime", "goblin"],
+      "itemCount": 3,
+      "trapCount": 2,
+      "chestCount": 1
+    },
+    {
+      "floor": 3,
+      "name": "Hầm ngục tối",
+      "mapWidth": 40,
+      "mapHeight": 40,
+      "maxRooms": 8,
+      "monsterCount": 7,
+      "monsterTypes": ["slime", "goblin", "skeleton"],
+      "itemCount": 3,
+      "trapCount": 3,
+      "chestCount": 2
+    },
+    {
+      "floor": 4,
+      "name": "Tầng sâu nhất",
+      "mapWidth": 40,
+      "mapHeight": 40,
+      "maxRooms": 10,
+      "monsterCount": 10,
+      "monsterTypes": ["goblin", "skeleton"],
+      "itemCount": 4,
+      "trapCount": 4,
+      "chestCount": 2,
+      "hasBoss": true,
+      "bossType": "skeleton_king"
+    }
+  ],
+  "expTable": {
+    "1": 0,
+    "2": 50,
+    "3": 120,
+    "4": 200,
+    "5": 350,
+    "6": 500,
+    "7": 700,
+    "8": 1000,
+    "9": 1400,
+    "10": 2000
+  }
+}

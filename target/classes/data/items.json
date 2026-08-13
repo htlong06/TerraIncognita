@@ -1,0 +1,77 @@
+{
+  "items": [
+    {
+      "id": "small_potion",
+      "name": "Small Health Potion",
+      "type": "POTION",
+      "description": "Hồi 20 HP",
+      "healAmount": 20,
+      "buyPrice": 10,
+      "sellPrice": 5,
+      "stackable": true,
+      "maxStack": 10
+    },
+    {
+      "id": "large_potion",
+      "name": "Large Health Potion",
+      "type": "POTION",
+      "description": "Hồi 50 HP",
+      "healAmount": 50,
+      "buyPrice": 30,
+      "sellPrice": 15,
+      "stackable": true,
+      "maxStack": 5
+    },
+    {
+      "id": "iron_sword",
+      "name": "Iron Sword",
+      "type": "WEAPON",
+      "description": "Kiếm sắt cơ bản. ATK +5",
+      "slot": "WEAPON",
+      "atkBonus": 5,
+      "defBonus": 0,
+      "buyPrice": 50,
+      "sellPrice": 25
+    },
+    {
+      "id": "iron_armor",
+      "name": "Iron Armor",
+      "type": "ARMOR",
+      "description": "Giáp sắt cơ bản. DEF +5",
+      "slot": "ARMOR",
+      "atkBonus": 0,
+      "defBonus": 5,
+      "buyPrice": 50,
+      "sellPrice": 25
+    },
+    {
+      "id": "steel_sword",
+      "name": "Steel Sword",
+      "type": "WEAPON",
+      "description": "Kiếm thép. ATK +10",
+      "slot": "WEAPON",
+      "atkBonus": 10,
+      "defBonus": 0,
+      "buyPrice": 120,
+      "sellPrice": 60
+    },
+    {
+      "id": "bronze_key",
+      "name": "Bronze Key",
+      "type": "KEY",
+      "description": "Chìa khóa đồng. Mở cửa khóa đồng.",
+      "keyId": "bronze",
+      "buyPrice": 0,
+      "sellPrice": 0
+    },
+    {
+      "id": "gold_key",
+      "name": "Gold Key",
+      "type": "KEY",
+      "description": "Chìa khóa vàng. Mở cửa khóa vàng.",
+      "keyId": "gold",
+      "buyPrice": 0,
+      "sellPrice": 0
+    }
+  ]
+}
