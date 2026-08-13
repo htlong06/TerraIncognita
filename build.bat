@@ -4,14 +4,15 @@ echo   Terra Incognita - Build ^& Run
 echo ========================================
 echo.
 
-:: Tao thu muc output neu chua co
-if not exist "out" mkdir out
+where mvn >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    echo [ERROR] Maven is required. Install Maven and make sure "mvn" is on PATH.
+    pause
+    exit /b 1
+)
 
-:: Bien dich tat ca file Java
 echo [1/2] Compiling...
-dir /s /b src\*.java > sources.txt
-javac -d out -sourcepath src -cp "lib/*" @sources.txt
-del sources.txt
+call mvn -q compile
 
 if %ERRORLEVEL% neq 0 (
     echo.
@@ -23,8 +24,7 @@ if %ERRORLEVEL% neq 0 (
 :: Neu truyen "test" -> chay test JUnit
 if "%~1"=="test" (
     echo [2/2] Running tests...
-    echo.
-    java -jar lib\junit-platform-console-standalone-1.10.2.jar --class-path out --scan-classpath -cp out
+    call mvn -q test
     pause
     exit /b %ERRORLEVEL%
 )
@@ -32,7 +32,6 @@ if "%~1"=="test" (
 echo [2/2] Running...
 echo.
 
-:: Chay game
-java -cp "out;lib/*;resources" TerraIncognita.Main
+call mvn -q exec:java
 
 pause
