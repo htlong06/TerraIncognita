@@ -76,6 +76,12 @@ class MonsterAITest {
 
         assertEquals(EntityState.HURT, monster.getState(), "Orc phải chuyển sang trạng thái HURT khi bị đánh");
         assertNotNull(monster.getCurrentAnimation(), "Orc phải có animation hiện tại sau khi bị đánh");
+        assertTrue(monster.getHurtTimer() > 0, "Hurt timer phải được bật khi quái bị đánh");
+
+        monster.update(0.25);
+
+        assertEquals(0.0, monster.getHurtTimer(), "Hurt timer phải về 0 sau thời gian bị đánh");
+        assertFalse(monster.isHurt(), "Quái phải hết trạng thái bị khóa sau khi hurt timer kết thúc");
     }
 
     @Test
