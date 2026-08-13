@@ -7,6 +7,7 @@ import TerraIncognita.inventory.Inventory;
 import TerraIncognita.item.Equipment;
 import TerraIncognita.item.EquipmentSlot;
 import TerraIncognita.map.GameMap;
+import TerraIncognita.quest.QuestLog;
 import TerraIncognita.util.Constants;
 import java.awt.Rectangle;
 import java.util.EnumMap;
@@ -21,6 +22,7 @@ public class Player extends Entity {
     private int gold;
     private Inventory inventory;
     private Map<EquipmentSlot, Equipment> equippedItems;
+    private QuestLog questLog;
 
     // Tham chiếu tới map hiện tại để kiểm tra va chạm
     private GameMap currentMap;
@@ -57,6 +59,7 @@ public class Player extends Entity {
         this.gold = 0;
         this.inventory = new Inventory(Constants.INVENTORY_MAX_SLOTS);
         this.equippedItems = new EnumMap<>(EquipmentSlot.class);
+        this.questLog = new QuestLog();
     }
 
     @Override
@@ -464,6 +467,10 @@ public class Player extends Entity {
 
     public Inventory getInventory() {
         return inventory;
+    }
+
+    public QuestLog getQuestLog() {
+        return questLog;
     }
 
     public Map<EquipmentSlot, Equipment> getEquippedItems() {
