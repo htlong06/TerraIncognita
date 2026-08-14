@@ -3,6 +3,7 @@ package TerraIncognita.ui;
 import TerraIncognita.economy.Shop;
 import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Player;
+import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.inventory.Inventory;
 import TerraIncognita.item.Item;
 import TerraIncognita.item.ItemType;
@@ -10,7 +11,9 @@ import TerraIncognita.util.Constants;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Giao diện cửa hàng — mua/bán item với NPC Merchant.
@@ -36,13 +39,24 @@ public class ShopUI {
             case POTION:     return new Color(220, 60, 60);
             case WEAPON:     return new Color(160, 160, 170);
             case ARMOR:      return new Color(70, 130, 220);
-            case KEY:        return new Color(240, 200, 60);
             case SCROLL:     return new Color(180, 120, 220);
             case MATERIAL:   return new Color(140, 200, 100);
             case CONSUMABLE: return new Color(240, 150, 80);
             case QUEST_ITEM: return new Color(250, 230, 100);
             default:         return Color.GRAY;
         }
+    }
+
+    /**
+     * Key icon trong AssetLoader — ưu tiên spriteName riêng của item (VD Potion
+     * có 3 biến thể "item_potion_heal/regen/exp" cùng ItemType.POTION nhưng khác
+     * icon), fallback về icon chung theo ItemType nếu item không set spriteName.
+     */
+    private static String iconKeyFor(Item item) {
+        String spriteName = item.getSpriteName();
+        return (spriteName != null && !spriteName.isEmpty())
+                ? spriteName
+                : "item_" + item.getType().name().toLowerCase(Locale.ROOT);
     }
 
     // -- State --
@@ -122,7 +136,7 @@ public class ShopUI {
     /**
      * Vẽ shop overlay.
      */
-    public void render(Graphics2D g2d, Shop shop, Player player) {
+    public void render(Graphics2D g2d, Shop shop, Player player, AssetLoader assetLoader) {
         if (!open || shop == null) return;
 
         int sw = Constants.SCREEN_WIDTH;
@@ -194,15 +208,21 @@ public class ShopUI {
             // Draw item icon
             if (i < itemCount) {
                 Item item = buyMode ? shop.getItems().get(i) : player.getInventory().getItems().get(i);
-                Color iconColor = colorForType(item.getType());
-
                 int iconSize = SLOT_SIZE - 16;
                 int iconX = x + 8;
                 int iconY = y + 8;
-                g2d.setColor(iconColor);
-                g2d.fillRect(iconX, iconY, iconSize, iconSize);
-                g2d.setColor(iconColor.darker());
-                g2d.drawRect(iconX, iconY, iconSize, iconSize);
+
+                BufferedImage icon = assetLoader.getTile(iconKeyFor(item));
+                if (icon != null) {
+                    g2d.drawImage(icon, iconX, iconY, iconSize, iconSize, null);
+                } else {
+                    // Fallback: ô vuông màu nếu chưa có icon cho loại item này
+                    Color iconColor = colorForType(item.getType());
+                    g2d.setColor(iconColor);
+                    g2d.fillRect(iconX, iconY, iconSize, iconSize);
+                    g2d.setColor(iconColor.darker());
+                    g2d.drawRect(iconX, iconY, iconSize, iconSize);
+                }
 
                 // Stack count
                 if (item.isStackable() && item.getStackCount() > 1) {

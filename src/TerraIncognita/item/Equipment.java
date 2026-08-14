@@ -33,4 +33,11 @@ public class Equipment extends Item {
     public int getAtkBonus() { return atkBonus; }
     public int getDefBonus() { return defBonus; }
     public int getUpgradeLevel() { return upgradeLevel; }
+
+    @Override
+    public Item copy() {
+        Equipment e = new Equipment(id, name, slot, atkBonus, defBonus);
+        copyBaseFieldsTo(e);
+        return e;
+    }
 }

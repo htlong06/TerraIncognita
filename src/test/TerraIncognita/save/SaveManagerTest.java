@@ -2,16 +2,20 @@ package TerraIncognita.save;
 
 import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Player;
+import TerraIncognita.item.BombItem;
 import TerraIncognita.item.Equipment;
 import TerraIncognita.item.EquipmentSlot;
 import TerraIncognita.item.Item;
-import TerraIncognita.item.Key;
+import TerraIncognita.item.MaterialItem;
 import TerraIncognita.item.Potion;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -83,14 +87,13 @@ class SaveManagerTest {
         Player original = new Player();
         original.getInventory().addItem(new Potion("p1", "Health Potion", 30));
         original.getInventory().addItem(new Equipment("sword1", "Iron Sword", EquipmentSlot.WEAPON, 5, 0));
-        original.getInventory().addItem(new Key("k1", "Door Key", "door_lock"));
 
         assertTrue(saveManager.saveGame("inv", original));
 
         Player loaded = new Player();
         assertTrue(saveManager.loadGame("inv", loaded));
 
-        assertEquals(3, loaded.getInventory().getUsedSlots());
+        assertEquals(2, loaded.getInventory().getUsedSlots());
 
         Item potion = loaded.getInventory().findById("p1");
         assertInstanceOf(Potion.class, potion);
@@ -99,10 +102,109 @@ class SaveManagerTest {
         Item sword = loaded.getInventory().findById("sword1");
         assertInstanceOf(Equipment.class, sword);
         assertEquals(5, ((Equipment) sword).getAtkBonus());
+    }
 
-        Item key = loaded.getInventory().findById("k1");
-        assertInstanceOf(Key.class, key);
-        assertEquals("door_lock", ((Key) key).getKeyId());
+    @Test
+    void save_and_load_potion_variants() {
+        Player original = new Player();
+        original.getInventory().addItem(Potion.createRegen("regen1", "Regen Potion", 5, 10.0));
+        original.getInventory().addItem(Potion.createExp("exp1", "Exp Potion", 20));
+
+        assertTrue(saveManager.saveGame("potions", original));
+
+        Player loaded = new Player();
+        assertTrue(saveManager.loadGame("potions", loaded));
+
+        Potion regen = (Potion) loaded.getInventory().findById("regen1");
+        assertNotNull(regen);
+        assertEquals(Potion.Effect.REGEN, regen.getEffect());
+        assertEquals(5, regen.getRegenAmount());
+        assertEquals(10.0, regen.getRegenDuration());
+
+        Potion exp = (Potion) loaded.getInventory().findById("exp1");
+        assertNotNull(exp);
+        assertEquals(Potion.Effect.EXP, exp.getEffect());
+        assertEquals(20, exp.getExpAmount());
+    }
+
+    @Test
+    void save_and_load_material_and_bomb() {
+        Player original = new Player();
+        original.getInventory().addItem(new MaterialItem("gem1", "Green Gem"));
+        original.getInventory().addItem(new BombItem("bomb1", "Bomb"));
+
+        assertTrue(saveManager.saveGame("mats", original));
+
+        Player loaded = new Player();
+        assertTrue(saveManager.loadGame("mats", loaded));
+
+        assertInstanceOf(MaterialItem.class, loaded.getInventory().findById("gem1"));
+        assertInstanceOf(BombItem.class, loaded.getInventory().findById("bomb1"));
+    }
+
+    @Test
+    void save_and_load_preserves_buy_and_sell_price() {
+        Player original = new Player();
+        Potion potion = new Potion("hp_price", "Health Potion", 30);
+        potion.setBuyPrice(50);
+        potion.setSellPrice(25);
+        original.getInventory().addItem(potion);
+
+        assertTrue(saveManager.saveGame("prices", original));
+
+        Player loaded = new Player();
+        assertTrue(saveManager.loadGame("prices", loaded));
+
+        Item loadedPotion = loaded.getInventory().findById("hp_price");
+        assertEquals(50, loadedPotion.getBuyPrice());
+        assertEquals(25, loadedPotion.getSellPrice());
+    }
+
+    /**
+     * DB tạo bởi bản cũ (trước khi có potion_effect/buy_price/sell_price...) không có
+     * các cột này — SaveManager phải tự ALTER TABLE thêm cột khi mở, không được để
+     * saveGame/loadGame lỗi SQLException âm thầm (trả false) do thiếu cột.
+     */
+    @Test
+    void opens_legacy_db_missing_new_columns_without_error() throws Exception {
+        if (saveManager != null) {
+            saveManager.close();
+        }
+        deleteDbFile();
+
+        Class.forName("org.sqlite.JDBC");
+        try (Connection legacyConn = DriverManager.getConnection("jdbc:sqlite:" + DB_PATH)) {
+            try (Statement stmt = legacyConn.createStatement()) {
+                stmt.executeUpdate(
+                    "CREATE TABLE saves (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "slot_name TEXT NOT NULL UNIQUE," +
+                    "created_at TEXT NOT NULL)");
+                stmt.executeUpdate(
+                    "CREATE TABLE save_inventory (" +
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "save_id INTEGER NOT NULL," +
+                    "slot_index INTEGER NOT NULL," +
+                    "item_id TEXT NOT NULL," +
+                    "item_type TEXT NOT NULL," +
+                    "item_name TEXT NOT NULL," +
+                    "stack_count INTEGER DEFAULT 1," +
+                    "heal_amount INTEGER," +
+                    "atk_bonus INTEGER," +
+                    "def_bonus INTEGER," +
+                    "equipment_slot TEXT)");
+            }
+        }
+
+        saveManager = new SaveManager(DB_PATH);
+        Player original = new Player();
+        original.getInventory().addItem(Potion.createExp("exp_legacy", "Exp Potion", 20));
+
+        assertTrue(saveManager.saveGame("legacy", original));
+
+        Player loaded = new Player();
+        assertTrue(saveManager.loadGame("legacy", loaded));
+        assertNotNull(loaded.getInventory().findById("exp_legacy"));
     }
 
     @Test

@@ -2,8 +2,7 @@ package TerraIncognita.entity.npc;
 
 import TerraIncognita.economy.Shop;
 import TerraIncognita.entity.Player;
-import TerraIncognita.item.Equipment;
-import TerraIncognita.item.EquipmentSlot;
+import TerraIncognita.item.BombItem;
 import TerraIncognita.item.Item;
 import TerraIncognita.item.Potion;
 import TerraIncognita.util.Constants;
@@ -34,14 +33,26 @@ public class Merchant extends NPC {
         hpPotion.setBuyPrice(50);
         hpPotion.setSellPrice(25);
 
-        Equipment ironSword = new Equipment("sword_shop", "Iron Sword", EquipmentSlot.WEAPON, 5, 0);
-        ironSword.setBuyPrice(120);
-        ironSword.setSellPrice(60);
+        BombItem bomb = new BombItem("bomb_shop", "Bomb");
+        bomb.setBuyPrice(30);
+        bomb.setSellPrice(10);
 
-        List<Item> shopItems = List.of(hpPotion, ironSword);
+        // Bình xanh biển — hồi máu dần (regen) trong 1 khoảng thời gian
+        Potion regenPotion = Potion.createRegen("regen_shop", "Regen Potion", 5, 10.0);
+        regenPotion.setBuyPrice(60);
+        regenPotion.setSellPrice(30);
+
+        // Bình xanh lá — cộng thẳng EXP
+        Potion expPotion = Potion.createExp("exp_shop", "Exp Potion", 20);
+        expPotion.setBuyPrice(80);
+        expPotion.setSellPrice(40);
+
+        List<Item> shopItems = List.of(hpPotion, bomb, regenPotion, expPotion);
         Map<Item, Integer> prices = new HashMap<>();
         prices.put(hpPotion, 50);
-        prices.put(ironSword, 120);
+        prices.put(bomb, 30);
+        prices.put(regenPotion, 60);
+        prices.put(expPotion, 80);
 
         this.shop = new Shop(shopItems, prices);
     }
