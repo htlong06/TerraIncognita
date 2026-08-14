@@ -30,10 +30,10 @@ public class CollisionManager {
         Rectangle box = entity.getHitboxAt(newX, newY);
         int tileSize = Constants.TILE_SIZE;
 
-        int leftCol = box.x / tileSize;
-        int rightCol = (box.x + box.width - 1) / tileSize;
-        int topRow = box.y / tileSize;
-        int bottomRow = (box.y + box.height - 1) / tileSize;
+        int leftCol = Math.floorDiv(box.x, tileSize);
+        int rightCol = Math.floorDiv(box.x + box.width - 1, tileSize);
+        int topRow = Math.floorDiv(box.y, tileSize);
+        int bottomRow = Math.floorDiv(box.y + box.height - 1, tileSize);
 
         return !map.isWalkable(leftCol, topRow)
                 || !map.isWalkable(rightCol, topRow)
