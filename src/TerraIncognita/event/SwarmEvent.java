@@ -2,8 +2,10 @@ package TerraIncognita.event;
 
 import TerraIncognita.collision.CollisionManager;
 import TerraIncognita.entity.Direction;
+import TerraIncognita.entity.EntityState;
 import TerraIncognita.entity.Player;
 import TerraIncognita.entity.monster.SwarmCreature;
+import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.map.GameMap;
 import TerraIncognita.util.Constants;
 import TerraIncognita.util.Vec2;
@@ -70,14 +72,16 @@ public class SwarmEvent {
     private final Rectangle mapBounds;   // toàn bộ map lúc ACTIVE (pixel)
     private final CollisionManager collisionManager;
     private final Random random;
+    private final AssetLoader assetLoader; // dùng để init animation cho mỗi creature
 
     private EventState state;
 
-    public SwarmEvent(GameMap map) {
+    public SwarmEvent(GameMap map, AssetLoader assetLoader) {
         this.creatures = new ArrayList<>();
         this.collisionManager = new CollisionManager();
         this.random = new Random();
         this.state = EventState.DORMANT;
+        this.assetLoader = assetLoader;
 
         int ts = Constants.TILE_SIZE;
         this.confineZone = new Rectangle(
@@ -113,6 +117,7 @@ public class SwarmEvent {
             }
 
             SwarmCreature creature = new SwarmCreature(tileX, tileY);
+            creature.initAnimations(assetLoader); // khởi tạo sprite frog
             // Vận tốc ban đầu ngẫu nhiên nhỏ để bầy không đứng yên tuyệt đối lúc mới spawn
             double angle = random.nextDouble() * Math.PI * 2;
             creature.setVelocity(Math.cos(angle) * 10, Math.sin(angle) * 10);
@@ -373,11 +378,18 @@ public class SwarmEvent {
         b.setWorldY(resolved[1]);
         b.updateTilePosition(Constants.TILE_SIZE);
 
-        // Hướng mặt (chủ yếu để nhất quán dữ liệu — hình khối vuông không phân biệt hướng)
+        // Hướng mặt theo velocity
         if (Math.abs(velocity.x) > Math.abs(velocity.y)) {
             if (Math.abs(velocity.x) > 0.5) b.setDirection(velocity.x > 0 ? Direction.RIGHT : Direction.LEFT);
         } else {
             if (Math.abs(velocity.y) > 0.5) b.setDirection(velocity.y > 0 ? Direction.DOWN : Direction.UP);
+        }
+
+        // Cập nhật EntityState dựa trên EventState của SwarmEvent:
+        // DORMANT (quanh quẩn chưa bị kích hoạt) → IDLE (ếch đứng yên)
+        // ACTIVE  (đã bị kích hoạt, truy đuổi)  → WALK (ếch nhảy)
+        if (b.getState() != EntityState.HURT) {
+            b.setState(state == EventState.ACTIVE ? EntityState.WALK : EntityState.IDLE);
         }
 
         b.resetAcceleration(); // acceleration.mult(0) — reset mỗi frame, đúng sách gốc

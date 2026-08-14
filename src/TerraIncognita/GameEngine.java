@@ -216,7 +216,7 @@ public class GameEngine {
         // Sự kiện bầy quái góc map — spawn 20 con (Constants.SWARM_COUNT) trong
         // vùng góc dưới-trái, đăng ký vào activeMonsters để dùng chung toàn bộ
         // hệ thống combat/render/bomb hiện có (xem SwarmEvent để hiểu vì sao).
-        this.swarmEvent = new SwarmEvent(mapManager.getCurrentMap());
+        this.swarmEvent = new SwarmEvent(mapManager.getCurrentMap(), assetLoader);
         this.activeMonsters.addAll(swarmEvent.getCreatures());
         this.lastSwarmState = swarmEvent.getState();
 
@@ -264,13 +264,8 @@ public class GameEngine {
                 break;
             case PLAYING:
                 updatePlaying(deltaTime);
-                // --- CẬP NHẬT HOẠT ẢNH CHO QUÁI VẬT ---
-                for (Monster m : activeMonsters) {
-                    if (m.isAlive()) {
-                        m.update(deltaTime); // Cập nhật chuyển frame hoạt ảnh đứng yên
-                        m.updateAI(player, mapManager.getCurrentMap(), deltaTime);
-                    }
-                }
+                // --- CẬP NHẬT SWARM EVENT TRƯỚC ĐỂ SET STATE CHO SWARMCREATURE ---
+                // (state phải được set trước khi m.update() gọi updateAnimation())
                 if (swarmEvent != null) {
                     swarmEvent.update(player, mapManager.getCurrentMap(), deltaTime);
                     if (swarmEvent.getState() != lastSwarmState) {
@@ -282,6 +277,13 @@ public class GameEngine {
                             pickupMessage = "Đã tiêu diệt toàn bộ bầy quái!";
                             messageTimer = 2.5;
                         }
+                    }
+                }
+                // --- CẬP NHẬT HOẠT ẢNH CHO QUÁI VẬT ---
+                for (Monster m : activeMonsters) {
+                    if (m.isAlive()) {
+                        m.update(deltaTime); // Cập nhật chuyển frame hoạt ảnh
+                        m.updateAI(player, mapManager.getCurrentMap(), deltaTime);
                     }
                 }
                 break;
@@ -1425,6 +1427,35 @@ public class GameEngine {
 
         Animation anim = monster.getCurrentAnimation();
         BufferedImage frame = (anim != null) ? anim.getCurrentFrame() : null;
+
+        // SwarmCreature (frog) dùng sprite 32x32 — vẽ đúng kích thước tile,
+        // không dùng hệ thống scale 200px của player/orc.
+        if (monster instanceof TerraIncognita.entity.monster.SwarmCreature) {
+            int drawSize = Constants.TILE_SIZE; // 32px — khớp với frog frame
+
+            // Thanh máu nhỏ phía trên đầu frog
+            int barWidth = 20;
+            int barHeight = 3;
+            int barX = worldX + drawSize / 2 - barWidth / 2;
+            int barY = worldY - 5;
+            double hpRatio = Math.max(0, Math.min(1.0, (double) monster.getHp() / monster.getMaxHp()));
+
+            g2d.setColor(new Color(20, 20, 20, 180));
+            g2d.fillRect(barX, barY, barWidth, barHeight);
+            g2d.setColor(new Color(220, 40, 40));
+            g2d.fillRect(barX, barY, (int) (barWidth * hpRatio), barHeight);
+            g2d.setColor(new Color(255, 255, 255, 180));
+            g2d.drawRect(barX, barY, barWidth, barHeight);
+
+            if (frame != null) {
+                g2d.drawImage(frame, worldX, worldY, drawSize, drawSize, null);
+            } else {
+                // Fallback nếu chưa load được sprite
+                g2d.setColor(Color.RED);
+                g2d.fillRect(worldX + 2, worldY + 2, drawSize - 4, drawSize - 4);
+            }
+            return;
+        }
 
         // Quái vật dùng chung kích thước sprite với nhân vật (PLAYER_SPRITE_SIZE = 200px)
         int drawSize = Constants.PLAYER_SPRITE_SIZE;

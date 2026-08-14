@@ -1,6 +1,11 @@
 package TerraIncognita.entity.monster;
 
+import java.awt.image.BufferedImage;
+
+import TerraIncognita.entity.Direction;
+import TerraIncognita.entity.EntityState;
 import TerraIncognita.entity.Player;
+import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.map.GameMap;
 import TerraIncognita.util.Constants;
 import TerraIncognita.util.Vec2;
@@ -15,19 +20,16 @@ import TerraIncognita.util.Vec2;
  * gọi applyForce() — vì vậy {@link #updateAI} ở đây bị ghi đè thành no-op
  * để không bị AI chase/attack mặc định của Monster can thiệp.
  *
- * Nhận sát thương BÌNH THƯỜNG từ kiếm/cung/bomb như mọi quái khác (dùng
- * thẳng takeDamage() kế thừa từ Monster, không override) — vì di chuyển
- * né tránh liên tục nên trên thực tế bomb (gây sát thương diện rộng) vẫn
- * là cách hiệu quả nhất để dọn cả bầy, nhưng player hoàn toàn có thể chém/
- * bắn hạ từng con nếu bắt kịp.
- *
- * Hiện chưa có sprite riêng — không gọi initAnimations() nên
- * currentAnimation luôn null, khiến GameEngine.drawMonster() tự động vẽ
- * fallback "khối vuông màu đỏ" có sẵn — đúng yêu cầu tạm thời ban đầu.
- * Sau này có sprite riêng, chỉ cần gọi initAnimations(assetLoader) lúc
- * spawn (giống OrcMonster) là tự động chuyển sang vẽ sprite thật.
+ * Sprite dùng frog_GameBoy_Green_spritesheet.png (32x32 mỗi frame):
+ *   - Row 1 (index 1): di chuyển sang phải → "frog_walk_right"
+ *   - Row 7 (index 7): di chuyển sang trái → "frog_walk_left"
+ * Gọi initAnimations(assetLoader) lúc spawn để kích hoạt sprite thay vì
+ * fallback ô vuông đỏ.
  */
 public class SwarmCreature extends Monster {
+
+    private static final int IDLE_FRAME_MS = 200; // tốc độ chuyển frame idle (đứng yên — chậm hơn)
+    private static final int WALK_FRAME_MS = 120; // tốc độ chuyển frame walk (nhảy/di chuyển)
 
     // location (vị trí) đã có sẵn ở Entity.worldX/worldY — không lặp lại ở đây.
     private final Vec2 velocity;
@@ -49,6 +51,27 @@ public class SwarmCreature extends Monster {
 
         // Hitbox nhỏ hơn quái thường (mặc định 24x24) — đúng tinh thần "quái nhỏ"
         setHitbox(10, 10, 12, 12);
+    }
+
+    /**
+     * Khởi tạo animation frog cho SwarmCreature.
+     * - IDLE: dùng frog_idle_right/left (cột 0-7) — ếch đứng yên
+     * - WALK: dùng frog_walk_right/left (cột 8-13) — ếch nhảy/di chuyển
+     */
+    public void initAnimations(AssetLoader assets) {
+        BufferedImage[] idleRight = assets.getFrames("frog_idle_right");
+        BufferedImage[] idleLeft  = assets.getFrames("frog_idle_left");
+        BufferedImage[] walkRight = assets.getFrames("frog_walk_right");
+        BufferedImage[] walkLeft  = assets.getFrames("frog_walk_left");
+
+        // Đứng yên: frame 0-7
+        addDirectionalAnimations(EntityState.IDLE, idleRight, idleLeft, IDLE_FRAME_MS, true);
+        // Di chuyển (nhảy): frame 8-13
+        addDirectionalAnimations(EntityState.WALK, walkRight, walkLeft, WALK_FRAME_MS, true);
+        // Bị đánh: dùng frame idle
+        addDirectionalAnimations(EntityState.HURT, idleRight, idleLeft, WALK_FRAME_MS, false);
+
+        useAnimation(EntityState.IDLE, getDirection());
     }
 
     /**

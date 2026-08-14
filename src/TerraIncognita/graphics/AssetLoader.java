@@ -167,6 +167,8 @@ public class AssetLoader {
                 + " (sheet " + sheet.getWidth() + "x" + sheet.getHeight() + ")");
     }
 
+    private static final int FROG_FRAME_SIZE = 32; // mỗi frame frog spritesheet là 32x32
+
     private void loadMonsters() {
         String base = Constants.SPRITES_PATH + "monsters/";
 
@@ -176,6 +178,10 @@ public class AssetLoader {
         loadMonsterSheet("orc_attack", base + "orc/Orc_Attack01.png");
         loadMonsterSheet("orc_hurt", base + "orc/Orc_Hurt.png");
         loadMonsterSheet("orc_dead", base + "orc/Orc_Death.png");
+
+        // Frog (SwarmCreature) — spritesheet 512x512, frame 32x32, 16 cột x 16 hàng
+        // Row 1 (index 1) = di chuyển sang phải, Row 7 (index 7) = di chuyển sang trái
+        loadFrogFrames(base + "frog_GameBoy_Green_spritesheet.png");
     }
 
     private void loadMonsterSheet(String name, String path) {
@@ -190,6 +196,89 @@ public class AssetLoader {
         BufferedImage[] frames = sheetCutter.getFullRow(0);
         spriteFrames.put(name, frames);
     }
+
+    /**
+     * Load frog spritesheet (512x512, frame 32x32).
+     * Mỗi hàng có 16 cột nhưng chỉ dùng 2 nhóm:
+     *   - Cột 0-7  → "idle" (ếch đứng yên)
+     *   - Cột 8-13 → "walk" (ếch nhảy/di chuyển)
+     * Áp dụng cho:
+     *   - Row 1 (index 1) → hướng sang phải
+     *   - Row 7 (index 7) → hướng sang trái
+     * Lọc bỏ frame trống (toàn pixel trong suốt).
+     */
+    private void loadFrogFrames(String path) {
+        BufferedImage sheet = loadImage(path);
+        if (sheet == null) {
+            System.err.println("[AssetLoader] WARN: Could not load frog spritesheet: " + path);
+            spriteFrames.put("frog_idle_right", new BufferedImage[0]);
+            spriteFrames.put("frog_idle_left", new BufferedImage[0]);
+            spriteFrames.put("frog_walk_right", new BufferedImage[0]);
+            spriteFrames.put("frog_walk_left", new BufferedImage[0]);
+            return;
+        }
+
+        SpriteSheet cutter = new SpriteSheet(sheet, FROG_FRAME_SIZE, FROG_FRAME_SIZE);
+
+        // --- Row 1 (index 1): hướng phải ---
+        BufferedImage[] idleRightFrames = extractColumnRange(cutter, 1, 0, 7);
+        BufferedImage[] walkRightFrames = extractColumnRange(cutter, 1, 8, 11);
+        spriteFrames.put("frog_idle_right", idleRightFrames);
+        spriteFrames.put("frog_walk_right", walkRightFrames);
+
+        // --- Row 7 (index 7): hướng trái ---
+        BufferedImage[] idleLeftFrames = extractColumnRange(cutter, 7, 0, 7);
+        BufferedImage[] walkLeftFrames = extractColumnRange(cutter, 7, 8, 11);
+        spriteFrames.put("frog_idle_left", idleLeftFrames);
+        spriteFrames.put("frog_walk_left", walkLeftFrames);
+
+        System.out.println("[DEBUG AssetLoader] Loaded frog_idle_right => " + idleRightFrames.length + " frames");
+        System.out.println("[DEBUG AssetLoader] Loaded frog_walk_right => " + walkRightFrames.length + " frames");
+        System.out.println("[DEBUG AssetLoader] Loaded frog_idle_left  => " + idleLeftFrames.length + " frames");
+        System.out.println("[DEBUG AssetLoader] Loaded frog_walk_left  => " + walkLeftFrames.length + " frames");
+    }
+
+    /**
+     * Trích xuất các frame từ cột startCol đến endCol (inclusive) trên hàng row.
+     * Lọc bỏ frame trống.
+     */
+    private BufferedImage[] extractColumnRange(SpriteSheet cutter, int row, int startCol, int endCol) {
+        java.util.List<BufferedImage> result = new java.util.ArrayList<>();
+        for (int col = startCol; col <= endCol; col++) {
+            BufferedImage frame = cutter.getFrame(col, row);
+            if (frame != null && !isFrameEmpty(frame)) {
+                result.add(frame);
+            }
+        }
+        return result.toArray(new BufferedImage[0]);
+    }
+
+    /**
+     * Lọc bỏ các frame trống (toàn pixel alpha = 0) khỏi mảng.
+     * Spritesheet frog có nhiều ô trống ở cuối mỗi hàng.
+     */
+    private BufferedImage[] filterNonEmptyFrames(BufferedImage[] frames) {
+        java.util.List<BufferedImage> result = new java.util.ArrayList<>();
+        for (BufferedImage frame : frames) {
+            if (frame != null && !isFrameEmpty(frame)) {
+                result.add(frame);
+            }
+        }
+        return result.toArray(new BufferedImage[0]);
+    }
+
+    private boolean isFrameEmpty(BufferedImage img) {
+        for (int y = 0; y < img.getHeight(); y++) {
+            for (int x = 0; x < img.getWidth(); x++) {
+                int alpha = (img.getRGB(x, y) >> 24) & 0xFF;
+                if (alpha > 0) {
+                    return false; // có ít nhất 1 pixel không trong suốt → không trống
+                }
+            }
+        }
+        return true;
+    }
+
 
     /**
      * Load animation nổ bomb (Bomb_Explosion.png — sprite sheet 11 frame,
