@@ -32,7 +32,7 @@ public class Shop {
         if (player.getGold() < price) return false;
         if (player.getInventory().isFull()) return false;
         if (!player.spendGold(price)) return false;
-        if (!player.getInventory().addItem(item)) {
+        if (!player.getInventory().addItem(item.copy())) {
             // Rollback: hoàn tiền nếu thêm thất bại
             player.addGold(price);
             return false;
