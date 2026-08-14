@@ -40,6 +40,24 @@ public abstract class Item {
         return false;
     }
 
+    /**
+     * Tạo bản sao độc lập (stackCount=1, giữ nguyên giá/mô tả).
+     * Bắt buộc dùng khi thêm item vào inventory từ 1 nguồn dùng chung nhiều lần
+     * (VD Shop giữ 1 instance cố định cho mỗi lượt mua) — nếu không, nhiều lần
+     * mua cùng item stackable sẽ add cùng 1 reference vào inventory, khiến
+     * logic gộp stack trong Inventory.addItem() tự cộng-trừ chính nó (không
+     * tăng số lượng thật) và có thể tạo 2 slot trỏ cùng 1 object.
+     */
+    public abstract Item copy();
+
+    /** Copy các field chung của Item base sang bản sao — gọi từ copy() của lớp con. */
+    protected void copyBaseFieldsTo(Item target) {
+        target.description = this.description;
+        target.spriteName = this.spriteName;
+        target.buyPrice = this.buyPrice;
+        target.sellPrice = this.sellPrice;
+    }
+
     // --- Getter / Setter ---
     public String getId() { return id; }
     public String getName() { return name; }

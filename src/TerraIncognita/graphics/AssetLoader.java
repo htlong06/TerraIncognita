@@ -46,12 +46,58 @@ public class AssetLoader {
     public void loadAll() {
         loadPlayer();
         loadChest();
+        loadItemIcons();
         loadMonsters();
         loadArrow();
         loadBomb();
+        loadNPC();
+    }
+
+    /**
+     * Load sprite cho NPC (Quest Giver, v.v.).
+     * Hình desertnpc.png là sprite sheet 2 frame nằm cạnh nhau.
+     * Tách thành từng frame riêng để animation.
+     */
+    private void loadNPC() {
+        String path = Constants.SPRITES_PATH + "npc/desertnpc.png";
+        BufferedImage sheet = loadImage(path);
+        if (sheet == null) {
+            System.err.println("[AssetLoader] WARN: Could not load npc/desertnpc.png");
+            return;
+        }
+        int frameCount = 2;
+        int frameW = sheet.getWidth() / frameCount;
+        int frameH = sheet.getHeight();
+        BufferedImage[] frames = new BufferedImage[frameCount];
+        for (int i = 0; i < frameCount; i++) {
+            frames[i] = sheet.getSubimage(i * frameW, 0, frameW, frameH);
+        }
+        spriteFrames.put("npc_questgiver", frames);
+        System.out.println("[DEBUG AssetLoader] Loaded npc_questgiver => "
+                + frameCount + " frames (" + frameW + "x" + frameH + " each)");
     }
 
     private static final int CHEST_SIZE = 64;
+    private static final int ITEM_ICON_SIZE = 64;
+
+    /**
+     * Icon vật phẩm trong túi đồ/shop. Đa số dùng chung 1 icon theo ItemType
+     * (key "item_"+type), riêng Potion có 3 biến thể cùng ItemType.POTION nên
+     * dùng key riêng theo spriteName ("item_potion_heal/regen/exp" — xem
+     * Potion.spriteName). Chỉ load type/biến thể nào game thực sự đang tạo
+     * instance — ARMOR/SCROLL/QUEST_ITEM chưa có item thật.
+     */
+    private void loadItemIcons() {
+        String base = Constants.SPRITES_PATH + "items/icons/";
+        tileImages.put("item_potion_heal", loadImageScaled(base + "potion_heal.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+        tileImages.put("item_potion_regen", loadImageScaled(base + "potion_regen.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+        tileImages.put("item_potion_exp", loadImageScaled(base + "potion_exp.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+        tileImages.put("item_weapon", loadImageScaled(base + "weapon.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+        tileImages.put("item_material", loadImageScaled(base + "material.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+        // Tái dùng sprite bom sẵn có (effects/bomb.png) — không cần thêm asset mới
+        tileImages.put("item_consumable",
+                loadImageScaled(Constants.SPRITES_PATH + "effects/bomb.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+    }
 
     private void loadChest() {
         String base = Constants.SPRITES_PATH + "items/chest/";

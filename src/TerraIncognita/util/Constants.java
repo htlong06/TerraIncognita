@@ -28,6 +28,7 @@ public class Constants {
     // --- Chest sprite ---
     public static final int CHEST_FRAME_WIDTH = 40;   // pixel/frame trong Chests.png
     public static final int CHEST_FRAME_HEIGHT = 32;
+    public static final float CHEST_DRAW_SCALE = 1.5f; // vẽ to hơn 1 ô để tương xứng nhà/vật thể xung quanh
     public static final int CHEST_COLS = 6;           // số frame mỗi hàng
     public static final double PLAYER_ATTACK_COOLDOWN = 0.3;
     public static final double PLAYER_ATTACK_DURATION = 0.3;
