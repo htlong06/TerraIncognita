@@ -5,7 +5,6 @@ import TerraIncognita.entity.Player;
 import TerraIncognita.item.Equipment;
 import TerraIncognita.item.EquipmentSlot;
 import TerraIncognita.item.Item;
-import TerraIncognita.item.Key;
 import TerraIncognita.item.Potion;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,14 +82,13 @@ class SaveManagerTest {
         Player original = new Player();
         original.getInventory().addItem(new Potion("p1", "Health Potion", 30));
         original.getInventory().addItem(new Equipment("sword1", "Iron Sword", EquipmentSlot.WEAPON, 5, 0));
-        original.getInventory().addItem(new Key("k1", "Door Key", "door_lock"));
 
         assertTrue(saveManager.saveGame("inv", original));
 
         Player loaded = new Player();
         assertTrue(saveManager.loadGame("inv", loaded));
 
-        assertEquals(3, loaded.getInventory().getUsedSlots());
+        assertEquals(2, loaded.getInventory().getUsedSlots());
 
         Item potion = loaded.getInventory().findById("p1");
         assertInstanceOf(Potion.class, potion);
@@ -99,10 +97,6 @@ class SaveManagerTest {
         Item sword = loaded.getInventory().findById("sword1");
         assertInstanceOf(Equipment.class, sword);
         assertEquals(5, ((Equipment) sword).getAtkBonus());
-
-        Item key = loaded.getInventory().findById("k1");
-        assertInstanceOf(Key.class, key);
-        assertEquals("door_lock", ((Key) key).getKeyId());
     }
 
     @Test

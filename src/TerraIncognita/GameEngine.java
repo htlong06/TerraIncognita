@@ -28,9 +28,9 @@ import TerraIncognita.entity.npc.Merchant;
 import TerraIncognita.event.EventSystem;
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.graphics.AssetLoader;
-import TerraIncognita.item.Equipment;
-import TerraIncognita.item.EquipmentSlot;
+import TerraIncognita.item.BombItem;
 import TerraIncognita.item.Item;
+import TerraIncognita.item.MaterialItem;
 import TerraIncognita.item.Potion;
 import TerraIncognita.map.DungeonMapManager;
 import TerraIncognita.save.SaveManager;
@@ -39,6 +39,7 @@ import TerraIncognita.ui.GameOverScreen;
 import TerraIncognita.ui.HUD;
 import TerraIncognita.ui.InventoryUI;
 import TerraIncognita.ui.MenuScreen;
+import TerraIncognita.ui.PauseMenu;
 import TerraIncognita.ui.RadialMenu;
 import TerraIncognita.ui.ShopUI;
 import TerraIncognita.util.Constants;
@@ -79,6 +80,7 @@ public class GameEngine {
     private EventSystem eventSystem;
     private SaveManager saveManager;
     private MenuScreen menuScreen;
+    private PauseMenu pauseMenu = new PauseMenu();
     private List<Monster> activeMonsters;
     private CombatSystem combatSystem;
 
@@ -128,26 +130,53 @@ public class GameEngine {
         this.chests = new ArrayList<>();
         this.collidingChests = new HashSet<>();
 
-        // Common chest (brown), tile (10,5), chứa Potion
-        Chest commonChest = new Chest(10, 5, "common");
-        Potion potion = new Potion("hp1", "Health Potion", 30);
-        commonChest.setLootTable(new LootTable(List.of(potion), 1.0));
+        // Rương ngoài khu làng (làng chiếm x1-41,y10-67), toạ độ lấy từ vùng
+        // grass trống (wall layer = 0) đã dò trong dungeon_1.tmx.
+
+        // Rương chỉ rớt item bán lại được cho shop — không rớt Equipment (sword là
+        // vũ khí mặc định, không nằm trong loot pool). Mỗi rương cùng bậc có pool
+        // 2 item, chọn ngẫu nhiên 1 khi mở (xem LootTable.generateLoot()).
+
+        // Common — vật phẩm giá trị thấp: Green Gem (nguyên liệu, màu = bậc hiếm) hoặc Bomb
+        Chest commonChest = new Chest(50, 20, "common");
+        commonChest.setLootTable(new LootTable(List.of(
+                sellable(new MaterialItem("c1_gem", "Green Gem"), 15),
+                sellable(new BombItem("c1_bomb", "Bomb"), 10)), 1.0));
         chests.add(commonChest);
 
-        // Rare chest (blue), tile (15,8), chứa Equipment
-        Chest rareChest = new Chest(15, 8, "rare");
-        Equipment sword = new Equipment("sword1", "Iron Sword", EquipmentSlot.WEAPON, 5, 0);
-        rareChest.setLootTable(new LootTable(List.of(sword), 1.0));
+        Chest commonChest2 = new Chest(53, 20, "common");
+        commonChest2.setLootTable(new LootTable(List.of(
+                sellable(new MaterialItem("c2_gem", "Green Gem"), 15),
+                sellable(new BombItem("c2_bomb", "Bomb"), 10)), 1.0));
+        chests.add(commonChest2);
+
+        Chest commonChest3 = new Chest(83, 50, "common");
+        commonChest3.setLootTable(new LootTable(List.of(
+                sellable(new MaterialItem("c3_gem", "Green Gem"), 15),
+                sellable(new BombItem("c3_bomb", "Bomb"), 10)), 1.0));
+        chests.add(commonChest3);
+
+        // Rare — Potion bậc trung: Health hoặc Regen
+        Chest rareChest = new Chest(53, 35, "rare");
+        rareChest.setLootTable(new LootTable(List.of(
+                sellable(new Potion("r1_hp", "Health Potion", 30), 25),
+                sellable(Potion.createRegen("r1_regen", "Regen Potion", 5, 10.0), 30)), 1.0));
         chests.add(rareChest);
 
-        // Mythic chest (gold/purple gem), tile (20,12), chứa nhiều vàng
-        Chest mythicChest = new Chest(20, 12, "mythic");
-        // TODO: thêm item mythic sau — tạm dùng sword
-        mythicChest.setLootTable(new LootTable(List.of(sword), 1.0));
+        Chest rareChest2 = new Chest(50, 29, "rare");
+        rareChest2.setLootTable(new LootTable(List.of(
+                sellable(new Potion("r2_hp", "Health Potion", 30), 25),
+                sellable(Potion.createRegen("r2_regen", "Regen Potion", 5, 10.0), 30)), 1.0));
+        chests.add(rareChest2);
+
+        // Mythic — quà tốt nhất, đảm bảo (không random): Exp Potion
+        Chest mythicChest = new Chest(65, 50, "mythic");
+        mythicChest.setLootTable(new LootTable(List.of(
+                sellable(Potion.createExp("m1_exp", "Exp Potion", 20), 40)), 1.0));
         chests.add(mythicChest);
 
-        // Spawn Merchant NPC ở tile (20, 10)
-        this.merchant = new Merchant(20, 10);
+        // Spawn Merchant NPC ở tile (38, 21) — ngay trước cổng rào nhà mái đỏ
+        this.merchant = new Merchant(38, 21);
         this.shopUI = new ShopUI();
         this.hud = new HUD();
         this.dialogBox = new DialogBox();
@@ -177,6 +206,12 @@ public class GameEngine {
 
         // Danh sách bom đang tồn tại trên map (không giới hạn số lượng)
         this.activeBombs = new ArrayList<>();
+    }
+
+    /** Gán sellPrice cho item loot rương (không bán được ở shop, chỉ bán lại). */
+    private static Item sellable(Item item, int sellPrice) {
+        item.setSellPrice(sellPrice);
+        return item;
     }
 
     /**
@@ -210,6 +245,7 @@ public class GameEngine {
                 updateDialog(deltaTime);
                 break;
             case PAUSED:
+                updatePaused(deltaTime);
                 break;
             case GAME_OVER:
                 updateGameOver(deltaTime);
@@ -232,11 +268,11 @@ public class GameEngine {
                 break;
             case INVENTORY:
                 renderPlaying(g2d);
-                inventoryUI.render(g2d, player.getInventory(), 0, 0);
+                inventoryUI.render(g2d, player.getInventory(), assetLoader, 0, 0);
                 break;
             case SHOP:
                 renderPlaying(g2d);
-                shopUI.render(g2d, activeShop, player);
+                shopUI.render(g2d, activeShop, player, assetLoader);
                 break;
             case DIALOG:
                 renderPlaying(g2d);
@@ -291,6 +327,36 @@ public class GameEngine {
         }
     }
 
+    private void updatePaused(double deltaTime) {
+        pauseMenu.update(inputHandler);
+        String result = pauseMenu.consumeResult();
+        if (result == null) {
+            return;
+        }
+        switch (result) {
+            case "RESUME":
+                changeState(GameState.PLAYING);
+                break;
+            case "SAVE_AND_EXIT":
+                saveManager.saveGame("default", player);
+                returnToMenu();
+                break;
+            case "EXIT_NO_SAVE":
+                returnToMenu();
+                break;
+        }
+    }
+
+    /**
+     * Quay lại MENU, làm mới tuỳ chọn "Continue" theo dữ liệu save hiện có
+     * (có thể vừa mới xuất hiện nếu người chơi vừa Save & Exit lần đầu).
+     */
+    private void returnToMenu() {
+        boolean hasSave = saveManager.listSaveSlots().size() > 0;
+        this.menuScreen = new MenuScreen(hasSave);
+        changeState(GameState.MENU);
+    }
+
     private void updatePlaying(double deltaTime) {
         // Xử lý di chuyển player
         boolean moved = false;
@@ -330,6 +396,7 @@ public class GameEngine {
 
         // Xử lý pause
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_ESCAPE)) {
+            pauseMenu.reset();
             changeState(GameState.PAUSED);
         }
 
@@ -1025,9 +1092,22 @@ public class GameEngine {
 
     /**
      * Đặt 1 quả bom mới tại vị trí hiện tại của player (giữa ô đứng).
-     * Không giới hạn số lượng bom có thể tồn tại cùng lúc.
+     * Tiêu 1 bom trong túi đồ mỗi lần đặt — không có bom thì không đặt được.
+     * Không giới hạn số bom đang tồn tại cùng lúc trên bản đồ (chưa nổ).
      */
     private void placeBomb() {
+        // Bom là item tiêu hao (mua ở shop, id "bomb_shop") — hết trong túi thì không đặt được.
+        Item bombAmmo = player.getInventory().findById("bomb_shop");
+        if (bombAmmo == null) {
+            pickupMessage = "Không có bom!";
+            messageTimer = 1.0;
+            return;
+        }
+        bombAmmo.setStackCount(bombAmmo.getStackCount() - 1);
+        if (bombAmmo.getStackCount() <= 0) {
+            player.getInventory().removeItem(bombAmmo);
+        }
+
         double bx = player.getWorldX() + Constants.TILE_SIZE / 2.0 - Constants.BOMB_SIZE / 2.0;
         double by = player.getWorldY() + Constants.TILE_SIZE / 2.0 - Constants.BOMB_SIZE / 2.0;
         Bomb bomb = new Bomb(bx, by);
@@ -1070,16 +1150,18 @@ public class GameEngine {
         int py = (int) chest.getWorldY();
         int size = Constants.TILE_SIZE;
 
+        // Rương vẽ to hơn 1 ô để tương xứng với nhà/vật thể xung quanh —
+        // neo đáy + giữa tile (vị trí world/interaction giữ nguyên 1 ô).
+        int drawSize = Math.round(size * Constants.CHEST_DRAW_SCALE);
+        int drawX = px + size / 2 - drawSize / 2;
+        int drawY = py + size - drawSize;
+
         // Chọn sprite key theo loại rương + trạng thái
         String key = "chest_" + chest.getRarity() + (chest.isOpened() ? "_open" : "_closed");
         BufferedImage frame = assetLoader.getTile(key);
 
         if (frame != null) {
-            // Sprite mới 64×64, scale về TILE_SIZE, neo đáy tile
-            int drawW = size;
-            int drawH = size;
-            int drawY = py; // 64×64 vuông → neo trên
-            g2d.drawImage(frame, px, drawY, drawW, drawH, null);
+            g2d.drawImage(frame, drawX, drawY, drawSize, drawSize, null);
         } else {
             // Fallback: hình vuông nếu sprite chưa load
             int pad = 4;
@@ -1088,7 +1170,7 @@ public class GameEngine {
             } else {
                 g2d.setColor(new Color(180, 140, 60));
             }
-            g2d.fillRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
+            g2d.fillRect(drawX + pad, drawY + pad, drawSize - pad * 2, drawSize - pad * 2);
         }
     }
 
@@ -1118,17 +1200,7 @@ public class GameEngine {
         g2d.setColor(new Color(0, 0, 0, 150));
         g2d.fillRect(0, 0, Constants.SCREEN_WIDTH, Constants.SCREEN_HEIGHT);
 
-        // Text PAUSED
-        g2d.setColor(Color.WHITE);
-        g2d.setFont(g2d.getFont().deriveFont(48f));
-        String text = "PAUSED";
-        int textWidth = g2d.getFontMetrics().stringWidth(text);
-        g2d.drawString(text, (Constants.SCREEN_WIDTH - textWidth) / 2, Constants.SCREEN_HEIGHT / 2);
-
-        g2d.setFont(g2d.getFont().deriveFont(16f));
-        String hint = "ESC de tiep tuc";
-        int hintWidth = g2d.getFontMetrics().stringWidth(hint);
-        g2d.drawString(hint, (Constants.SCREEN_WIDTH - hintWidth) / 2, Constants.SCREEN_HEIGHT / 2 + 40);
+        pauseMenu.render(g2d);
     }
 
     private void renderGameOver(Graphics2D g2d) {

@@ -46,12 +46,33 @@ public class AssetLoader {
     public void loadAll() {
         loadPlayer();
         loadChest();
+        loadItemIcons();
         loadMonsters();
         loadArrow();
         loadBomb();
     }
 
     private static final int CHEST_SIZE = 64;
+    private static final int ITEM_ICON_SIZE = 64;
+
+    /**
+     * Icon vật phẩm trong túi đồ/shop. Đa số dùng chung 1 icon theo ItemType
+     * (key "item_"+type), riêng Potion có 3 biến thể cùng ItemType.POTION nên
+     * dùng key riêng theo spriteName ("item_potion_heal/regen/exp" — xem
+     * Potion.spriteName). Chỉ load type/biến thể nào game thực sự đang tạo
+     * instance — ARMOR/SCROLL/QUEST_ITEM chưa có item thật.
+     */
+    private void loadItemIcons() {
+        String base = Constants.SPRITES_PATH + "items/icons/";
+        tileImages.put("item_potion_heal", loadImageScaled(base + "potion_heal.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+        tileImages.put("item_potion_regen", loadImageScaled(base + "potion_regen.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+        tileImages.put("item_potion_exp", loadImageScaled(base + "potion_exp.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+        tileImages.put("item_weapon", loadImageScaled(base + "weapon.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+        tileImages.put("item_material", loadImageScaled(base + "material.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+        // Tái dùng sprite bom sẵn có (effects/bomb.png) — không cần thêm asset mới
+        tileImages.put("item_consumable",
+                loadImageScaled(Constants.SPRITES_PATH + "effects/bomb.png", ITEM_ICON_SIZE, ITEM_ICON_SIZE));
+    }
 
     private void loadChest() {
         String base = Constants.SPRITES_PATH + "items/chest/";

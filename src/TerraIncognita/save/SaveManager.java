@@ -2,10 +2,11 @@ package TerraIncognita.save;
 
 import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Player;
+import TerraIncognita.item.BombItem;
 import TerraIncognita.item.Equipment;
 import TerraIncognita.item.EquipmentSlot;
 import TerraIncognita.item.Item;
-import TerraIncognita.item.Key;
+import TerraIncognita.item.MaterialItem;
 import TerraIncognita.item.Potion;
 import java.io.File;
 import java.sql.Connection;
@@ -83,10 +84,15 @@ public class SaveManager {
                     "item_name TEXT NOT NULL," +
                     "stack_count INTEGER DEFAULT 1," +
                     "heal_amount INTEGER," +
+                    "potion_effect TEXT," +
+                    "regen_amount INTEGER," +
+                    "regen_duration REAL," +
+                    "exp_amount INTEGER," +
                     "atk_bonus INTEGER," +
                     "def_bonus INTEGER," +
                     "equipment_slot TEXT," +
-                    "key_id TEXT," +
+                    "buy_price INTEGER DEFAULT 0," +
+                    "sell_price INTEGER DEFAULT 0," +
                     "FOREIGN KEY (save_id) REFERENCES saves(id) ON DELETE CASCADE" +
                     ")");
                 stmt.executeUpdate(
@@ -177,8 +183,9 @@ public class SaveManager {
     private void insertInventory(long saveId, Player player) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO save_inventory (save_id, slot_index, item_id, item_type, item_name, " +
-                "stack_count, heal_amount, atk_bonus, def_bonus, equipment_slot, key_id) " +
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?)")) {
+                "stack_count, heal_amount, potion_effect, regen_amount, regen_duration, exp_amount, " +
+                "atk_bonus, def_bonus, equipment_slot, buy_price, sell_price) " +
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
             int index = 0;
             for (Item item : player.getInventory().getItems()) {
                 ps.setLong(1, saveId);
@@ -188,25 +195,31 @@ public class SaveManager {
                 ps.setString(5, item.getName());
                 ps.setInt(6, item.getStackCount());
                 if (item instanceof Potion) {
-                    ps.setInt(7, ((Potion) item).getHealAmount());
+                    Potion potion = (Potion) item;
+                    ps.setInt(7, potion.getHealAmount());
+                    ps.setString(8, potion.getEffect().name());
+                    ps.setInt(9, potion.getRegenAmount());
+                    ps.setDouble(10, potion.getRegenDuration());
+                    ps.setInt(11, potion.getExpAmount());
                 } else {
                     ps.setNull(7, Types.INTEGER);
+                    ps.setNull(8, Types.VARCHAR);
+                    ps.setNull(9, Types.INTEGER);
+                    ps.setNull(10, Types.REAL);
+                    ps.setNull(11, Types.INTEGER);
                 }
                 if (item instanceof Equipment) {
                     Equipment eq = (Equipment) item;
-                    ps.setInt(8, eq.getAtkBonus());
-                    ps.setInt(9, eq.getDefBonus());
-                    ps.setString(10, eq.getSlot().name());
+                    ps.setInt(12, eq.getAtkBonus());
+                    ps.setInt(13, eq.getDefBonus());
+                    ps.setString(14, eq.getSlot().name());
                 } else {
-                    ps.setNull(8, Types.INTEGER);
-                    ps.setNull(9, Types.INTEGER);
-                    ps.setNull(10, Types.VARCHAR);
+                    ps.setNull(12, Types.INTEGER);
+                    ps.setNull(13, Types.INTEGER);
+                    ps.setNull(14, Types.VARCHAR);
                 }
-                if (item instanceof Key) {
-                    ps.setString(11, ((Key) item).getKeyId());
-                } else {
-                    ps.setNull(11, Types.VARCHAR);
-                }
+                ps.setInt(15, item.getBuyPrice());
+                ps.setInt(16, item.getSellPrice());
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -324,37 +337,54 @@ public class SaveManager {
     }
 
     private Item createItemFromInventory(ResultSet rs) throws SQLException {
-        return createItem(
-            rs.getString("item_type"),
-            rs.getString("item_id"),
-            rs.getString("item_name"),
-            rs.getInt("stack_count"),
-            rs.getInt("heal_amount"),
-            rs.getInt("atk_bonus"),
-            rs.getInt("def_bonus"),
-            rs.getString("equipment_slot"),
-            rs.getString("key_id"));
-    }
+        String itemType = rs.getString("item_type");
+        String itemId = rs.getString("item_id");
+        String itemName = rs.getString("item_name");
+        int stackCount = rs.getInt("stack_count");
 
-    private Item createItem(String itemType, String itemId, String itemName, int stackCount,
-                            int healAmount, int atkBonus, int defBonus, String equipmentSlot, String keyId) {
+        Item item;
         switch (itemType) {
             case "POTION":
-                Potion potion = new Potion(itemId, itemName, healAmount);
-                potion.setStackCount(stackCount);
-                return potion;
+                item = createPotion(rs, itemId, itemName);
+                break;
             case "WEAPON":
             case "ARMOR":
-                Equipment eq = new Equipment(itemId, itemName, EquipmentSlot.valueOf(equipmentSlot),
-                                             atkBonus, defBonus);
-                eq.setStackCount(stackCount);
-                return eq;
-            case "KEY":
-                Key key = new Key(itemId, itemName, keyId);
-                key.setStackCount(stackCount);
-                return key;
+                item = new Equipment(itemId, itemName,
+                        EquipmentSlot.valueOf(rs.getString("equipment_slot")),
+                        rs.getInt("atk_bonus"), rs.getInt("def_bonus"));
+                break;
+            case "CONSUMABLE":
+                item = new BombItem(itemId, itemName);
+                break;
+            case "MATERIAL":
+                item = new MaterialItem(itemId, itemName);
+                break;
             default:
                 return null;
+        }
+        item.setStackCount(stackCount);
+        item.setBuyPrice(rs.getInt("buy_price"));
+        item.setSellPrice(rs.getInt("sell_price"));
+        return item;
+    }
+
+    /**
+     * Dựng lại đúng biến thể Potion (HEAL/REGEN/EXP) từ cột "potion_effect".
+     * Cột này có thể NULL với save cũ trước khi có nhiều biến thể → mặc định HEAL.
+     */
+    private Potion createPotion(ResultSet rs, String itemId, String itemName) throws SQLException {
+        String effect = rs.getString("potion_effect");
+        if (effect == null) {
+            effect = "HEAL";
+        }
+        switch (effect) {
+            case "REGEN":
+                return Potion.createRegen(itemId, itemName, rs.getInt("regen_amount"), rs.getDouble("regen_duration"));
+            case "EXP":
+                return Potion.createExp(itemId, itemName, rs.getInt("exp_amount"));
+            case "HEAL":
+            default:
+                return new Potion(itemId, itemName, rs.getInt("heal_amount"));
         }
     }
 
