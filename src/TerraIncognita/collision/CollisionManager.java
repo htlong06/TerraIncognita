@@ -3,7 +3,6 @@ package TerraIncognita.collision;
 import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Entity;
 import TerraIncognita.entity.Player;
-import TerraIncognita.event.EventSystem;
 import TerraIncognita.map.GameMap;
 import TerraIncognita.map.TileType;
 import TerraIncognita.util.Constants;
@@ -89,43 +88,12 @@ public class CollisionManager {
      *
      * @return entity va chạm, hoặc null nếu không có
      */
-    public Entity findCollidingEntity(Entity self, List<? extends Entity> others) {
-        if (others == null) {
-            return null;
-        }
-        for (Entity other : others) {
-            if (other == self || !other.isAlive()) {
-                continue;
-            }
-            if (checkEntityCollision(self, other)) {
-                return other;
-            }
-        }
-        return null;
-    }
-
     /**
      * Kiểm tra nếu entity di chuyển tới (newX, newY) thì có va chạm với
      * bất kỳ entity nào trong danh sách không. Dùng trước khi thật sự
      * di chuyển (giống cách checkObject/checkEntity dùng "temp direction"
      * trong bản gốc), để chặn việc quái đi xuyên qua nhau.
      */
-    public boolean checkEntityCollisionAt(Entity self, double newX, double newY, List<? extends Entity> others) {
-        if (others == null) {
-            return false;
-        }
-        Rectangle box = self.getHitboxAt(newX, newY);
-        for (Entity other : others) {
-            if (other == self || !other.isAlive()) {
-                continue;
-            }
-            if (box.intersects(other.getHitbox())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * Kiểm tra hitbox của player có đang đứng trên ô bẫy (TRAP hoặc
      * TRAP_HIDDEN) không; nếu có thì kích hoạt sự kiện tương ứng qua
@@ -135,26 +103,8 @@ public class CollisionManager {
      *
      * @return true nếu player đang đứng trên ô bẫy (đã kích hoạt hoặc đã kích hoạt trước đó)
      */
-    public boolean checkTrapTrigger(Player player, GameMap map, EventSystem eventSystem) {
-        if (player == null || map == null || eventSystem == null) {
-            return false;
-        }
-
-        Rectangle box = player.getHitbox();
-        int tileSize = Constants.TILE_SIZE;
         // Dùng tâm hitbox để xác định ô player thực sự đang đứng lên,
         // tránh trigger nhầm khi chỉ mới chạm rìa ô bẫy.
-        int centerTileX = (box.x + box.width / 2) / tileSize;
-        int centerTileY = (box.y + box.height / 2) / tileSize;
-
-        TileType type = map.getTile(centerTileX, centerTileY).getType();
-        if (type == TileType.TRAP || type == TileType.TRAP_HIDDEN) {
-            eventSystem.checkTileEvent(map, player, centerTileX, centerTileY);
-            return true;
-        }
-        return false;
-    }
-
     /**
      * Tính hitbox tấn công: 1 hình chữ nhật nhô ra phía trước hitbox của
      * attacker theo hướng đang quay mặt, độ dài = rangeLength (px), bề

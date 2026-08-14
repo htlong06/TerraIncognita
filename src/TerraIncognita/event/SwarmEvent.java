@@ -497,13 +497,4 @@ public class SwarmEvent {
     // --- Getter ---
     public List<SwarmCreature> getCreatures() { return creatures; }
     public EventState getState() { return state; }
-    public Rectangle getConfineZone() { return confineZone; }
-
-    public int getAliveCount() {
-        int count = 0;
-        for (SwarmCreature c : creatures) {
-            if (c.isAlive()) count++;
-        }
-        return count;
-    }
 }

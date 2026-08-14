@@ -6,9 +6,6 @@ package TerraIncognita.map;
 public enum TileType {
     FLOOR(true),
     WALL(false),
-    TRAP(true),
-    TRAP_HIDDEN(true),
-    CHECKPOINT(true),
     VOID(false);
 
     private final boolean walkable;

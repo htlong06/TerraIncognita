@@ -4,14 +4,10 @@ import TerraIncognita.collision.CollisionManager;
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.inventory.Inventory;
-import TerraIncognita.item.Equipment;
-import TerraIncognita.item.EquipmentSlot;
 import TerraIncognita.map.GameMap;
 import TerraIncognita.quest.QuestLog;
 import TerraIncognita.util.Constants;
 import java.awt.Rectangle;
-import java.util.EnumMap;
-import java.util.Map;
 import java.awt.image.BufferedImage;
 
 public class Player extends Entity {
@@ -21,7 +17,6 @@ public class Player extends Entity {
     private int expToNextLevel;
     private int gold;
     private Inventory inventory;
-    private Map<EquipmentSlot, Equipment> equippedItems;
     private QuestLog questLog;
 
     // Tham chiếu tới map hiện tại để kiểm tra va chạm
@@ -58,7 +53,6 @@ public class Player extends Entity {
         this.expToNextLevel = 100;
         this.gold = 0;
         this.inventory = new Inventory(Constants.INVENTORY_MAX_SLOTS);
-        this.equippedItems = new EnumMap<>(EquipmentSlot.class);
         this.questLog = new QuestLog();
     }
 
@@ -405,30 +399,7 @@ public class Player extends Entity {
      * 
      * @return true nếu trang bị thành công
      */
-    public boolean equip(Equipment equipment) {
-        EquipmentSlot slot = equipment.getSlot();
-        // Must remove from inventory first
-        if (!inventory.removeItem(equipment)) {
-            return false;
-        }
-        // Try to return old equipment
-        Equipment old = equippedItems.get(slot);
-        if (old != null) {
-            if (inventory.isFull()) {
                 // Cannot return old — rollback: put equipment back in inventory
-                inventory.addItem(equipment);
-                return false;
-            }
-            atk -= old.getAtkBonus();
-            def -= old.getDefBonus();
-            inventory.addItem(old);
-        }
-        equippedItems.put(slot, equipment);
-        atk += equipment.getAtkBonus();
-        def += equipment.getDefBonus();
-        return true;
-    }
-
     /**
      * Gán bản đồ hiện tại (dùng cho va chạm).
      */
@@ -440,10 +411,6 @@ public class Player extends Entity {
      * Cho phép GameEngine truyền vào 1 CollisionManager dùng chung
      * (thay vì mỗi Player tự tạo 1 cái riêng).
      */
-    public void setCollisionManager(CollisionManager collisionManager) {
-        this.collisionManager = collisionManager;
-    }
-
     public CollisionManager getCollisionManager() {
         return collisionManager;
     }
@@ -471,10 +438,6 @@ public class Player extends Entity {
 
     public QuestLog getQuestLog() {
         return questLog;
-    }
-
-    public Map<EquipmentSlot, Equipment> getEquippedItems() {
-        return equippedItems;
     }
 
     public GameMap getCurrentMap() {

@@ -3,8 +3,6 @@ package TerraIncognita.save;
 import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Player;
 import TerraIncognita.item.BombItem;
-import TerraIncognita.item.Equipment;
-import TerraIncognita.item.EquipmentSlot;
 import TerraIncognita.item.Item;
 import TerraIncognita.item.MaterialItem;
 import TerraIncognita.item.Potion;
@@ -18,7 +16,6 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Quản lý lưu/tải game bằng SQLite (JDBC).
@@ -88,9 +85,6 @@ public class SaveManager {
                     "regen_amount INTEGER," +
                     "regen_duration REAL," +
                     "exp_amount INTEGER," +
-                    "atk_bonus INTEGER," +
-                    "def_bonus INTEGER," +
-                    "equipment_slot TEXT," +
                     "buy_price INTEGER DEFAULT 0," +
                     "sell_price INTEGER DEFAULT 0," +
                     "FOREIGN KEY (save_id) REFERENCES saves(id) ON DELETE CASCADE" +
@@ -98,18 +92,6 @@ public class SaveManager {
                 // save_inventory có thể đã tồn tại từ bản cũ (thiếu cột mới thêm sau này)
                 // — CREATE TABLE IF NOT EXISTS không tự thêm cột, phải ALTER thủ công.
                 migrateSaveInventoryColumns(stmt);
-                stmt.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS save_equipped (" +
-                    "id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                    "save_id INTEGER NOT NULL," +
-                    "slot TEXT NOT NULL," +
-                    "item_id TEXT NOT NULL," +
-                    "item_name TEXT NOT NULL," +
-                    "atk_bonus INTEGER NOT NULL," +
-                    "def_bonus INTEGER NOT NULL," +
-                    "upgrade_level INTEGER DEFAULT 0," +
-                    "FOREIGN KEY (save_id) REFERENCES saves(id) ON DELETE CASCADE" +
-                    ")");
             }
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failed to initialize save database: " + dbPath, e);
@@ -176,7 +158,6 @@ public class SaveManager {
             }
             insertPlayer(saveId, player);
             insertInventory(saveId, player);
-            insertEquipped(saveId, player);
             conn.commit();
             return true;
         } catch (SQLException e) {
@@ -218,8 +199,8 @@ public class SaveManager {
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO save_inventory (save_id, slot_index, item_id, item_type, item_name, " +
                 "stack_count, heal_amount, potion_effect, regen_amount, regen_duration, exp_amount, " +
-                "atk_bonus, def_bonus, equipment_slot, buy_price, sell_price) " +
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
+                "buy_price, sell_price) " +
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
             int index = 0;
             for (Item item : player.getInventory().getItems()) {
                 ps.setLong(1, saveId);
@@ -242,37 +223,8 @@ public class SaveManager {
                     ps.setNull(10, Types.REAL);
                     ps.setNull(11, Types.INTEGER);
                 }
-                if (item instanceof Equipment) {
-                    Equipment eq = (Equipment) item;
-                    ps.setInt(12, eq.getAtkBonus());
-                    ps.setInt(13, eq.getDefBonus());
-                    ps.setString(14, eq.getSlot().name());
-                } else {
-                    ps.setNull(12, Types.INTEGER);
-                    ps.setNull(13, Types.INTEGER);
-                    ps.setNull(14, Types.VARCHAR);
-                }
-                ps.setInt(15, item.getBuyPrice());
-                ps.setInt(16, item.getSellPrice());
-                ps.addBatch();
-            }
-            ps.executeBatch();
-        }
-    }
-
-    private void insertEquipped(long saveId, Player player) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT INTO save_equipped (save_id, slot, item_id, item_name, atk_bonus, " +
-                "def_bonus, upgrade_level) VALUES (?,?,?,?,?,?,?)")) {
-            for (Map.Entry<EquipmentSlot, Equipment> entry : player.getEquippedItems().entrySet()) {
-                Equipment eq = entry.getValue();
-                ps.setLong(1, saveId);
-                ps.setString(2, entry.getKey().name());
-                ps.setString(3, eq.getId());
-                ps.setString(4, eq.getName());
-                ps.setInt(5, eq.getAtkBonus());
-                ps.setInt(6, eq.getDefBonus());
-                ps.setInt(7, eq.getUpgradeLevel());
+                ps.setInt(12, item.getBuyPrice());
+                ps.setInt(13, item.getSellPrice());
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -334,20 +286,6 @@ public class SaveManager {
                 }
             }
             // Xoá trang bị hiện tại rồi nạp lại qua equip()
-            player.getEquippedItems().clear();
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT * FROM save_equipped WHERE save_id = ?")) {
-                ps.setLong(1, saveId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        Equipment eq = createEquipmentFromRow(rs);
-                        if (eq != null) {
-                            player.getInventory().addItem(eq);
-                            player.equip(eq);
-                        }
-                    }
-                }
-            }
             // atk/def đã bao gồm bonus trang bị → ghi đè sau khi equip
             player.setAtk(savedAtk);
             player.setDef(savedDef);
@@ -380,12 +318,6 @@ public class SaveManager {
         switch (itemType) {
             case "POTION":
                 item = createPotion(rs, itemId, itemName);
-                break;
-            case "WEAPON":
-            case "ARMOR":
-                item = new Equipment(itemId, itemName,
-                        EquipmentSlot.valueOf(rs.getString("equipment_slot")),
-                        rs.getInt("atk_bonus"), rs.getInt("def_bonus"));
                 break;
             case "CONSUMABLE":
                 item = new BombItem(itemId, itemName);
@@ -420,16 +352,6 @@ public class SaveManager {
             default:
                 return new Potion(itemId, itemName, rs.getInt("heal_amount"));
         }
-    }
-
-    private Equipment createEquipmentFromRow(ResultSet rs) throws SQLException {
-        Equipment eq = new Equipment(
-            rs.getString("item_id"),
-            rs.getString("item_name"),
-            EquipmentSlot.valueOf(rs.getString("slot")),
-            rs.getInt("atk_bonus"),
-            rs.getInt("def_bonus"));
-        return eq;
     }
 
     /**

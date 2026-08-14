@@ -63,7 +63,6 @@ public abstract class Item {
     public String getName() { return name; }
     public ItemType getType() { return type; }
     public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
     public String getSpriteName() { return spriteName; }
     public boolean isStackable() { return stackable; }
     public int getStackCount() { return stackCount; }

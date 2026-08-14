@@ -73,6 +73,4 @@ public class StatusEffect {
     public EffectType getType() { return type; }
     public String getName() { return name; }
     public int getValue() { return value; }
-    public double getRemainingDuration() { return duration; }
-    public double getTotalDuration() { return totalDuration; }
 }

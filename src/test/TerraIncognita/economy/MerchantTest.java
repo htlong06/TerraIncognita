@@ -2,8 +2,7 @@ package TerraIncognita.economy;
 
 import TerraIncognita.entity.Player;
 import TerraIncognita.entity.npc.Merchant;
-import TerraIncognita.item.Equipment;
-import TerraIncognita.item.EquipmentSlot;
+import TerraIncognita.item.BombItem;
 import TerraIncognita.item.Item;
 import TerraIncognita.item.Potion;
 import java.util.HashMap;
@@ -30,15 +29,15 @@ class MerchantTest {
         potion.setBuyPrice(50);
         potion.setSellPrice(25);
 
-        Equipment sword = new Equipment("sword_test", "Iron Sword", EquipmentSlot.WEAPON, 5, 0);
-        sword.setBuyPrice(120);
-        sword.setSellPrice(60);
+        BombItem bomb = new BombItem("bomb_test", "Bomb");
+        bomb.setBuyPrice(120);
+        bomb.setSellPrice(60);
 
         Map<Item, Integer> prices = new HashMap<>();
         prices.put(potion, 50);
-        prices.put(sword, 120);
+        prices.put(bomb, 120);
 
-        shop = new Shop(List.of(potion, sword), prices);
+        shop = new Shop(List.of(potion, bomb), prices);
     }
 
     @Test

@@ -113,5 +113,4 @@ public class Arrow {
 
     public double getWorldX() { return worldX; }
     public double getWorldY() { return worldY; }
-    public double getAngle() { return angle; }
 }

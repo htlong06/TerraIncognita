@@ -53,7 +53,4 @@ public abstract class NPC extends Entity {
      */
     public abstract void interact(Player player);
 
-    // --- Getter ---
-    public String getDialogText() { return dialogText; }
-    public boolean isInteractable() { return interactable; }
 }

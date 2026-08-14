@@ -96,11 +96,4 @@ public class Camera {
     /**
      * Chuyển toạ độ world sang toạ độ màn hình (ngược lại với trên).
      */
-    public int worldToScreenX(int worldX) {
-        return worldX - offsetX;
-    }
-
-    public int worldToScreenY(int worldY) {
-        return worldY - offsetY;
-    }
 }
