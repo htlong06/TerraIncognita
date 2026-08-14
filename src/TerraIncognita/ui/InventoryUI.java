@@ -10,6 +10,7 @@ import TerraIncognita.util.Constants;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.util.Locale;
 
 /**
  * Giao diện túi đồ (Inventory).
@@ -51,7 +52,7 @@ public class InventoryUI {
         String spriteName = item.getSpriteName();
         return (spriteName != null && !spriteName.isEmpty())
                 ? spriteName
-                : "item_" + item.getType().name().toLowerCase();
+                : "item_" + item.getType().name().toLowerCase(Locale.ROOT);
     }
 
     // -- State --

@@ -95,6 +95,9 @@ public class SaveManager {
                     "sell_price INTEGER DEFAULT 0," +
                     "FOREIGN KEY (save_id) REFERENCES saves(id) ON DELETE CASCADE" +
                     ")");
+                // save_inventory có thể đã tồn tại từ bản cũ (thiếu cột mới thêm sau này)
+                // — CREATE TABLE IF NOT EXISTS không tự thêm cột, phải ALTER thủ công.
+                migrateSaveInventoryColumns(stmt);
                 stmt.executeUpdate(
                     "CREATE TABLE IF NOT EXISTS save_equipped (" +
                     "id INTEGER PRIMARY KEY AUTOINCREMENT," +
@@ -110,6 +113,37 @@ public class SaveManager {
             }
         } catch (ClassNotFoundException | SQLException e) {
             throw new RuntimeException("Failed to initialize save database: " + dbPath, e);
+        }
+    }
+
+    /**
+     * Thêm các cột mới (potion_effect, regen_*, exp_amount, buy_price, sell_price)
+     * vào save_inventory nếu DB được tạo từ bản cũ chưa có — tránh save/load
+     * của người chơi có save cũ bị lỗi SQLException âm thầm (saveGame/loadGame
+     * trả về false) do thiếu cột.
+     */
+    private void migrateSaveInventoryColumns(Statement stmt) throws SQLException {
+        java.util.Set<String> existing = new java.util.HashSet<>();
+        try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(save_inventory)")) {
+            while (rs.next()) {
+                existing.add(rs.getString("name"));
+            }
+        }
+        if (existing.isEmpty()) {
+            return; // bảng chưa tồn tại — CREATE TABLE IF NOT EXISTS ở trên sẽ tạo đủ cột mới
+        }
+        addColumnIfMissing(stmt, existing, "potion_effect", "TEXT");
+        addColumnIfMissing(stmt, existing, "regen_amount", "INTEGER");
+        addColumnIfMissing(stmt, existing, "regen_duration", "REAL");
+        addColumnIfMissing(stmt, existing, "exp_amount", "INTEGER");
+        addColumnIfMissing(stmt, existing, "buy_price", "INTEGER DEFAULT 0");
+        addColumnIfMissing(stmt, existing, "sell_price", "INTEGER DEFAULT 0");
+    }
+
+    private void addColumnIfMissing(Statement stmt, java.util.Set<String> existingColumns,
+                                     String column, String sqlType) throws SQLException {
+        if (!existingColumns.contains(column)) {
+            stmt.executeUpdate("ALTER TABLE save_inventory ADD COLUMN " + column + " " + sqlType);
         }
     }
 

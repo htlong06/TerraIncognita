@@ -13,6 +13,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Giao diện cửa hàng — mua/bán item với NPC Merchant.
@@ -55,7 +56,7 @@ public class ShopUI {
         String spriteName = item.getSpriteName();
         return (spriteName != null && !spriteName.isEmpty())
                 ? spriteName
-                : "item_" + item.getType().name().toLowerCase();
+                : "item_" + item.getType().name().toLowerCase(Locale.ROOT);
     }
 
     // -- State --

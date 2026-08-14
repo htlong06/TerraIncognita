@@ -2,6 +2,8 @@ package TerraIncognita.item;
 
 import TerraIncognita.entity.Player;
 
+import java.util.Locale;
+
 /**
  * Bình hồi phục — dùng 1 lần, hiệu ứng tuỳ Effect (bình đỏ hồi máu ngay,
  * bình xanh biển hồi máu dần theo thời gian, bình xanh lá cộng thẳng EXP).
@@ -31,7 +33,7 @@ public class Potion extends Item {
         this.expAmount = expAmount;
         this.stackable = true;
         this.maxStack = 10;
-        this.spriteName = "item_potion_" + effect.name().toLowerCase();
+        this.spriteName = "item_potion_" + effect.name().toLowerCase(Locale.ROOT);
     }
 
     /** Bình xanh biển — hồi máu dần theo thời gian (StatusEffect.REGEN). */
