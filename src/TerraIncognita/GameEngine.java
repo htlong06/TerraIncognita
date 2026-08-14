@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 import TerraIncognita.audio.BackgroundMusic;
+import TerraIncognita.audio.SoundManager;
 import TerraIncognita.combat.CombatSystem;
 import TerraIncognita.economy.LootTable;
 import TerraIncognita.economy.Shop;
@@ -272,6 +273,10 @@ public class GameEngine {
                     if (swarmEvent.getState() != lastSwarmState) {
                         lastSwarmState = swarmEvent.getState();
                         if (lastSwarmState == SwarmEvent.EventState.ACTIVE) {
+                            // SFX: chỉ phát ĐÚNG 1 LẦN tại thời điểm player vượt qua
+                            // ranh giới confineZone kích hoạt sự kiện (nhờ so sánh
+                            // != lastSwarmState phía trên — không lặp lại mỗi frame).
+                            SoundManager.play(Constants.SFX_FROG_PATH);
                             pickupMessage = "Bầy quái đã phát hiện ra bạn! Tiêu diệt tất cả bằng bomb!";
                             messageTimer = 2.5;
                         } else if (lastSwarmState == SwarmEvent.EventState.COMPLETED) {
@@ -998,6 +1003,16 @@ public class GameEngine {
 
         player.stateAttack();
 
+        // --- SFX: tiếng vung kiếm — phát ngay khi tung đòn, không phụ
+        // thuộc có trúng quái hay không (đòn "trượt" vẫn phải có tiếng chém).
+        // attack1 = nhát thường (combo 1, 2) — attack2 = đòn combo thứ 3 (finisher).
+        if (player.getWeaponMode() == WeaponMode.SWORD) {
+            String swordSfx = player.isLastAttackComboFinisher()
+                    ? Constants.SFX_ATTACK2_PATH
+                    : Constants.SFX_ATTACK1_PATH;
+            SoundManager.play(swordSfx);
+        }
+
         if (player.getWeaponMode() == WeaponMode.BOW) {
             // --- CUNG: spawn mũi tên từ tâm hiển thị sprite player ---
             double cx = player.getWorldX() + Constants.TILE_SIZE / 2.0;
@@ -1221,6 +1236,7 @@ public class GameEngine {
      */
     private void detonateBomb(Bomb bomb) {
         bomb.explode();
+        SoundManager.play(Constants.SFX_BOMB_PATH); // SFX: tiếng nổ bom
         Rectangle area = bomb.getExplosionArea();
 
         if (area.intersects(player.getHitbox())) {

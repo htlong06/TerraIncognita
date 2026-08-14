@@ -116,6 +116,13 @@ public class Constants {
     public static final String BACKGROUND_MUSIC_PATH = "resources/audio/background.wav";
     public static final float BACKGROUND_MUSIC_VOLUME_DB = -30.0f;
 
+    // --- Hiệu ứng âm thanh (SFX) ---
+    public static final String SFX_ATTACK1_PATH = "resources/audio/attack1.wav"; // nhát chém kiếm thường
+    public static final String SFX_ATTACK2_PATH = "resources/audio/attack2.wav"; // đòn combo kiếm thứ 3 (finisher)
+    public static final String SFX_BOMB_PATH = "resources/audio/bomb.wav";       // bom phát nổ
+    public static final String SFX_FROG_PATH = "resources/audio/frog.wav";       // bầy ếch bị kích hoạt (player chạm ranh giới confineZone)
+    public static final float SFX_VOLUME_DB = -10.0f;
+
     // Không cho phép khởi tạo
     private Constants() {
     }
