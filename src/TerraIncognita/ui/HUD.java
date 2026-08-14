@@ -1,9 +1,12 @@
 package TerraIncognita.ui;
 
 import TerraIncognita.entity.Player;
+import TerraIncognita.quest.Quest;
+import TerraIncognita.quest.QuestProgress;
 import TerraIncognita.util.Constants;
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.util.Map;
 
 /**
  * HUD (Heads-Up Display) — thanh HP, thông tin trạng thái hiện trên màn hình.
@@ -60,5 +63,21 @@ public class HUD {
         String goldText = player.getGold() + "g";
         int goldW = g2d.getFontMetrics().stringWidth(goldText);
         g2d.drawString(goldText, x + BAR_WIDTH - goldW, y + 16);
+
+        // --- Quest tracker: liệt kê các nhiệm vụ đang làm + tiến độ ---
+        y += 22;
+        Map<String, QuestProgress> activeQuests = player.getQuestLog().getActiveQuests();
+        if (!activeQuests.isEmpty()) {
+            g2d.setFont(g2d.getFont().deriveFont(11f));
+            for (QuestProgress qp : activeQuests.values()) {
+                Quest q = qp.getQuest();
+                boolean ready = qp.isReadyToTurnIn();
+                g2d.setColor(ready ? new Color(120, 240, 140) : new Color(220, 220, 230));
+                String label = q.getTitle() + " (" + qp.getCurrentAmount() + "/" + q.getTargetAmount() + ")"
+                        + (ready ? "  ✓ Quay lại NPC!" : "");
+                g2d.drawString(label, x, y);
+                y += 14;
+            }
+        }
     }
 }

@@ -2,22 +2,24 @@ package TerraIncognita.entity.monster;
 
 import TerraIncognita.collision.CollisionManager;
 import TerraIncognita.entity.Direction;
+import TerraIncognita.entity.EntityState;
 import TerraIncognita.entity.Player;
 import TerraIncognita.map.GameMap;
 import TerraIncognita.util.Constants;
 
-/**
- * Logic AI cho quái vật.
- * Hành vi: IDLE → CHASE → ATTACK → RETURN
- */
+/** State machine that drives monster movement and attacks. */
 public class MonsterAI {
+
+    private static final double ATTACK_COOLDOWN_SECONDS = 4.0;
+    private static final int LEASH_DISTANCE_MULTIPLIER = 2;
 
     public enum AIState {
         IDLE, CHASE, ATTACK, RETURN_TO_SPAWN
     }
 
     private AIState aiState;
-    private int spawnTileX, spawnTileY;
+    private int spawnTileX;
+    private int spawnTileY;
     private boolean spawnInitialized;
     private final CollisionManager collisionManager;
 
@@ -28,134 +30,175 @@ public class MonsterAI {
     }
 
     public void update(Monster monster, Player player, GameMap map, double deltaTime) {
-        if (!spawnInitialized) {
-            spawnTileX = monster.getTileX();
-            spawnTileY = monster.getTileY();
-            spawnInitialized = true;
-        }
+        initializeSpawn(monster);
 
-        if (monster.isStunned()) {
-            monster.setState(TerraIncognita.entity.EntityState.HURT);
+        if (monster.isHurt()) {
+            monster.setState(EntityState.HURT);
             return;
         }
 
-        int dist = manhattanDistance(
-            monster.getTileX(), monster.getTileY(),
-            player.getTileX(), player.getTileY()
-        );
+        int playerDistance = distanceBetween(monster, player);
 
         switch (aiState) {
             case IDLE:
-                monster.setState(TerraIncognita.entity.EntityState.IDLE);
-                if (dist <= monster.getDetectionRange()) {
-                    aiState = AIState.CHASE;
-                    monster.setAggro(true);
-                }
+                updateIdle(monster, playerDistance);
                 break;
             case CHASE:
-                monster.setState(TerraIncognita.entity.EntityState.WALK);
-                if (dist <= monster.getAttackRange()) {
-                    aiState = AIState.ATTACK;
-                    monster.setAggro(true);
-                } else if (dist > monster.getDetectionRange() * 2) {
-                    aiState = AIState.RETURN_TO_SPAWN;
-                    monster.setAggro(false);
-                } else {
-                    moveTowards(monster, player.getTileX(), player.getTileY(), map, deltaTime);
-                }
+                updateChase(monster, player, map, deltaTime, playerDistance);
                 break;
             case ATTACK:
-                if (dist > monster.getAttackRange()) {
-                    aiState = AIState.CHASE;
-                    monster.setAggro(true);
-                    break;
-                }
-
-                Direction attackDir = getAttackDirection(monster, player);
-                monster.setDirection(attackDir);
-
-                if (monster.getAttackCooldown() > 0) {
-                    monster.setState(dist > monster.getDetectionRange() ? TerraIncognita.entity.EntityState.WALK : TerraIncognita.entity.EntityState.IDLE);
-                    break;
-                }
-
-                if (monster.getCurrentAnimation() == null || monster.getState() != TerraIncognita.entity.EntityState.ATTACK) {
-                    monster.setState(TerraIncognita.entity.EntityState.ATTACK);
-                    monster.resetAttackDamageTriggered();
-                    monster.resetAnimationForState(TerraIncognita.entity.EntityState.ATTACK, attackDir);
-                    break;
-                }
-
-                if (monster.getCurrentAnimation() != null
-                        && monster.getCurrentAnimation().isFinished()
-                        && !monster.isAttackDamageTriggered()) {
-                    int rawDamage = Math.max(1, monster.getAtk() - player.getDef());
-                    player.takeDamage(rawDamage);
-                    monster.setAttackCooldown(4.0);
-                    monster.resetAttackDamageTriggered();
-                    monster.setState(dist > monster.getDetectionRange() ? TerraIncognita.entity.EntityState.WALK : TerraIncognita.entity.EntityState.IDLE);
-                    break;
-                }
-
-                if (monster.getCurrentAnimation() != null && !monster.getCurrentAnimation().isFinished()) {
-                    monster.setState(TerraIncognita.entity.EntityState.ATTACK);
-                }
-
-                if (monster.getCurrentAnimation() != null && monster.getCurrentAnimation().isFinished()) {
-                    monster.resetAttackDamageTriggered();
-                }
+                updateAttack(monster, player, playerDistance);
                 break;
             case RETURN_TO_SPAWN:
-                monster.setState(TerraIncognita.entity.EntityState.WALK);
-                if (monster.getTileX() == spawnTileX && monster.getTileY() == spawnTileY) {
-                    aiState = AIState.IDLE;
-                    monster.setAggro(false);
-                } else {
-                    moveTowards(monster, spawnTileX, spawnTileY, map, deltaTime);
-                }
-                if (dist <= monster.getDetectionRange()) {
-                    aiState = AIState.CHASE;
-                    monster.setAggro(true);
-                }
+                updateReturnToSpawn(monster, map, deltaTime, playerDistance);
                 break;
         }
+    }
+
+    private void initializeSpawn(Monster monster) {
+        if (spawnInitialized) {
+            return;
+        }
+
+        spawnTileX = monster.getTileX();
+        spawnTileY = monster.getTileY();
+        spawnInitialized = true;
+    }
+
+    private void updateIdle(Monster monster, int playerDistance) {
+        monster.setState(EntityState.IDLE);
+        if (playerDistance <= monster.getDetectionRange()) {
+            becomeAggro(AIState.CHASE, monster);
+        }
+    }
+
+    private void updateChase(Monster monster, Player player, GameMap map, double deltaTime, int playerDistance) {
+        monster.setState(EntityState.WALK);
+
+        if (playerDistance <= monster.getAttackRange()) {
+            becomeAggro(AIState.ATTACK, monster);
+            return;
+        }
+
+        if (playerDistance > getLeashDistance(monster)) {
+            aiState = AIState.RETURN_TO_SPAWN;
+            monster.setAggro(false);
+            return;
+        }
+
+        moveTowards(monster, player.getTileX(), player.getTileY(), map, deltaTime);
+    }
+
+    private void updateAttack(Monster monster, Player player, int playerDistance) {
+        if (playerDistance > monster.getAttackRange()) {
+            becomeAggro(AIState.CHASE, monster);
+            return;
+        }
+
+        Direction attackDirection = getDirectionToPlayer(monster, player);
+        monster.setDirection(attackDirection);
+
+        if (monster.getAttackCooldown() > 0) {
+            monster.setState(getWaitingState(monster, playerDistance));
+            return;
+        }
+
+        if (monster.getState() != EntityState.ATTACK || monster.getCurrentAnimation() == null) {
+            startAttack(monster, attackDirection);
+            return;
+        }
+
+        if (monster.getCurrentAnimation().isFinished()) {
+            finishAttack(monster, player, playerDistance);
+            return;
+        }
+
+        monster.setState(EntityState.ATTACK);
+    }
+
+    private void updateReturnToSpawn(Monster monster, GameMap map, double deltaTime, int playerDistance) {
+        monster.setState(EntityState.WALK);
+
+        if (isAtSpawn(monster)) {
+            aiState = AIState.IDLE;
+            monster.setAggro(false);
+        } else {
+            moveTowards(monster, spawnTileX, spawnTileY, map, deltaTime);
+        }
+
+        if (playerDistance <= monster.getDetectionRange()) {
+            becomeAggro(AIState.CHASE, monster);
+        }
+    }
+
+    private void startAttack(Monster monster, Direction attackDirection) {
+        monster.setState(EntityState.ATTACK);
+        monster.resetAttackDamageTriggered();
+        monster.resetAnimationForState(EntityState.ATTACK, attackDirection);
+    }
+
+    private void finishAttack(Monster monster, Player player, int playerDistance) {
+        if (!monster.isAttackDamageTriggered()) {
+            int damage = Math.max(1, monster.getAtk() - player.getDef());
+            player.takeDamage(damage);
+        }
+
+        monster.setAttackCooldown(ATTACK_COOLDOWN_SECONDS);
+        monster.resetAttackDamageTriggered();
+        monster.setState(getWaitingState(monster, playerDistance));
+    }
+
+    private EntityState getWaitingState(Monster monster, int playerDistance) {
+        return playerDistance > monster.getDetectionRange() ? EntityState.WALK : EntityState.IDLE;
+    }
+
+    private void becomeAggro(AIState nextState, Monster monster) {
+        aiState = nextState;
+        monster.setAggro(true);
     }
 
     private void moveTowards(Monster monster, int targetX, int targetY, GameMap map, double deltaTime) {
         int dx = targetX - monster.getTileX();
         int dy = targetY - monster.getTileY();
+        Direction direction = choosePrimaryDirection(dx, dy);
 
-        Direction dir = null;
-        if (Math.abs(dx) >= Math.abs(dy)) {
-            dir = dx > 0 ? Direction.RIGHT : Direction.LEFT;
-        } else {
-            dir = dy > 0 ? Direction.DOWN : Direction.UP;
-        }
+        double moveX = direction.getDx() * monster.getSpeed() * deltaTime;
+        double moveY = direction.getDy() * monster.getSpeed() * deltaTime;
 
-        double moveX = dir.getDx() * monster.getSpeed() * deltaTime;
-        double moveY = dir.getDy() * monster.getSpeed() * deltaTime;
-
-        // Va chạm tường được CollisionManager xử lý bằng hitbox, tách
-        // trục X/Y để quái có thể trượt dọc tường thay vì bị kẹt cứng.
         double[] resolved = collisionManager.resolveMovement(monster, map, moveX, moveY);
         monster.setWorldX(resolved[0]);
         monster.setWorldY(resolved[1]);
-        monster.setDirection(dir);
+        monster.setDirection(direction);
         monster.updateTilePosition(Constants.TILE_SIZE);
     }
 
-    private Direction getAttackDirection(Monster monster, Player player) {
+    private Direction getDirectionToPlayer(Monster monster, Player player) {
         int dx = player.getTileX() - monster.getTileX();
         int dy = player.getTileY() - monster.getTileY();
+        return choosePrimaryDirection(dx, dy);
+    }
 
+    private Direction choosePrimaryDirection(int dx, int dy) {
         if (Math.abs(dx) >= Math.abs(dy)) {
             return dx >= 0 ? Direction.RIGHT : Direction.LEFT;
         }
         return dy >= 0 ? Direction.DOWN : Direction.UP;
     }
 
-    private int manhattanDistance(int x1, int y1, int x2, int y2) {
-        return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+    private int distanceBetween(Monster monster, Player player) {
+        return manhattanDistance(monster.getTileX(), monster.getTileY(), player.getTileX(), player.getTileY());
+    }
+
+    private int manhattanDistance(int startX, int startY, int endX, int endY) {
+        return Math.abs(startX - endX) + Math.abs(startY - endY);
+    }
+
+    private boolean isAtSpawn(Monster monster) {
+        return monster.getTileX() == spawnTileX && monster.getTileY() == spawnTileY;
+    }
+
+    private int getLeashDistance(Monster monster) {
+        return monster.getDetectionRange() * LEASH_DISTANCE_MULTIPLIER;
     }
 
     public AIState getAiState() { return aiState; }

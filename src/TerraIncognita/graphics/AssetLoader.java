@@ -50,6 +50,31 @@ public class AssetLoader {
         loadMonsters();
         loadArrow();
         loadBomb();
+        loadNPC();
+    }
+
+    /**
+     * Load sprite cho NPC (Quest Giver, v.v.).
+     * Hình desertnpc.png là sprite sheet 2 frame nằm cạnh nhau.
+     * Tách thành từng frame riêng để animation.
+     */
+    private void loadNPC() {
+        String path = Constants.SPRITES_PATH + "npc/desertnpc.png";
+        BufferedImage sheet = loadImage(path);
+        if (sheet == null) {
+            System.err.println("[AssetLoader] WARN: Could not load npc/desertnpc.png");
+            return;
+        }
+        int frameCount = 2;
+        int frameW = sheet.getWidth() / frameCount;
+        int frameH = sheet.getHeight();
+        BufferedImage[] frames = new BufferedImage[frameCount];
+        for (int i = 0; i < frameCount; i++) {
+            frames[i] = sheet.getSubimage(i * frameW, 0, frameW, frameH);
+        }
+        spriteFrames.put("npc_questgiver", frames);
+        System.out.println("[DEBUG AssetLoader] Loaded npc_questgiver => "
+                + frameCount + " frames (" + frameW + "x" + frameH + " each)");
     }
 
     private static final int CHEST_SIZE = 64;
