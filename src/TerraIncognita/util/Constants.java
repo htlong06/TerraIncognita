@@ -88,7 +88,7 @@ public class Constants {
     public static final String DATA_PATH = "resources/data/";
     public static final String SAVES_PATH = "resources/saves/";
     public static final String BACKGROUND_MUSIC_PATH = "resources/audio/background.wav";
-    public static final float BACKGROUND_MUSIC_VOLUME_DB = -12.0f;
+    public static final float BACKGROUND_MUSIC_VOLUME_DB = -30.0f;
 
     // Không cho phép khởi tạo
     private Constants() {

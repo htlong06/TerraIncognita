@@ -27,8 +27,6 @@ import TerraIncognita.entity.monster.Monster;
 import TerraIncognita.entity.monster.OrcMonster;
 import TerraIncognita.entity.npc.Merchant;
 import TerraIncognita.entity.npc.QuestGiver;
-import TerraIncognita.quest.Quest;
-import TerraIncognita.quest.QuestObjectiveType;
 import TerraIncognita.event.EventSystem;
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.graphics.AssetLoader;
@@ -37,6 +35,8 @@ import TerraIncognita.item.Item;
 import TerraIncognita.item.MaterialItem;
 import TerraIncognita.item.Potion;
 import TerraIncognita.map.DungeonMapManager;
+import TerraIncognita.quest.Quest;
+import TerraIncognita.quest.QuestObjectiveType;
 import TerraIncognita.save.SaveManager;
 import TerraIncognita.ui.DialogBox;
 import TerraIncognita.ui.GameOverScreen;
@@ -91,14 +91,14 @@ public class GameEngine {
     private CombatSystem combatSystem;
 
     private static final List<MonsterSpawn> ORC_SPAWN_POINTS = List.of(
-            new MonsterSpawn(15, 12),
-            new MonsterSpawn(25, 12),
-            new MonsterSpawn(35, 20),
-            new MonsterSpawn(40, 20),
-            new MonsterSpawn(75, 40),
-            new MonsterSpawn(30, 40),
-            new MonsterSpawn(60, 40),
-            new MonsterSpawn(50, 60)
+            new MonsterSpawn(15, 22),
+            new MonsterSpawn(44, 20),
+            new MonsterSpawn(70, 15),
+            new MonsterSpawn(95, 15),
+            new MonsterSpawn(14, 58),
+            new MonsterSpawn(40, 60),
+            new MonsterSpawn(70, 60),
+            new MonsterSpawn(95, 60)
     );
 
     // --- Mũi tên (Arrow projectile) ---
