@@ -29,6 +29,7 @@ import TerraIncognita.entity.npc.QuestGiver;
 import TerraIncognita.quest.Quest;
 import TerraIncognita.quest.QuestObjectiveType;
 import TerraIncognita.event.EventSystem;
+import TerraIncognita.event.SwarmEvent;
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.graphics.AssetLoader;
 import TerraIncognita.item.Equipment;
@@ -85,6 +86,8 @@ public class GameEngine {
     private SaveManager saveManager;
     private MenuScreen menuScreen;
     private List<Monster> activeMonsters;
+    private SwarmEvent swarmEvent;
+    private SwarmEvent.EventState lastSwarmState; // để phát hiện đổi trạng thái (DORMANT→ACTIVE→COMPLETED) và hiện thông báo 1 lần
     private CombatSystem combatSystem;
 
     private static final List<MonsterSpawn> ORC_SPAWN_POINTS = List.of(
@@ -181,6 +184,13 @@ public class GameEngine {
 
         spawnMonsters();
 
+        // Sự kiện bầy quái góc map — spawn 20 con (Constants.SWARM_COUNT) trong
+        // vùng góc dưới-trái, đăng ký vào activeMonsters để dùng chung toàn bộ
+        // hệ thống combat/render/bomb hiện có (xem SwarmEvent để hiểu vì sao).
+        this.swarmEvent = new SwarmEvent(mapManager.getCurrentMap());
+        this.activeMonsters.addAll(swarmEvent.getCreatures());
+        this.lastSwarmState = swarmEvent.getState();
+
         // Hệ thống chiến đấu — tính damage/crit/miss khi tấn công
         this.combatSystem = new CombatSystem();
 
@@ -224,6 +234,19 @@ public class GameEngine {
                     if (m.isAlive()) {
                         m.update(deltaTime); // Cập nhật chuyển frame hoạt ảnh đứng yên
                         m.updateAI(player, mapManager.getCurrentMap(), deltaTime);
+                    }
+                }
+                if (swarmEvent != null) {
+                    swarmEvent.update(player, mapManager.getCurrentMap(), deltaTime);
+                    if (swarmEvent.getState() != lastSwarmState) {
+                        lastSwarmState = swarmEvent.getState();
+                        if (lastSwarmState == SwarmEvent.EventState.ACTIVE) {
+                            pickupMessage = "Bầy quái đã phát hiện ra bạn! Tiêu diệt tất cả bằng bomb!";
+                            messageTimer = 2.5;
+                        } else if (lastSwarmState == SwarmEvent.EventState.COMPLETED) {
+                            pickupMessage = "Đã tiêu diệt toàn bộ bầy quái!";
+                            messageTimer = 2.5;
+                        }
                     }
                 }
                 break;
@@ -1122,6 +1145,15 @@ public class GameEngine {
             if (m.isAlive() && area.intersects(m.getHitbox())) {
                 m.takeDamage(Constants.BOMB_DAMAGE);
             }
+        }
+
+        // Hất văng cả bầy quái ra xa tâm nổ (kể cả những con ngoài vùng
+        // sát thương area, miễn trong bán kính SWARM_EXPLOSION_FLEE_RADIUS
+        // rộng hơn — vụ nổ vẫn làm chúng hoảng loạn dù không chết).
+        if (swarmEvent != null) {
+            double centerX = area.x + area.width / 2.0;
+            double centerY = area.y + area.height / 2.0;
+            swarmEvent.notifyExplosion(centerX, centerY);
         }
     }
 
