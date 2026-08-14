@@ -84,12 +84,6 @@ public class CombatSystem {
     /**
      * Kiểm tra 2 entity có đứng cạnh nhau không (để tấn công cận chiến).
      */
-    public boolean isInMeleeRange(Entity a, Entity b) {
-        int dx = Math.abs(a.getTileX() - b.getTileX());
-        int dy = Math.abs(a.getTileY() - b.getTileY());
-        return (dx + dy) == 1;
-    }
-
     /**
      * Kết quả của một lượt tấn công.
      */

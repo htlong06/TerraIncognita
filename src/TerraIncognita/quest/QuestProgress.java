@@ -31,7 +31,6 @@ public class QuestProgress {
 
     public Quest getQuest() { return quest; }
     public int getCurrentAmount() { return currentAmount; }
-    public QuestStatus getStatus() { return status; }
     public boolean isReadyToTurnIn() { return status == QuestStatus.READY_TO_TURN_IN; }
 
     public void markTurnedIn() { this.status = QuestStatus.TURNED_IN; }

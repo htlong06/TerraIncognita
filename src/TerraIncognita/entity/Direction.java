@@ -24,13 +24,4 @@ public enum Direction {
     public int getDy() { return dy; }
 
     /** Trả về hướng ngược lại */
-    public Direction opposite() {
-        switch (this) {
-            case UP:    return DOWN;
-            case DOWN:  return UP;
-            case LEFT:  return RIGHT;
-            case RIGHT: return LEFT;
-            default:    return this;
-        }
-    }
 }

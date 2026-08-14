@@ -33,8 +33,6 @@ public class InventoryUI {
     private static Color colorForType(ItemType type) {
         switch (type) {
             case POTION:     return new Color(220, 60, 60);
-            case WEAPON:     return new Color(160, 160, 170);
-            case ARMOR:      return new Color(70, 130, 220);
             case SCROLL:     return new Color(180, 120, 220);
             case MATERIAL:   return new Color(140, 200, 100);
             case CONSUMABLE: return new Color(240, 150, 80);

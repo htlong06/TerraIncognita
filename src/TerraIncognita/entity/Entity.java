@@ -222,8 +222,6 @@ public abstract class Entity {
     public void setWorldY(double worldY) { this.worldY = worldY; }
     public int getTileX() { return tileX; }
     public int getTileY() { return tileY; }
-    public void setTileX(int tileX) { this.tileX = tileX; }
-    public void setTileY(int tileY) { this.tileY = tileY; }
     public double getSpeed() { return speed; }
     public int getHp() { return hp; }
     public int getMaxHp() { return maxHp; }
@@ -234,12 +232,6 @@ public abstract class Entity {
     public void setDirection(Direction direction) { this.direction = direction; }
     public EntityState getState() { return state; }
     public void setState(EntityState state) { this.state = state; }
-    public void resetCurrentAnimation() {
-        if (currentAnimation != null) {
-            currentAnimation.reset();
-        }
-    }
-
     public void resetAnimationForState(EntityState state, Direction direction) {
         String key = state.name().toLowerCase() + "_" + direction.name().toLowerCase();
         Animation anim = animations.get(key);
@@ -254,5 +246,4 @@ public abstract class Entity {
 
     public Animation getCurrentAnimation() { return currentAnimation; }
     public String getName() { return name; }
-    public List<StatusEffect> getActiveEffects() { return activeEffects; }
 }

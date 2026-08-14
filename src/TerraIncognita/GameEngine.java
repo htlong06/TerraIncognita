@@ -28,7 +28,6 @@ import TerraIncognita.entity.monster.Monster;
 import TerraIncognita.entity.monster.OrcMonster;
 import TerraIncognita.entity.npc.Merchant;
 import TerraIncognita.entity.npc.QuestGiver;
-import TerraIncognita.event.EventSystem;
 import TerraIncognita.event.SwarmEvent;
 import TerraIncognita.graphics.Animation;
 import TerraIncognita.graphics.AssetLoader;
@@ -85,7 +84,6 @@ public class GameEngine {
     private DialogBox dialogBox;
     private GameOverScreen gameOverScreen;
     private RadialMenu radialMenu;
-    private EventSystem eventSystem;
     private SaveManager saveManager;
     private MenuScreen menuScreen;
     private PauseMenu pauseMenu = new PauseMenu();
@@ -114,7 +112,6 @@ public class GameEngine {
 
     // TODO (GĐ2): GameMap currentMap
     // TODO (GĐ3): AssetLoader assetLoader, Renderer renderer
-    // TODO (GĐ5): EventSystem eventSystem
     // TODO (GĐ6): SaveManager saveManager
 
     public GameEngine(InputHandler inputHandler) {
@@ -205,7 +202,6 @@ public class GameEngine {
         this.dialogBox = new DialogBox();
         this.gameOverScreen = new GameOverScreen();
         this.radialMenu = new RadialMenu();
-        this.eventSystem = new EventSystem();
         this.saveManager = new SaveManager(Constants.SAVES_PATH + "terra_incognita.db");
         boolean hasSave = saveManager.listSaveSlots().size() > 0;
         this.menuScreen = new MenuScreen(hasSave);
@@ -1512,12 +1508,4 @@ public class GameEngine {
         }
     }
 
-    // --- Getter ---
-    public GameState getCurrentState() {
-        return currentState;
-    }
-
-    public Player getPlayer() {
-        return player;
-    }
 }

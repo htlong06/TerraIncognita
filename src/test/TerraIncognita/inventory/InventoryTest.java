@@ -1,8 +1,7 @@
 package TerraIncognita.inventory;
 
 import TerraIncognita.entity.Player;
-import TerraIncognita.item.Equipment;
-import TerraIncognita.item.EquipmentSlot;
+import TerraIncognita.item.BombItem;
 import TerraIncognita.item.Item;
 import TerraIncognita.item.ItemType;
 import TerraIncognita.item.Potion;
@@ -24,7 +23,7 @@ class InventoryTest {
 
     @Test
     void addItem_nonStackableEquipment_isAddedAndReturnsTrue() {
-        Equipment sword = new Equipment("sword1", "Iron Sword", EquipmentSlot.WEAPON, 5, 0);
+        BombItem sword = new BombItem("sword1", "Iron Sword");
 
         boolean result = inventory.addItem(sword);
         List<Item> items = inventory.getItems();
@@ -55,8 +54,8 @@ class InventoryTest {
     @Test
     void addItem_whenInventoryFull_returnsFalse() {
         Inventory small = new Inventory(1);
-        Equipment first = new Equipment("e1", "Equip One", EquipmentSlot.ARMOR, 0, 3);
-        Equipment second = new Equipment("e2", "Equip Two", EquipmentSlot.WEAPON, 2, 0);
+        BombItem first = new BombItem("e1", "Equip One");
+        BombItem second = new BombItem("e2", "Equip Two");
 
         assertTrue(small.addItem(first));
         assertTrue(small.isFull());
@@ -66,7 +65,7 @@ class InventoryTest {
 
     @Test
     void removeItem_existingItem_returnsTrueAndRemovesIt() {
-        Equipment sword = new Equipment("sword1", "Iron Sword", EquipmentSlot.WEAPON, 5, 0);
+        BombItem sword = new BombItem("sword1", "Iron Sword");
         inventory.addItem(sword);
 
         boolean result = inventory.removeItem(sword);
@@ -78,8 +77,8 @@ class InventoryTest {
 
     @Test
     void removeItem_nonExistingItem_returnsFalse() {
-        Equipment sword = new Equipment("sword1", "Iron Sword", EquipmentSlot.WEAPON, 5, 0);
-        Equipment other = new Equipment("other", "Other", EquipmentSlot.ARMOR, 0, 1);
+        BombItem sword = new BombItem("sword1", "Iron Sword");
+        BombItem other = new BombItem("other", "Other");
 
         inventory.addItem(sword);
         boolean result = inventory.removeItem(other);
@@ -90,7 +89,7 @@ class InventoryTest {
 
     @Test
     void findById_existingId_returnsItem() {
-        Equipment sword = new Equipment("sword1", "Iron Sword", EquipmentSlot.WEAPON, 5, 0);
+        BombItem sword = new BombItem("sword1", "Iron Sword");
         inventory.addItem(sword);
 
         Item found = inventory.findById("sword1");
@@ -117,9 +116,9 @@ class InventoryTest {
     @Test
     void isFull_whenUsedSlotsEqualsMax_returnsTrue() {
         Inventory exact = new Inventory(2);
-        exact.addItem(new Equipment("a", "A", EquipmentSlot.WEAPON, 1, 0));
+        exact.addItem(new BombItem("a", "A"));
         assertFalse(exact.isFull());
-        exact.addItem(new Equipment("b", "B", EquipmentSlot.ARMOR, 0, 1));
+        exact.addItem(new BombItem("b", "B"));
         assertTrue(exact.isFull());
         assertEquals(2, exact.getUsedSlots());
         assertEquals(2, exact.getMaxSlots());
@@ -151,7 +150,7 @@ class InventoryTest {
         player.takeDamage(20);
         int hpBefore = player.getHp();
 
-        Equipment sword = new Equipment("sword1", "Iron Sword", EquipmentSlot.WEAPON, 5, 0);
+        BombItem sword = new BombItem("sword1", "Iron Sword");
         inventory.addItem(sword);
 
         boolean used = inventory.useItem(0, player);

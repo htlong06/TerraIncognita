@@ -3,8 +3,6 @@ package TerraIncognita.save;
 import TerraIncognita.entity.Direction;
 import TerraIncognita.entity.Player;
 import TerraIncognita.item.BombItem;
-import TerraIncognita.item.Equipment;
-import TerraIncognita.item.EquipmentSlot;
 import TerraIncognita.item.Item;
 import TerraIncognita.item.MaterialItem;
 import TerraIncognita.item.Potion;
@@ -86,7 +84,7 @@ class SaveManagerTest {
     void save_and_load_inventory() {
         Player original = new Player();
         original.getInventory().addItem(new Potion("p1", "Health Potion", 30));
-        original.getInventory().addItem(new Equipment("sword1", "Iron Sword", EquipmentSlot.WEAPON, 5, 0));
+        original.getInventory().addItem(new BombItem("bomb1", "Bomb"));
 
         assertTrue(saveManager.saveGame("inv", original));
 
@@ -99,9 +97,8 @@ class SaveManagerTest {
         assertInstanceOf(Potion.class, potion);
         assertEquals(30, ((Potion) potion).getHealAmount());
 
-        Item sword = loaded.getInventory().findById("sword1");
-        assertInstanceOf(Equipment.class, sword);
-        assertEquals(5, ((Equipment) sword).getAtkBonus());
+        Item bomb = loaded.getInventory().findById("bomb1");
+        assertInstanceOf(BombItem.class, bomb);
     }
 
     @Test
@@ -205,26 +202,6 @@ class SaveManagerTest {
         Player loaded = new Player();
         assertTrue(saveManager.loadGame("legacy", loaded));
         assertNotNull(loaded.getInventory().findById("exp_legacy"));
-    }
-
-    @Test
-    void save_and_load_equipment() {
-        Player original = new Player();
-        Equipment sword = new Equipment("sword1", "Iron Sword", EquipmentSlot.WEAPON, 5, 0);
-        original.getInventory().addItem(sword);
-        assertTrue(original.equip(sword));
-
-        assertTrue(saveManager.saveGame("equip", original));
-
-        Player loaded = new Player();
-        assertTrue(saveManager.loadGame("equip", loaded));
-
-        Equipment equipped = loaded.getEquippedItems().get(EquipmentSlot.WEAPON);
-        assertNotNull(equipped);
-        assertEquals("sword1", equipped.getId());
-        assertEquals(5, equipped.getAtkBonus());
-        assertEquals(15, loaded.getAtk());
-        assertFalse(loaded.getInventory().hasItem("sword1"));
     }
 
     @Test

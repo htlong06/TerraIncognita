@@ -59,10 +59,6 @@ public class Shop {
         return Collections.unmodifiableList(items);
     }
 
-    public Map<Item, Integer> getPrices() {
-        return Collections.unmodifiableMap(prices);
-    }
-
     public int getPrice(Item item) {
         return prices.getOrDefault(item, 0);
     }

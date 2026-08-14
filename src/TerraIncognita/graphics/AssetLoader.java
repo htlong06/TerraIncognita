@@ -257,16 +257,6 @@ public class AssetLoader {
      * Lọc bỏ các frame trống (toàn pixel alpha = 0) khỏi mảng.
      * Spritesheet frog có nhiều ô trống ở cuối mỗi hàng.
      */
-    private BufferedImage[] filterNonEmptyFrames(BufferedImage[] frames) {
-        java.util.List<BufferedImage> result = new java.util.ArrayList<>();
-        for (BufferedImage frame : frames) {
-            if (frame != null && !isFrameEmpty(frame)) {
-                result.add(frame);
-            }
-        }
-        return result.toArray(new BufferedImage[0]);
-    }
-
     private boolean isFrameEmpty(BufferedImage img) {
         for (int y = 0; y < img.getHeight(); y++) {
             for (int x = 0; x < img.getWidth(); x++) {
@@ -412,10 +402,6 @@ public class AssetLoader {
     /**
      * Lấy ảnh UI theo tên.
      */
-    public BufferedImage getUI(String name) {
-        return uiImages.get(name);
-    }
-
     // TODO: Phương thức helper
     // private BufferedImage loadImage(String path) { ... } — đọc 1 file ảnh bằng
     // ImageIO.read()

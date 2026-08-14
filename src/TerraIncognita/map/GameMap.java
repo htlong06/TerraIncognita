@@ -60,23 +60,12 @@ public class GameMap {
         return height;
     }
 
-    public Tile[][] getTiles() {
-        return tiles;
-    }
-
     public int getPlayerStartX() {
         return playerStartX;
     }
 
     public int getPlayerStartY() {
         return playerStartY;
-    }
-
-    public void setPlayerStart(int x, int y) {
-        if (contains(x, y)) {
-            this.playerStartX = x;
-            this.playerStartY = y;
-        }
     }
 
     private void fill(TileType type) {
