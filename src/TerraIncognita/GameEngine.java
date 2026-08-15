@@ -45,7 +45,6 @@ import TerraIncognita.ui.HUD;
 import TerraIncognita.ui.InventoryUI;
 import TerraIncognita.ui.MenuScreen;
 import TerraIncognita.ui.PauseMenu;
-import TerraIncognita.ui.RadialMenu;
 import TerraIncognita.ui.ShopUI;
 import TerraIncognita.util.Constants;
 /**
@@ -83,7 +82,6 @@ public class GameEngine {
     private HUD hud;
     private DialogBox dialogBox;
     private GameOverScreen gameOverScreen;
-    private RadialMenu radialMenu;
     private SaveManager saveManager;
     private MenuScreen menuScreen;
     private PauseMenu pauseMenu = new PauseMenu();
@@ -202,7 +200,6 @@ public class GameEngine {
         this.hud = new HUD();
         this.dialogBox = new DialogBox();
         this.gameOverScreen = new GameOverScreen();
-        this.radialMenu = new RadialMenu();
         this.saveManager = new SaveManager(Constants.SAVES_PATH + "terra_incognita.db");
         boolean hasSave = saveManager.listSaveSlots().size() > 0;
         this.menuScreen = new MenuScreen(hasSave);
@@ -309,9 +306,6 @@ public class GameEngine {
             case SHOP:
                 updateShop(deltaTime);
                 break;
-            case RADIAL_MENU:
-                updateRadialMenu(deltaTime);
-                break;
             case DIALOG:
                 updateDialog(deltaTime);
                 break;
@@ -348,10 +342,6 @@ public class GameEngine {
             case DIALOG:
                 renderPlaying(g2d);
                 dialogBox.render(g2d);
-                break;
-            case RADIAL_MENU:
-                renderPlaying(g2d);
-                radialMenu.render(g2d);
                 break;
             case PAUSED:
                 renderPlaying(g2d); 
@@ -479,12 +469,6 @@ public class GameEngine {
             if (inventoryUI.isOpen()) {
                 changeState(GameState.INVENTORY);
             }
-        }
-
-        // TAB — mở radial menu
-        if (inputHandler.isKeyJustPressed(KeyEvent.VK_TAB)) {
-            radialMenu.open();
-            changeState(GameState.RADIAL_MENU);
         }
 
         // F — gần merchant thì mở shop, gần quest giver thì mở dialog quest, gần rương thì mở rương
@@ -665,42 +649,6 @@ public class GameEngine {
         }
     }
 
-    private void updateRadialMenu(double deltaTime) {
-        // Cập nhật hover theo chuột
-        radialMenu.updateHover(inputHandler.getMouseX(), inputHandler.getMouseY());
-
-        // Thả TAB → chọn option
-        if (!inputHandler.isKeyPressed(KeyEvent.VK_TAB)) {
-            RadialMenu.Option selected = radialMenu.getHoveredOption();
-            radialMenu.close();
-            if (selected != null) {
-                switch (selected) {
-                    case INVENTORY:
-                        inventoryUI.toggle();
-                        if (inventoryUI.isOpen()) {
-                            changeState(GameState.INVENTORY);
-                        } else {
-                            changeState(GameState.PLAYING);
-                        }
-                        break;
-                    case TALENT:
-                        // TODO: talent tree state khi Person 2 xong
-                        pickupMessage = "Talent tree — chưa implement";
-                        messageTimer = 2.0;
-                        changeState(GameState.PLAYING);
-                        break;
-                    case MAP:
-                        // TODO: map state khi Person 1 xong
-                        pickupMessage = "Map — chưa implement";
-                        messageTimer = 2.0;
-                        changeState(GameState.PLAYING);
-                        break;
-                }
-            } else {
-                changeState(GameState.PLAYING);
-            }
-        }
-    }
     private void updateDialog(double deltaTime) {
         // --- Màn lựa chọn (VD: Nhận nhiệm vụ / Từ chối) — ưu tiên xử lý trước ---
         if (dialogBox.isChoicePhase()) {
