@@ -16,16 +16,16 @@ import java.awt.image.BufferedImage;
  */
 public class Arrow {
 
-    private double worldX;      // tâm mũi tên (pixel)
+    private double worldX; // tâm mũi tên (pixel)
     private double worldY;
-    private double velX;        // vận tốc theo X (pixel/giây)
-    private double velY;        // vận tốc theo Y
-    private double angle;       // góc bay (radian), dùng để xoay sprite
+    private double velX; // vận tốc theo X (pixel/giây)
+    private double velY; // vận tốc theo Y
+    private double angle; // góc bay (radian), dùng để xoay sprite
     private double distanceTraveled; // quãng đường đã bay (pixel)
-    private boolean alive;      // false khi đã trúng mục tiêu hoặc bay quá xa
+    private boolean alive; // false khi đã trúng mục tiêu hoặc bay quá xa
 
-    private BufferedImage sprite;   // frame mũi tên (arrow0)
-    private int spriteSize;         // kích thước vẽ (pixel)
+    private BufferedImage sprite; // frame mũi tên (arrow0)
+    private int spriteSize; // kích thước vẽ (pixel)
 
     // Hitbox của mũi tên nhỏ hơn sprite — chỉ phần đầu nhọn
     private static final int HITBOX_SIZE = 12;
@@ -57,7 +57,8 @@ public class Arrow {
      * Cập nhật vị trí mũi tên mỗi frame.
      */
     public void update(double deltaTime) {
-        if (!alive) return;
+        if (!alive)
+            return;
 
         double moveX = velX * deltaTime;
         double moveY = velY * deltaTime;
@@ -65,12 +66,15 @@ public class Arrow {
         worldY += moveY;
         distanceTraveled += Math.sqrt(moveX * moveX + moveY * moveY);
 
-        // Tự hủy nếu bay quá xa hoặc ra ngoài màn hình
+        // Tự hủy nếu bay quá xa (ARROW_MAX_RANGE) — đã đủ để giới hạn vòng
+        // đời mũi tên, KHÔNG cần thêm check "ra ngoài màn hình" dựa trên
+        // SCREEN_WIDTH/SCREEN_HEIGHT: worldX/worldY là toạ độ THẾ GIỚI
+        // (world-space), trong khi SCREEN_WIDTH/HEIGHT là kích thước màn
+        // hình hiển thị (screen-space) — 2 hệ toạ độ khác nhau hoàn toàn.
+        // So sánh nhầm như bản cũ khiến mũi tên bị coi là "ra khỏi màn
+        // hình" và tự hủy ngay khi vừa bắn, bất cứ khi nào player đứng xa
+        // góc (0,0) của map hơn khoảng 850px — tức gần như luôn luôn.
         if (distanceTraveled > Constants.ARROW_MAX_RANGE) {
-            alive = false;
-        }
-        if (worldX < -50 || worldX > Constants.SCREEN_WIDTH + 50
-                || worldY < -50 || worldY > Constants.SCREEN_HEIGHT + 50) {
             alive = false;
         }
     }
@@ -79,7 +83,8 @@ public class Arrow {
      * Vẽ mũi tên lên màn hình, xoay sprite theo góc bay.
      */
     public void render(Graphics2D g2d) {
-        if (!alive || sprite == null) return;
+        if (!alive || sprite == null)
+            return;
 
         int drawX = (int) worldX - spriteSize / 2;
         int drawY = (int) worldY - spriteSize / 2;
@@ -99,8 +104,7 @@ public class Arrow {
                 (int) worldX - half,
                 (int) worldY - half,
                 HITBOX_SIZE,
-                HITBOX_SIZE
-        );
+                HITBOX_SIZE);
     }
 
     public boolean isAlive() {
@@ -111,6 +115,15 @@ public class Arrow {
         alive = false;
     }
 
-    public double getWorldX() { return worldX; }
-    public double getWorldY() { return worldY; }
+    public double getWorldX() {
+        return worldX;
+    }
+
+    public double getWorldY() {
+        return worldY;
+    }
+
+    public double getAngle() {
+        return angle;
+    }
 }
