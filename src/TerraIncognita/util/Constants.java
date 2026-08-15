@@ -120,8 +120,17 @@ public class Constants {
     public static final String SFX_ATTACK1_PATH = "resources/audio/attack1.wav"; // nhát chém kiếm thường
     public static final String SFX_ATTACK2_PATH = "resources/audio/attack2.wav"; // đòn combo kiếm thứ 3 (finisher)
     public static final String SFX_BOMB_PATH = "resources/audio/bomb.wav";       // bom phát nổ
-    public static final String SFX_FROG_PATH = "resources/audio/frog.wav";       // bầy ếch bị kích hoạt (player chạm ranh giới confineZone)
+    public static final String SFX_FROG_PATH = "resources/audio/frog.wav";       // ếch kêu khi player lại gần bầy
     public static final float SFX_VOLUME_DB = -10.0f;
+
+    // --- SFX: ếch kêu theo khoảng cách ---
+    // Player đứng gần hơn bán kính này (tính tới con ếch còn sống gần nhất)
+    // -> phát tiếng ếch kêu. Rộng hơn SWARM_PANIC_RADIUS một chút để nghe
+    // được tiếng TRƯỚC khi thực sự chạm vùng kích hoạt/hoảng loạn.
+    public static final double SWARM_FROG_SFX_RADIUS = 180.0;
+    // Thời gian tối thiểu (giây) giữa 2 lần kêu liên tiếp — tránh việc
+    // đứng yên trong vùng nghe mà bị spam tiếng kêu liên tục mỗi frame.
+    public static final double SWARM_FROG_SFX_COOLDOWN = 4.0;
 
     // Không cho phép khởi tạo
     private Constants() {

@@ -90,6 +90,7 @@ public class GameEngine {
     private List<Monster> activeMonsters;
     private SwarmEvent swarmEvent;
     private SwarmEvent.EventState lastSwarmState; // để phát hiện đổi trạng thái (DORMANT→ACTIVE→COMPLETED) và hiện thông báo 1 lần
+    private double frogSfxCooldownTimer; // đếm ngược giữa 2 lần phát tiếng ếch kêu — tránh spam khi đứng yên gần bầy
     private CombatSystem combatSystem;
 
     private static final List<MonsterSpawn> ORC_SPAWN_POINTS = List.of(
@@ -269,15 +270,28 @@ public class GameEngine {
                     if (swarmEvent.getState() != lastSwarmState) {
                         lastSwarmState = swarmEvent.getState();
                         if (lastSwarmState == SwarmEvent.EventState.ACTIVE) {
-                            // SFX: chỉ phát ĐÚNG 1 LẦN tại thời điểm player vượt qua
-                            // ranh giới confineZone kích hoạt sự kiện (nhờ so sánh
-                            // != lastSwarmState phía trên — không lặp lại mỗi frame).
-                            SoundManager.play(Constants.SFX_FROG_PATH);
                             pickupMessage = "Bầy quái đã phát hiện ra bạn! Tiêu diệt tất cả bằng bomb!";
                             messageTimer = 2.5;
                         } else if (lastSwarmState == SwarmEvent.EventState.COMPLETED) {
                             pickupMessage = "Đã tiêu diệt toàn bộ bầy quái!";
                             messageTimer = 2.5;
+                        }
+                    }
+
+                    // --- SFX: ếch kêu theo KHOẢNG CÁCH — player lại gần con ếch
+                    // còn sống gần nhất hơn SWARM_FROG_SFX_RADIUS thì phát tiếng
+                    // kêu, KHÔNG phụ thuộc DORMANT hay ACTIVE (còn ếch sống là còn
+                    // nghe được, kể cả trước khi chính thức kích hoạt sự kiện).
+                    // frogSfxCooldownTimer chống spam khi player đứng yên trong
+                    // vùng nghe — chỉ kêu lại sau mỗi SWARM_FROG_SFX_COOLDOWN giây.
+                    if (frogSfxCooldownTimer > 0) {
+                        frogSfxCooldownTimer -= deltaTime;
+                    }
+                    if (lastSwarmState != SwarmEvent.EventState.COMPLETED && frogSfxCooldownTimer <= 0) {
+                        double distToFrog = swarmEvent.distanceToNearestAlive(player);
+                        if (distToFrog <= Constants.SWARM_FROG_SFX_RADIUS) {
+                            SoundManager.play(Constants.SFX_FROG_PATH);
+                            frogSfxCooldownTimer = Constants.SWARM_FROG_SFX_COOLDOWN;
                         }
                     }
                 }

@@ -483,6 +483,30 @@ public class SwarmEvent {
         }
     }
 
+    /**
+     * Khoảng cách (pixel) từ player tới con ếch còn sống GẦN NHẤT trong bầy.
+     * Dùng cho hiệu ứng âm thanh "lại gần thì nghe tiếng ếch kêu" — không
+     * phụ thuộc EventState, vì kể cả lúc DORMANT (chưa kích hoạt) player
+     * vẫn có thể nghe tiếng ếch nếu đứng đủ gần vùng confineZone.
+     * Trả về Double.MAX_VALUE nếu không còn con nào sống (đã tiêu diệt hết).
+     */
+    public double distanceToNearestAlive(Player player) {
+        double px = player.getWorldX();
+        double py = player.getWorldY();
+        double minDist = Double.MAX_VALUE;
+
+        for (SwarmCreature c : creatures) {
+            if (!c.isAlive()) continue;
+            double dx = c.getWorldX() - px;
+            double dy = c.getWorldY() - py;
+            double dist = Math.hypot(dx, dy);
+            if (dist < minDist) {
+                minDist = dist;
+            }
+        }
+        return minDist;
+    }
+
     private boolean anyAlive() {
         for (SwarmCreature c : creatures) {
             if (c.isAlive()) return true;
