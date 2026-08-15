@@ -1,17 +1,15 @@
 package TerraIncognita.map;
 
-import TerraIncognita.util.Constants;
 import java.awt.image.BufferedImage;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 import org.mapeditor.core.MapLayer;
 import org.mapeditor.core.TileLayer;
 import org.mapeditor.io.TMXMapReader;
+
+import TerraIncognita.util.Constants;
 
 /**
  * Loads a TMX map with libtiled and converts it into the simple map model used
@@ -20,7 +18,6 @@ import org.mapeditor.io.TMXMapReader;
 public class TmxMapLoader {
 
     private static final String WALL_LAYER_NAME = "wall";
-    private static final Pattern SOURCE_ATTRIBUTE = Pattern.compile("source=\"([^\"]+)\"");
 
     private final Path mapPath;
     private final List<VisualLayer> visualLayers = new ArrayList<>();
@@ -33,7 +30,7 @@ public class TmxMapLoader {
         try {
             visualLayers.clear();
 
-            org.mapeditor.core.Map tiledMap = readMapWithSafeAssetPaths();
+            org.mapeditor.core.Map tiledMap = readMap();
             GameMap gameMap = new GameMap(tiledMap.getWidth(), tiledMap.getHeight(), TileType.FLOOR);
 
             for (MapLayer layer : tiledMap) {
@@ -83,57 +80,10 @@ public class TmxMapLoader {
         visualLayers.add(visualLayer);
     }
 
-    private org.mapeditor.core.Map readMapWithSafeAssetPaths() throws Exception {
-        Path sourceMap = mapPath.toAbsolutePath().normalize();
-        Path tempDir = Files.createTempDirectory("terra-tmx-");
-        tempDir.toFile().deleteOnExit();
-
-        Path tempMap = tempDir.resolve(sourceMap.getFileName().toString());
-        String mapXml = rewriteSourceAttributes(
-                Files.readString(sourceMap, StandardCharsets.UTF_8),
-                sourceMap.getParent(),
-                tempDir,
-                true);
-        Files.writeString(tempMap, mapXml, StandardCharsets.UTF_8);
-        tempMap.toFile().deleteOnExit();
-
-        return new TMXMapReader().readMap(tempMap.toUri().toURL());
-    }
-
-    /*
-     * libtiled 1.4.2 resolves raw source attributes as URI paths, so filenames
-     * containing spaces fail. The game assets keep their original names; this
-     * temporary copy only rewrites source attributes to encoded file URIs.
-     */
-    private String rewriteSourceAttributes(String xml, Path sourceDir, Path tempDir, boolean copyTilesets)
-            throws Exception {
-        Matcher matcher = SOURCE_ATTRIBUTE.matcher(xml);
-        StringBuffer rewrittenXml = new StringBuffer();
-
-        while (matcher.find()) {
-            String source = matcher.group(1);
-            Path sourcePath = sourceDir.resolve(source).normalize();
-            String safeSource = sourcePath.toUri().toASCIIString();
-
-            if (copyTilesets && source.toLowerCase().endsWith(".tsx")) {
-                Path tempTileset = tempDir.resolve(sourcePath.getFileName().toString());
-                String tilesetXml = rewriteSourceAttributes(
-                        Files.readString(sourcePath, StandardCharsets.UTF_8),
-                        sourcePath.getParent(),
-                        tempDir,
-                        false);
-                Files.writeString(tempTileset, tilesetXml, StandardCharsets.UTF_8);
-                tempTileset.toFile().deleteOnExit();
-                safeSource = tempTileset.toUri().toASCIIString();
-            }
-
-            matcher.appendReplacement(
-                    rewrittenXml,
-                    "source=\"" + Matcher.quoteReplacement(safeSource) + "\"");
-        }
-
-        matcher.appendTail(rewrittenXml);
-        return rewrittenXml.toString();
+    private org.mapeditor.core.Map readMap() throws Exception {
+        return new TMXMapReader().readMap(
+                mapPath.toAbsolutePath().normalize().toUri().toURL()
+        );
     }
 
     private int valueOrZero(Integer value) {
