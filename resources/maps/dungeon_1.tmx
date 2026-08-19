@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.10" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="105" height="90" tilewidth="32" tileheight="32" infinite="0" nextlayerid="9" nextobjectid="3">
- <tileset firstgid="1" source="TX Tileset Grass.tsx"/>
- <tileset firstgid="65" source="TX Props with Shadow.tsx"/>
- <tileset firstgid="321" source="TX Plant with Shadow.tsx"/>
- <tileset firstgid="577" source="TX Tileset Stone Ground.tsx"/>
- <tileset firstgid="641" source="TX Tileset Wall.tsx"/>
- <tileset firstgid="897" source="TX Houses.tsx"/>
- <tileset firstgid="1921" source="TX Fence.tsx"/>
- <tileset firstgid="1930" source="TX Village.tsx"/>
+ <tileset firstgid="1" source="TXTilesetGrass.tsx"/>
+ <tileset firstgid="65" source="TXPropswithShadow.tsx"/>
+ <tileset firstgid="321" source="TXPlantwithShadow.tsx"/>
+ <tileset firstgid="577" source="TXTilesetStoneGround.tsx"/>
+ <tileset firstgid="641" source="TXTilesetWall.tsx"/>
+ <tileset firstgid="897" source="TXHouses.tsx"/>
+ <tileset firstgid="1921" source="TXFence.tsx"/>
+ <tileset firstgid="1930" source="TXVillage.tsx"/>
  <layer id="1" name="ground" width="105" height="90" offsetx="4" offsety="-8">
   <data encoding="csv">
 1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,1980,
