@@ -4,15 +4,6 @@ import java.awt.image.BufferedImage;
 
 /**
  * Cắt sprite sheet (1 ảnh lớn chứa nhiều frame) thành mảng BufferedImage[].
- *
- * Sprite sheet là cách tổ chức phổ biến: gộp nhiều frame animation vào 1 file
- * PNG,
- * mỗi frame có kích thước cố định (ví dụ 32x32), xếp theo hàng/cột.
- *
- * Cách dùng:
- * SpriteSheet sheet = new SpriteSheet(ImageIO.read(...), 32, 32);
- * BufferedImage frame = sheet.getFrame(col, row);
- * BufferedImage[] walkFrames = sheet.getRow(0, 4); // 4 frame ở hàng 0
  */
 public class SpriteSheet {
 

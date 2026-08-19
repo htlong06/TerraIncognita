@@ -9,9 +9,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Sổ nhiệm vụ của 1 player — Player sở hữu 1 QuestLog (giống cách Player sở
- * hữu Inventory). Theo dõi quest nào đang làm, tiến độ tới đâu, quest nào
- * đã trả thưởng xong (để không cho nhận lại).
+ * Sổ nhiệm vụ của 1 player — theo dõi quest nào đang làm, tiến độ tới đâu,
+ * quest nào
+ * đã trả thưởng xong.
  */
 public class QuestLog {
 
@@ -25,6 +25,7 @@ public class QuestLog {
 
     /**
      * Nhận 1 quest mới. Không cho nhận nếu đã đang làm hoặc đã trả thưởng rồi.
+     * 
      * @return true nếu nhận thành công
      */
     public boolean acceptQuest(Quest quest) {
@@ -51,6 +52,7 @@ public class QuestLog {
      * Gọi mỗi khi player giết 1 quái — cộng tiến độ cho MỌI quest đang active
      * có objective KILL_MONSTER khớp tên quái. Gọi tại nơi quái chết trong
      * GameEngine (chỗ đang cộng exp/gold cho player).
+     * 
      * @param monsterName tên quái (Entity.getName(), VD: "Orc", "Slime")
      */
     public void notifyMonsterKilled(String monsterName) {

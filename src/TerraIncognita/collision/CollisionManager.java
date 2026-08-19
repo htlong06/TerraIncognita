@@ -81,31 +81,6 @@ public class CollisionManager {
     }
 
     /**
-     * Tìm entity đầu tiên trong danh sách va chạm với "self".
-     * Bỏ qua chính nó và các entity đã chết.
-     *
-     * Dùng cho: quái đụng player -> gây damage, player đụng quái -> combat, ...
-     *
-     * @return entity va chạm, hoặc null nếu không có
-     */
-    /**
-     * Kiểm tra nếu entity di chuyển tới (newX, newY) thì có va chạm với
-     * bất kỳ entity nào trong danh sách không. Dùng trước khi thật sự
-     * di chuyển (giống cách checkObject/checkEntity dùng "temp direction"
-     * trong bản gốc), để chặn việc quái đi xuyên qua nhau.
-     */
-    /**
-     * Kiểm tra hitbox của player có đang đứng trên ô bẫy (TRAP hoặc
-     * TRAP_HIDDEN) không; nếu có thì kích hoạt sự kiện tương ứng qua
-     * EventSystem (đăng ký với key "trap_{tileX}_{tileY}").
-     *
-     * Gọi hàm này mỗi khi player di chuyển xong (sau khi resolveMovement).
-     *
-     * @return true nếu player đang đứng trên ô bẫy (đã kích hoạt hoặc đã kích hoạt trước đó)
-     */
-        // Dùng tâm hitbox để xác định ô player thực sự đang đứng lên,
-        // tránh trigger nhầm khi chỉ mới chạm rìa ô bẫy.
-    /**
      * Tính hitbox tấn công: 1 hình chữ nhật nhô ra phía trước hitbox của
      * attacker theo hướng đang quay mặt, độ dài = rangeLength (px), bề
      * ngang/dọc bằng đúng bề ngang/dọc hitbox của attacker.

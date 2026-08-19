@@ -16,60 +16,19 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Sự kiện "bầy quái góc map" — quản lý danh sách {@link SwarmCreature}
- * (Boid) giống class "Flock" trong ví dụ chp06_agents/NOC_6_09_Flocking
- * (The Nature of Code, Daniel Shiffman): mỗi Boid tính 3 lực steering
- * (separate/align/cohesion) dựa trên các Boid lân cận, cộng dồn vào
- * acceleration qua applyForce(), rồi update() theo velocity/maxspeed.
- *
- * Bám sát cấu trúc gốc của tài liệu:
- *   Boid.flock(boids)    -> SwarmEvent.flock(b)
- *   Boid.separate(boids) -> SwarmEvent.separate(b)
- *   Boid.align(boids)    -> SwarmEvent.align(b)
- *   Boid.cohesion(boids) -> SwarmEvent.cohesion(b)
- *   Boid.seek(target)    -> SwarmEvent.seek(b, target)
- *   Boid.update()        -> SwarmEvent.updateBoid(b, dt)
- *   Boid.run(boids)      -> SwarmEvent.update(player, map, dt) (vòng lặp cho cả đàn)
- *
- * Phần MỞ RỘNG so với tài liệu gốc (game cần, sách không có vì sách chạy
- * trên canvas Processing không có tường/map):
- *   - flee(b, player): giống seek() nhưng đảo hướng + tăng cường theo độ
- *     gần — né player khi lại gần (sách gốc không có player để né).
- *   - contain(b, bounds): giữ Boid trong 1 vùng chữ nhật (confineZone lúc
- *     DORMANT, cả map lúc ACTIVE) — thay cho borders() của sách (bản gốc
- *     cho Boid đi xuyên biên rồi hiện lại ở cạnh đối diện, không phù hợp
- *     với map có tường của game này).
- *   - notifyExplosion(): xung lực tức thời khi bomb nổ (set thẳng velocity,
- *     không qua applyForce — vụ nổ cần cảm giác "hất văng" ngay lập tức
- *     chứ không tăng tốc dần như steering force thông thường).
- *   - resolveOverlaps(): ép cứng khoảng cách tối thiểu giữa mọi cặp Boid
- *     sau mỗi frame — separate() là lực MỀM (dựa trên gia tốc, có thể trễ
- *     1 vài frame mới tách hẳn ra); bước này đảm bảo tuyệt đối không con
- *     nào chồng hình lên con khác, kể cả trường hợp bị bomb hất theo
- *     hướng gần giống nhau.
- *   - Trạng thái DORMANT/ACTIVE/COMPLETED: quản lý vùng hoạt động ban đầu
- *     + kích hoạt khi player bước vào + phát hiện tiêu diệt hết.
- *
- * GameEngine chỉ cần:
- *   1) new SwarmEvent(map)                                — spawn quái
- *   2) activeMonsters.addAll(swarmEvent.getCreatures())   — dùng chung hệ combat/render/bomb
- *   3) swarmEvent.update(player, map, deltaTime)          — gọi mỗi frame ở PLAYING
- *   4) swarmEvent.notifyExplosion(x, y)                   — gọi trong detonateBomb()
- *
- * MUỐN CHỈNH CẢM GIÁC BẦY ĐÀN: mọi tham số (bán kính, tốc độ, trọng số)
- * nằm ở Constants.java (nhóm SWARM_*) hoặc hằng W_* ngay đầu flock().
+ * Sự kiện bầy ếch góc map
  */
 public class SwarmEvent {
 
     public enum EventState {
-        DORMANT,    // chưa kích hoạt — quái chỉ quanh quẩn trong vùng góc map
-        ACTIVE,     // đã kích hoạt — quái tự do di chuyển khắp map, đang chờ bị tiêu diệt hết
-        COMPLETED   // đã tiêu diệt hết — sự kiện kết thúc
+        DORMANT, // chưa kích hoạt — quái chỉ quanh quẩn trong vùng góc map
+        ACTIVE, // đã kích hoạt — quái tự do di chuyển khắp map, đang chờ bị tiêu diệt hết
+        COMPLETED // đã tiêu diệt hết — sự kiện kết thúc
     }
 
     private final List<SwarmCreature> creatures;
     private final Rectangle confineZone; // vùng góc map lúc DORMANT (pixel, không phải tile)
-    private final Rectangle mapBounds;   // toàn bộ map lúc ACTIVE (pixel)
+    private final Rectangle mapBounds; // toàn bộ map lúc ACTIVE (pixel)
     private final CollisionManager collisionManager;
     private final Random random;
     private final AssetLoader assetLoader; // dùng để init animation cho mỗi creature
@@ -88,18 +47,14 @@ public class SwarmEvent {
                 Constants.SWARM_ZONE_TILE_X * ts,
                 Constants.SWARM_ZONE_TILE_Y * ts,
                 Constants.SWARM_ZONE_TILE_W * ts,
-                Constants.SWARM_ZONE_TILE_H * ts
-        );
+                Constants.SWARM_ZONE_TILE_H * ts);
         this.mapBounds = new Rectangle(0, 0, map.getWidth() * ts, map.getHeight() * ts);
 
         spawnCreatures(map);
     }
 
     /**
-     * Rải {@link Constants#SWARM_COUNT} con quái ngẫu nhiên trong
-     * confineZone, tự né các ô không đi được (tường/vật cản) — thử tối đa
-     * 30 lần/con, không tìm được thì cứ đặt tạm (hiếm khi xảy ra nếu vùng
-     * đủ rộng và đa phần là nền trống).
+     * Rải con quái ngẫu nhiên trong confineZone.
      */
     private void spawnCreatures(GameMap map) {
         for (int i = 0; i < Constants.SWARM_COUNT; i++) {
@@ -117,7 +72,7 @@ public class SwarmEvent {
             }
 
             SwarmCreature creature = new SwarmCreature(tileX, tileY);
-            creature.initAnimations(assetLoader); // khởi tạo sprite frog
+            creature.initAnimations(assetLoader);
             // Vận tốc ban đầu ngẫu nhiên nhỏ để bầy không đứng yên tuyệt đối lúc mới spawn
             double angle = random.nextDouble() * Math.PI * 2;
             creature.setVelocity(Math.cos(angle) * 10, Math.sin(angle) * 10);
@@ -125,13 +80,9 @@ public class SwarmEvent {
         }
     }
 
-    /**
-     * Tương đương Flock.run() trong NOC: gọi mỗi frame, chạy flock() cho
-     * từng Boid rồi update() vị trí. Ngoài ra còn xử lý state machine
-     * (kích hoạt/hoàn thành) và ép giãn cách cứng sau cùng.
-     */
     public void update(Player player, GameMap map, double deltaTime) {
-        if (state == EventState.COMPLETED) return;
+        if (state == EventState.COMPLETED)
+            return;
 
         if (state == EventState.DORMANT && confineZone.intersects(player.getHitbox())) {
             state = EventState.ACTIVE;
@@ -145,36 +96,29 @@ public class SwarmEvent {
         Rectangle bounds = (state == EventState.ACTIVE) ? mapBounds : confineZone;
 
         for (SwarmCreature b : creatures) {
-            if (!b.isAlive()) continue;
+            if (!b.isAlive())
+                continue;
 
-            // Vừa bị kiếm/cung "giật mình" (không chết) → khựng lại 1 nhịp, đúng cảm giác bị đánh
-            if (b.isHurt()) continue;
+            // Vừa bị kiếm/cung "giật mình" (không chết) -> khựng lại 1 nhịp
+            if (b.isHurt())
+                continue;
 
-            flock(b, player, bounds); // tính + applyForce toàn bộ lực steering cho Boid này
-            updateBoid(b, player, map, deltaTime); // áp acceleration -> velocity -> vị trí, giống Boid.update()
+            flock(b, player, bounds);
+            updateBoid(b, player, map, deltaTime);
         }
 
-        // separate() là lực MỀM, có thể trễ vài frame mới tách hẳn 2 Boid ra
-        // (đặc biệt khi bị bomb hất theo hướng gần giống nhau) — bước này ép
-        // CỨNG khoảng cách tối thiểu giữa mọi cặp, đảm bảo không chồng hình.
         resolveOverlaps(map);
     }
 
     /**
-     * Boid.flock(boids) trong NOC: tính 3 lực separate/align/cohesion, nhân
-     * trọng số rồi applyForce từng lực. Ở đây cộng thêm 2 lực mở rộng riêng
-     * cho game: flee (né player) và contain (giữ trong vùng hoạt động).
+     * Tổng hợp 5 lực để quyết định hướng đi cho từng con.
      */
     private void flock(SwarmCreature b, Player player, Rectangle bounds) {
-        // Trọng số đúng như ví dụ gốc trong sách (separation.mult(1.5),
-        // alignment/cohesion.mult(1.0)) — separation ưu tiên cao nhất để
-        // đàn không dồn cục lại với nhau.
-        final double W_SEPARATION = 1.5;
-        final double W_ALIGNMENT = 1.0;
-        final double W_COHESION = 1.0;
-        // Trọng số 2 lực mở rộng (không có trong sách gốc)
-        final double W_FLEE = 3.0;
-        final double W_CONTAIN = 2.0;
+        final double W_SEPARATION = 1.5; // Tách bầy
+        final double W_ALIGNMENT = 1.0; // Đồng bộ hướng
+        final double W_COHESION = 1.0; // Bám theo bầy
+        final double W_FLEE = 3.0; // Tránh player
+        final double W_CONTAIN = 2.0; // Giữ trong vùng hoạt động
 
         Vec2 separation = separate(b);
         Vec2 alignment = align(b);
@@ -196,12 +140,11 @@ public class SwarmEvent {
     }
 
     /**
-     * Boid.separate(boids) trong NOC — nguyên văn thuật toán: với mỗi Boid
-     * khác trong bán kính desiredSeparation, lấy vector (vị trí mình - vị
-     * trí bạn), chuẩn hoá rồi CHIA cho khoảng cách (càng gần thì lực đẩy
-     * càng mạnh), cộng dồn rồi lấy trung bình; nếu độ lớn > 0 thì coi đó là
-     * "desired velocity", trừ velocity hiện tại và giới hạn bởi maxForce
-     * (đúng công thức steer = desired - velocity, giống seek()).
+     * Với mỗi Boid khác trong bán kính desiredSeparation, lấy vector
+     * (vị trí mình - vị trí bạn), chuẩn hoá rồi CHIA cho khoảng cách
+     * (càng gần thì lực đẩy càng mạnh), cộng dồn rồi lấy trung bình;
+     * nếu độ lớn > 0 thì coi đó là "desired velocity", trừ velocity
+     * hiện tại và giới hạn bởi maxForce.
      */
     private Vec2 separate(SwarmCreature b) {
         double desiredSeparation = Constants.SWARM_SEPARATION_RADIUS;
@@ -209,12 +152,13 @@ public class SwarmEvent {
         int count = 0;
 
         for (SwarmCreature other : creatures) {
-            if (other == b || !other.isAlive()) continue;
+            if (other == b || !other.isAlive())
+                continue;
             double d = distance(b, other);
             if (d > 0 && d < desiredSeparation) {
                 Vec2 diff = new Vec2(b.getWorldX() - other.getWorldX(), b.getWorldY() - other.getWorldY());
                 diff.normalize();
-                diff.div(d); // trọng số theo khoảng cách
+                diff.div(d);
                 steer.add(diff);
                 count++;
             }
@@ -233,7 +177,7 @@ public class SwarmEvent {
     }
 
     /**
-     * Boid.align(boids) trong NOC: lấy trung bình vận tốc của các Boid
+     * lấy trung bình vận tốc của các Boid
      * trong bán kính neighborDist, coi đó là "desired velocity" (đưa về độ
      * lớn maxSpeed), rồi steer = desired - velocity, limit maxForce.
      */
@@ -243,7 +187,8 @@ public class SwarmEvent {
         int count = 0;
 
         for (SwarmCreature other : creatures) {
-            if (other == b || !other.isAlive()) continue;
+            if (other == b || !other.isAlive())
+                continue;
             double d = distance(b, other);
             if (d > 0 && d < neighborDist) {
                 sum.add(other.getVelocity());
@@ -262,8 +207,8 @@ public class SwarmEvent {
     }
 
     /**
-     * Boid.cohesion(boids) trong NOC: lấy vị trí trung bình ("tâm bầy") của
-     * các Boid trong bán kính neighborDist rồi seek() về phía đó.
+     * lấy vị trí trung bình ("tâm bầy") của các Boid trong bán kính neighborDist
+     * rồi seek() về phía đó.
      */
     private Vec2 cohesion(SwarmCreature b) {
         double neighborDist = Constants.SWARM_NEIGHBOR_RADIUS;
@@ -271,7 +216,8 @@ public class SwarmEvent {
         int count = 0;
 
         for (SwarmCreature other : creatures) {
-            if (other == b || !other.isAlive()) continue;
+            if (other == b || !other.isAlive())
+                continue;
             double d = distance(b, other);
             if (d > 0 && d < neighborDist) {
                 sum.add(new Vec2(other.getWorldX(), other.getWorldY()));
@@ -281,16 +227,11 @@ public class SwarmEvent {
 
         if (count > 0) {
             sum.div(count);
-            return seek(b, sum); // sum lúc này là vị trí trung bình — chính là "target"
+            return seek(b, sum);
         }
         return new Vec2(0, 0);
     }
 
-    /**
-     * Boid.seek(target) trong NOC — steering behavior nền tảng dùng lại ở
-     * cohesion(): desired = target - vị trí hiện tại, chuẩn hoá về maxSpeed,
-     * steer = desired - velocity, giới hạn bởi maxForce.
-     */
     private Vec2 seek(SwarmCreature b, Vec2 target) {
         Vec2 position = new Vec2(b.getWorldX(), b.getWorldY());
         Vec2 desired = Vec2.sub(target, position);
@@ -302,11 +243,9 @@ public class SwarmEvent {
     }
 
     /**
-     * flee() — MỞ RỘNG so với sách gốc (sách không có "player" để né).
      * Về bản chất là seek() bị đảo hướng (né ra xa thay vì tiến tới), chỉ
      * kích hoạt khi player ở trong bán kính SWARM_PANIC_RADIUS, và tăng
-     * cường độ mạnh theo khoảng cách (càng gần phản ứng càng gấp) — đồng
-     * thời tăng maxSpeed tạm thời của Boid lên SWARM_PANIC_SPEED.
+     * cường độ mạnh theo khoảng cách (càng gần phản ứng càng gấp)
      */
     private Vec2 flee(SwarmCreature b, Player player) {
         Vec2 position = new Vec2(b.getWorldX(), b.getWorldY());
@@ -314,28 +253,25 @@ public class SwarmEvent {
         double d = position.dist(target);
 
         if (d >= Constants.SWARM_PANIC_RADIUS) {
-            b.setMaxSpeed(Constants.SWARM_BASE_SPEED); // ngoài tầm hoảng loạn -> tốc độ bình thường
+            b.setMaxSpeed(Constants.SWARM_BASE_SPEED);
             return new Vec2(0, 0);
         }
 
         b.setMaxSpeed(Constants.SWARM_PANIC_SPEED);
 
-        // desired = position - target (NGƯỢC với seek(), vì đây là né chứ không phải tiến tới)
         Vec2 desired = Vec2.sub(position, target);
         desired.setMag(b.getMaxSpeed());
 
         Vec2 steer = Vec2.sub(desired, b.getVelocity());
-        // Càng gần player, phản ứng càng gấp — nhân thêm hệ số vượt maxForce bình thường
         double strength = (Constants.SWARM_PANIC_RADIUS - d) / Constants.SWARM_PANIC_RADIUS;
         steer.limit(b.getMaxForce() * (1 + strength * 3));
         return steer;
     }
 
     /**
-     * contain() — MỞ RỘNG so với sách gốc (sách cho Boid xuyên biên rồi
-     * hiện lại ở cạnh đối diện qua borders(), không hợp với map có tường).
-     * Ở đây: nếu Boid tới gần mép vùng giới hạn (confineZone lúc DORMANT,
-     * cả map lúc ACTIVE), tạo lực đẩy ngược vào trong.
+     * nếu Boid tới gần mép vùng giới hạn (confineZone lúc DORMANT, cả map lúc
+     * ACTIVE)
+     * tạo lực đẩy ngược vào trong.
      */
     private Vec2 contain(SwarmCreature b, Rectangle bounds) {
         double margin = 32;
@@ -343,10 +279,14 @@ public class SwarmEvent {
         double py = b.getWorldY();
 
         double fx = 0, fy = 0;
-        if (px < bounds.x + margin) fx = 1;
-        else if (px > bounds.x + bounds.width - margin) fx = -1;
-        if (py < bounds.y + margin) fy = 1;
-        else if (py > bounds.y + bounds.height - margin) fy = -1;
+        if (px < bounds.x + margin)
+            fx = 1;
+        else if (px > bounds.x + bounds.width - margin)
+            fx = -1;
+        if (py < bounds.y + margin)
+            fy = 1;
+        else if (py > bounds.y + bounds.height - margin)
+            fy = -1;
 
         Vec2 steer = new Vec2(fx, fy);
         if (steer.mag() > 0) {
@@ -356,11 +296,7 @@ public class SwarmEvent {
     }
 
     /**
-     * Boid.update() trong NOC: velocity += acceleration; velocity.limit(maxspeed);
-     * location += velocity; acceleration *= 0. Ở đây nhân thêm deltaTime vì
-     * game chạy khung hình không cố định (sách gốc mặc định ~60fps, add
-     * thẳng không nhân dt) — đồng thời giải va chạm tường qua CollisionManager
-     * thay vì cộng thẳng vào vị trí như sách.
+     * chuyển gia tốc thành vận tốc, vận tốc thành vị trí và giải va chạm
      */
     private void updateBoid(SwarmCreature b, Player player, GameMap map, double deltaTime) {
         Vec2 velocity = b.getVelocity();
@@ -380,14 +316,16 @@ public class SwarmEvent {
 
         // Hướng mặt theo velocity
         if (Math.abs(velocity.x) > Math.abs(velocity.y)) {
-            if (Math.abs(velocity.x) > 0.5) b.setDirection(velocity.x > 0 ? Direction.RIGHT : Direction.LEFT);
+            if (Math.abs(velocity.x) > 0.5)
+                b.setDirection(velocity.x > 0 ? Direction.RIGHT : Direction.LEFT);
         } else {
-            if (Math.abs(velocity.y) > 0.5) b.setDirection(velocity.y > 0 ? Direction.DOWN : Direction.UP);
+            if (Math.abs(velocity.y) > 0.5)
+                b.setDirection(velocity.y > 0 ? Direction.DOWN : Direction.UP);
         }
 
         // Cập nhật EntityState dựa trên EventState của SwarmEvent:
         // DORMANT (quanh quẩn chưa bị kích hoạt) → IDLE (ếch đứng yên)
-        // ACTIVE  (đã bị kích hoạt, truy đuổi)  → WALK (ếch nhảy)
+        // ACTIVE (đã bị kích hoạt, truy đuổi) → WALK (ếch nhảy)
         if (b.getState() != EntityState.HURT) {
             b.setState(state == EventState.ACTIVE ? EntityState.WALK : EntityState.IDLE);
         }
@@ -410,17 +348,20 @@ public class SwarmEvent {
 
             for (int i = 0; i < creatures.size(); i++) {
                 SwarmCreature a = creatures.get(i);
-                if (!a.isAlive()) continue;
+                if (!a.isAlive())
+                    continue;
 
                 for (int j = i + 1; j < creatures.size(); j++) {
                     SwarmCreature b = creatures.get(j);
-                    if (!b.isAlive()) continue;
+                    if (!b.isAlive())
+                        continue;
 
                     double dx = b.getWorldX() - a.getWorldX();
                     double dy = b.getWorldY() - a.getWorldY();
                     double dist = Math.hypot(dx, dy);
 
-                    if (dist >= minDist) continue;
+                    if (dist >= minDist)
+                        continue;
                     anyOverlap = true;
 
                     double nx, ny;
@@ -447,11 +388,13 @@ public class SwarmEvent {
                 }
             }
 
-            if (!anyOverlap) break;
+            if (!anyOverlap)
+                break;
         }
 
         for (SwarmCreature c : creatures) {
-            if (c.isAlive()) c.updateTilePosition(Constants.TILE_SIZE);
+            if (c.isAlive())
+                c.updateTilePosition(Constants.TILE_SIZE);
         }
     }
 
@@ -463,11 +406,13 @@ public class SwarmEvent {
      */
     public void notifyExplosion(double explosionCenterX, double explosionCenterY) {
         for (SwarmCreature c : creatures) {
-            if (!c.isAlive()) continue;
+            if (!c.isAlive())
+                continue;
             double dx = c.getWorldX() - explosionCenterX;
             double dy = c.getWorldY() - explosionCenterY;
             double dist = Math.hypot(dx, dy);
-            if (dist >= Constants.SWARM_EXPLOSION_FLEE_RADIUS) continue;
+            if (dist >= Constants.SWARM_EXPLOSION_FLEE_RADIUS)
+                continue;
 
             if (dist < 0.001) {
                 double angle = random.nextDouble() * Math.PI * 2;
@@ -496,7 +441,8 @@ public class SwarmEvent {
         double minDist = Double.MAX_VALUE;
 
         for (SwarmCreature c : creatures) {
-            if (!c.isAlive()) continue;
+            if (!c.isAlive())
+                continue;
             double dx = c.getWorldX() - px;
             double dy = c.getWorldY() - py;
             double dist = Math.hypot(dx, dy);
@@ -509,7 +455,8 @@ public class SwarmEvent {
 
     private boolean anyAlive() {
         for (SwarmCreature c : creatures) {
-            if (c.isAlive()) return true;
+            if (c.isAlive())
+                return true;
         }
         return false;
     }
@@ -519,6 +466,11 @@ public class SwarmEvent {
     }
 
     // --- Getter ---
-    public List<SwarmCreature> getCreatures() { return creatures; }
-    public EventState getState() { return state; }
+    public List<SwarmCreature> getCreatures() {
+        return creatures;
+    }
+
+    public EventState getState() {
+        return state;
+    }
 }

@@ -5,20 +5,15 @@ package TerraIncognita.graphics;
  *
  * Khi bản đồ lớn hơn cửa sổ game, Camera xác định phần nào của map
  * được hiển thị trên màn hình. Camera luôn căn giữa theo vị trí player.
- *
- * Cách dùng:
- *   camera.update(player.getX(), player.getY());
- *   // Khi vẽ: vị trí vẽ = worldPosition - camera.offset
- *   int screenX = entity.x - camera.getOffsetX();
  */
 public class Camera {
 
-    private int offsetX, offsetY;          // offset hiện tại (pixel)
-    private int screenWidth, screenHeight;  // kích thước cửa sổ game
+    private int offsetX, offsetY; // offset hiện tại (pixel)
+    private int screenWidth, screenHeight; // kích thước cửa sổ game
     private int mapWidthPixels, mapHeightPixels; // kích thước map tính bằng pixel
 
     /**
-     * @param screenWidth chiều rộng cửa sổ (pixel)
+     * @param screenWidth  chiều rộng cửa sổ (pixel)
      * @param screenHeight chiều cao cửa sổ (pixel)
      */
     public Camera(int screenWidth, int screenHeight) {
@@ -34,7 +29,9 @@ public class Camera {
 
     /**
      * Cập nhật offset để camera căn giữa theo vị trí target (player).
-     * @param targetX vị trí X của player (pixel) — nên là tâm sprite, không phải góc trên-trái
+     * 
+     * @param targetX vị trí X của player (pixel) — nên là tâm sprite, không phải
+     *                góc trên-trái
      * @param targetY vị trí Y của player (pixel)
      */
     public void update(int targetX, int targetY) {

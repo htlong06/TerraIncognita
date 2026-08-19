@@ -9,10 +9,6 @@ import java.awt.image.BufferedImage;
 
 /**
  * Mũi tên bắn ra từ player khi dùng cung.
- *
- * Mũi tên bay theo hướng từ tâm player tới vị trí chuột lúc bắn,
- * với tốc độ không đổi (ARROW_SPEED). Sprite được xoay theo góc bay.
- * Khi chạm quái (hitbox intersect) hoặc bay quá xa (MAX_RANGE) thì biến mất.
  */
 public class Arrow {
 
@@ -66,14 +62,7 @@ public class Arrow {
         worldY += moveY;
         distanceTraveled += Math.sqrt(moveX * moveX + moveY * moveY);
 
-        // Tự hủy nếu bay quá xa (ARROW_MAX_RANGE) — đã đủ để giới hạn vòng
-        // đời mũi tên, KHÔNG cần thêm check "ra ngoài màn hình" dựa trên
-        // SCREEN_WIDTH/SCREEN_HEIGHT: worldX/worldY là toạ độ THẾ GIỚI
-        // (world-space), trong khi SCREEN_WIDTH/HEIGHT là kích thước màn
-        // hình hiển thị (screen-space) — 2 hệ toạ độ khác nhau hoàn toàn.
-        // So sánh nhầm như bản cũ khiến mũi tên bị coi là "ra khỏi màn
-        // hình" và tự hủy ngay khi vừa bắn, bất cứ khi nào player đứng xa
-        // góc (0,0) của map hơn khoảng 850px — tức gần như luôn luôn.
+        // Tự hủy nếu bay quá xa (ARROW_MAX_RANGE)
         if (distanceTraveled > Constants.ARROW_MAX_RANGE) {
             alive = false;
         }

@@ -11,16 +11,12 @@ import java.awt.image.BufferedImage;
 
 /**
  * Bom — đặt bởi player (phím B), tồn tại vĩnh viễn trên map cho tới khi
- * bị kích nổ. Vẽ bằng animation (asset "explosion-b": frame 0 = quả bom
- * lúc chưa nổ, frame 1-10 = các giai đoạn nổ) — xem AssetLoader.loadBomb().
- * Nếu animation chưa load được vì lý do gì đó, tự động rơi về vẽ hình khối
- * đơn giản (khối đỏ / vuông cam) như bản gốc, để không bao giờ vẽ ra khoảng
- * trống nếu asset lỗi.
+ * bị kích nổ.
  *
  * Kích nổ khi:
- *  - Va chạm hitbox với bất kỳ thực thể nào NGOẠI TRỪ player (VD quái vật).
- *  - Bị mũi tên (Arrow) bắn trúng — mũi tên cũng nổ tung và biến mất
- *    giống như khi bắn trúng quái vật thông thường.
+ * - Va chạm hitbox với bất kỳ thực thể nào NGOẠI TRỪ player (VD quái vật).
+ * - Bị mũi tên (Arrow) bắn trúng — mũi tên cũng nổ tung và biến mất
+ * giống như khi bắn trúng quái vật thông thường.
  * Bom KHÔNG tự nổ khi va chạm với bom khác.
  *
  * Khi nổ, vùng ảnh hưởng là hình vuông BOMB_EXPLOSION_TILES x
@@ -30,9 +26,9 @@ import java.awt.image.BufferedImage;
 public class Bomb {
 
     public enum BombState {
-        PLACED,     // đang nằm yên trên map, chờ va chạm
-        EXPLODING,  // vừa nổ, đang chạy animation nổ
-        GONE        // animation nổ đã chạy xong, cần bị xoá khỏi danh sách active
+        PLACED, // đang nằm yên trên map, chờ va chạm
+        EXPLODING, // vừa nổ, đang chạy animation nổ
+        GONE // animation nổ đã chạy xong, cần bị xoá khỏi danh sách active
     }
 
     private double worldX; // góc trên-trái của hitbox đặt bom (pixel)
@@ -40,7 +36,7 @@ public class Bomb {
     private BombState state;
     private double explosionTimer; // dự phòng: dùng khi KHÔNG có animation nổ để đếm ngược
 
-    private Animation idleAnimation;      // 1 frame tĩnh: quả bom lúc chưa nổ
+    private Animation idleAnimation; // 1 frame tĩnh: quả bom lúc chưa nổ
     private Animation explosionAnimation; // 10 frame: animation lúc nổ
     private BufferedImage bombPlacedImage; // bomb.png — hình thùng bom pixel art
 
@@ -51,12 +47,6 @@ public class Bomb {
         this.explosionTimer = 0.0;
     }
 
-    /**
-     * Nạp animation từ AssetLoader. Gọi ngay sau khi tạo Bomb (trong
-     * GameEngine.placeBomb()), giống cách Player.initAnimations() hoạt động.
-     * Nếu asset "bomb_idle"/"bomb_explosion" không có frame nào (load lỗi),
-     * animation tương ứng sẽ là null và render() tự rơi về vẽ hình khối.
-     */
     public void initAnimations(AssetLoader assetLoader) {
         // Ưu tiên dùng bomb.png (hình thùng bom pixel art)
         this.bombPlacedImage = assetLoader.getTile("bomb_placed");
@@ -79,7 +69,8 @@ public class Bomb {
      * nổ không có sẵn, rơi về đếm ngược timer cũ (BOMB_EXPLOSION_DURATION).
      */
     public void update(double deltaTime) {
-        if (state != BombState.EXPLODING) return;
+        if (state != BombState.EXPLODING)
+            return;
 
         if (explosionAnimation != null) {
             explosionAnimation.update(deltaTime);
@@ -99,7 +90,8 @@ public class Bomb {
      * (tránh nổ 2 lần do nhiều nguồn va chạm trong cùng 1 frame).
      */
     public void explode() {
-        if (state != BombState.PLACED) return;
+        if (state != BombState.PLACED)
+            return;
         state = BombState.EXPLODING;
         explosionTimer = Constants.BOMB_EXPLOSION_DURATION;
         if (explosionAnimation != null) {
@@ -116,8 +108,7 @@ public class Bomb {
                 (int) Math.round(worldX),
                 (int) Math.round(worldY),
                 Constants.BOMB_SIZE,
-                Constants.BOMB_SIZE
-        );
+                Constants.BOMB_SIZE);
     }
 
     /**
@@ -139,18 +130,13 @@ public class Bomb {
         return new Rectangle(areaX, areaY, areaSize, areaSize);
     }
 
-    /**
-     * Vùng render của animation nổ: nâng lên trên mặt đất một chút để hiệu ứng
-     * không bị "bám" quá sát nền và trông hơn hẳn.
-     */
     public Rectangle getExplosionRenderBounds() {
         Rectangle area = getExplosionArea();
         return new Rectangle(
                 area.x,
                 area.y + Constants.BOMB_EXPLOSION_RENDER_OFFSET_Y,
                 area.width,
-                area.height
-        );
+                area.height);
     }
 
     /**

@@ -8,23 +8,18 @@ import java.awt.image.BufferedImage;
  * Giữ: mảng frame hiện tại, tốc độ chuyển frame, trạng thái loop.
  * Được cập nhật mỗi frame trong game loop, tự động chuyển sang frame tiếp theo
  * khi đủ thời gian.
- *
- * Cách dùng:
- *   Animation walkAnim = new Animation(walkFrames, 150); // đổi frame mỗi 150ms
- *   walkAnim.update(deltaTime);
- *   g2d.drawImage(walkAnim.getCurrentFrame(), x, y, null);
  */
 public class Animation {
 
-    private BufferedImage[] frames;         // mảng frame ảnh
-    private int currentFrameIndex;          // chỉ số frame đang hiển thị
-    private double frameDuration;           // thời gian mỗi frame (giây)
-    private double elapsedTime;             // thời gian đã trôi qua
-    private boolean looping;                // có lặp lại không
-    private boolean finished;               // animation đã kết thúc chưa
+    private BufferedImage[] frames; // mảng frame ảnh
+    private int currentFrameIndex; // chỉ số frame đang hiển thị
+    private double frameDuration; // thời gian mỗi frame (giây)
+    private double elapsedTime; // thời gian đã trôi qua
+    private boolean looping; // có lặp lại không
+    private boolean finished; // animation đã kết thúc chưa
 
     /**
-     * @param frames mảng frame ảnh
+     * @param frames          mảng frame ảnh
      * @param frameDurationMs thời gian mỗi frame tính bằng milliseconds
      */
     public Animation(BufferedImage[] frames, int frameDurationMs) {
@@ -38,10 +33,12 @@ public class Animation {
 
     /**
      * Cập nhật animation theo thời gian.
+     * 
      * @param deltaTime thời gian (giây) từ frame trước
      */
     public void update(double deltaTime) {
-        if (finished || frames == null || frames.length == 0) return;
+        if (finished || frames == null || frames.length == 0)
+            return;
 
         elapsedTime += deltaTime;
         if (elapsedTime >= frameDuration) {
@@ -63,7 +60,8 @@ public class Animation {
      * Lấy frame hiện tại để vẽ.
      */
     public BufferedImage getCurrentFrame() {
-        if (frames == null || frames.length == 0) return null;
+        if (frames == null || frames.length == 0)
+            return null;
         return frames[currentFrameIndex];
     }
 
