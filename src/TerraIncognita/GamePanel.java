@@ -12,11 +12,6 @@ import java.awt.RenderingHints;
 /**
  * Panel chính chứa game loop.
  * Extends JPanel, implements Runnable để chạy vòng lặp game trên thread riêng.
- *
- * Trách nhiệm:
- * - Chạy game loop (~60 FPS)
- * - Gọi update() cập nhật logic mỗi frame
- * - Gọi paintComponent() vẽ mọi thứ lên màn hình
  */
 public class GamePanel extends JPanel implements Runnable {
 
@@ -30,7 +25,6 @@ public class GamePanel extends JPanel implements Runnable {
         setBackground(Color.BLACK);
         setDoubleBuffered(true);
         setFocusable(true);
-        // Vô hiệu hóa focus traversal keys (TAB, Shift+TAB) để dùng cho game
         setFocusTraversalKeysEnabled(false);
 
         // Khởi tạo InputHandler và lắng nghe phím
@@ -68,11 +62,8 @@ public class GamePanel extends JPanel implements Runnable {
 
             deltaAccumulator += elapsed;
 
-            // Cập nhật input 1 lần duy nhất mỗi frame (TRƯỚC vòng fixed-step)
-            // để isKeyJustPressed() không bị mất event khi loop chạy 2+ lần.
             inputHandler.update();
 
-            // Update logic theo fixed timestep
             while (deltaAccumulator >= targetTime) {
                 double deltaTime = targetTime / 1_000_000_000.0; // chuyển sang giây
                 gameEngine.update(deltaTime);

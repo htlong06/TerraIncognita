@@ -217,7 +217,8 @@ public class Player extends Entity {
      */
     @Override
     public void takeDamage(int damage) {
-        if (!isAlive()) return; // đã chết từ trước — không nhận thêm hiệu ứng
+        if (!isAlive())
+            return;
 
         super.takeDamage(damage); // Entity: trừ HP, tự set state=DEAD nếu hp<=0
 
@@ -275,7 +276,7 @@ public class Player extends Entity {
 
         // Reset attack animation về frame 0 để chạy lại từ đầu.
         // (Attack animation có looping=false, nên sau lần đầu finished=true
-        //  và kẹt ở frame cuối — phải reset thủ công mỗi lần tấn công.)
+        // và kẹt ở frame cuối — phải reset thủ công mỗi lần tấn công.)
         animationKeyOverride = animKeyPrefix + "_" + direction.name().toLowerCase();
         resetAnimations(animationKeyOverride);
     }
@@ -292,13 +293,7 @@ public class Player extends Entity {
     }
 
     /**
-     * Xoay mặt player về phía toạ độ (targetX, targetY) — dùng khi ngắm bắn
-     * cung bằng chuột. Vì sprite/animation chỉ hỗ trợ 4 hướng, hướng được
-     * "chốt" (snap) về 1 trong 4 hướng UP/DOWN/LEFT/RIGHT theo trục lệch
-     * nhiều hơn giữa dx/dy; đường ngắm vẽ trên UI vẫn theo góc thật (xem
-     * GameEngine#drawAimLine) để người chơi thấy chính xác đang ngắm đâu.
-     * Không đổi hướng khi đang giữa nhát chém, tránh "xoay người" kỳ khi
-     * animation tấn công đang chạy.
+     * Xoay mặt player về phía toạ độ (targetX, targetY)
      */
     public void aimTowards(double targetX, double targetY) {
         if (isAttacking()) {
@@ -319,10 +314,7 @@ public class Player extends Entity {
 
     /**
      * Vùng va chạm của nhát chém hiện tại — 1 hình chữ nhật nhô ra phía
-     * trước player theo hướng đang quay mặt (xem
-     * CollisionManager#getAttackHitbox). Tầm đánh phụ thuộc vũ khí hiện
-     * tại: kiếm dùng PLAYER_ATTACK_RANGE (ngắn), cung dùng PLAYER_BOW_RANGE
-     * (dài hơn nhiều, coi như tầm bay của mũi tên).
+     * trước player theo hướng đang quay mặt
      */
     public Rectangle getAttackHitbox() {
         int range = (weaponMode == WeaponMode.BOW)
@@ -335,6 +327,7 @@ public class Player extends Entity {
      * Vùng tương tác của player — hình chữ nhật mở rộng 1 ô TILE_SIZE
      * ra mỗi phía so với vị trí world hiện tại. Dùng để kiểm tra xem
      * player có đang ở gần chest/merchant/NPC nào không.
+     * 
      * @return Rectangle bao phủ vùng tương tác
      */
     @Override
@@ -342,7 +335,7 @@ public class Player extends Entity {
         int ts = Constants.TILE_SIZE;
         int x = (int) Math.round(worldX) - ts;
         int y = (int) Math.round(worldY) - ts;
-        int w = ts * 3;  // 1 ô lề + player (1 ô) + 1 ô lề = 3 ô
+        int w = ts * 3; // 1 ô lề + player (1 ô) + 1 ô lề = 3 ô
         int h = ts * 3;
         return new Rectangle(x, y, w, h);
     }
@@ -399,7 +392,7 @@ public class Player extends Entity {
      * 
      * @return true nếu trang bị thành công
      */
-                // Cannot return old — rollback: put equipment back in inventory
+    // Cannot return old — rollback: put equipment back in inventory
     /**
      * Gán bản đồ hiện tại (dùng cho va chạm).
      */
@@ -452,19 +445,42 @@ public class Player extends Entity {
         return comboCount;
     }
 
-    /** true nếu nhát chém VỪA tung ra (lần gọi stateAttack() gần nhất) là đòn combo thứ 3. */
+    /**
+     * true nếu nhát chém VỪA tung ra (lần gọi stateAttack() gần nhất) là đòn combo
+     * thứ 3.
+     */
     public boolean isLastAttackComboFinisher() {
         return lastAttackWasComboFinisher;
     }
 
     // --- Setter (dùng cho load game) ---
-    public void setMaxHp(int maxHp) { this.maxHp = maxHp; }
-    public void setAtk(int atk) { this.atk = atk; }
-    public void setDef(int def) { this.def = def; }
-    public void setLevel(int level) { this.level = level; }
-    public void setExp(int exp) { this.exp = exp; }
-    public void setExpToNextLevel(int expToNextLevel) { this.expToNextLevel = expToNextLevel; }
-    public void setGold(int gold) { this.gold = gold; }
+    public void setMaxHp(int maxHp) {
+        this.maxHp = maxHp;
+    }
+
+    public void setAtk(int atk) {
+        this.atk = atk;
+    }
+
+    public void setDef(int def) {
+        this.def = def;
+    }
+
+    public void setLevel(int level) {
+        this.level = level;
+    }
+
+    public void setExp(int exp) {
+        this.exp = exp;
+    }
+
+    public void setExpToNextLevel(int expToNextLevel) {
+        this.expToNextLevel = expToNextLevel;
+    }
+
+    public void setGold(int gold) {
+        this.gold = gold;
+    }
 
     private void resetAnimations(String key) {
         Animation ani = animations.get(key);
@@ -480,16 +496,12 @@ public class Player extends Entity {
         registerDirectionalAnimation(assets, "player_attack", EntityState.ATTACK, 40, false);
         registerDirectionalAnimation(assets, "player_hurt", EntityState.HURT, 90, false);
         registerDirectionalAnimation(assets, "player_dead", EntityState.DEAD, 150, false);
-        // Đòn combo thứ 3 của kiếm — dùng key riêng "attack2_*" (không gắn
-        // với 1 EntityState nào, được chọn thủ công qua animationKeyOverride
-        // trong stateAttack()), nên đăng ký bằng overload nhận String prefix.
         registerDirectionalAnimation(assets, "player_attack2", "attack2", 40, false);
-        // Tấn công cung — dùng Soldier_Attack03, key "attack3_*"
         registerDirectionalAnimation(assets, "player_attack3", "attack3", 40, false);
-        System.out.println("[DEBUG Player.initAnimations] All animation keys: " + animations.keySet());
     }
- 
-    private void registerDirectionalAnimation(AssetLoader assets, String spriteName, EntityState forState, int frameDurationMs, boolean looping) {
+
+    private void registerDirectionalAnimation(AssetLoader assets, String spriteName, EntityState forState,
+            int frameDurationMs, boolean looping) {
         registerDirectionalAnimation(assets, spriteName, forState.name().toLowerCase(), frameDurationMs, looping);
     }
 
@@ -498,26 +510,20 @@ public class Player extends Entity {
      * các bộ animation không gắn 1-1 với 1 EntityState (ví dụ "attack2"
      * vẫn ở EntityState.ATTACK nhưng cần key riêng để phân biệt combo).
      */
-    private void registerDirectionalAnimation(AssetLoader assets, String spriteName, String keyPrefixName, int frameDurationMs, boolean looping) {
+    private void registerDirectionalAnimation(AssetLoader assets, String spriteName, String keyPrefixName,
+            int frameDurationMs, boolean looping) {
         BufferedImage[] facingRight = assets.getFrames(spriteName);
         BufferedImage[] facingLeft = assets.getFramesFlipped(spriteName);
- 
-        System.out.println("[DEBUG registerAnim] sprite='" + spriteName + "' key=" + keyPrefixName
-                + " framesRight=" + facingRight.length + " framesLeft=" + facingLeft.length
-                + " durationMs=" + frameDurationMs + " loop=" + looping);
- 
+
         Animation animRight = new Animation(facingRight, frameDurationMs);
         animRight.setLooping(looping);
         Animation animLeft = new Animation(facingLeft, frameDurationMs);
         animLeft.setLooping(looping);
- 
+
         String prefix = keyPrefixName + "_";
         animations.put(prefix + "right", animRight);
         animations.put(prefix + "up", animRight);
         animations.put(prefix + "down", animRight);
         animations.put(prefix + "left", animLeft);
-        System.out.println("[DEBUG registerAnim] Registered keys: " + prefix + "{right,up,down,left}");
     }
 }
-
-

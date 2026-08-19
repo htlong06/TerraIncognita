@@ -13,15 +13,12 @@ import javax.swing.KeyStroke;
 /**
  * Xử lý input từ bàn phím dùng Swing Key Bindings (InputMap / ActionMap).
  *
- * Cơ chế cũ (KeyListener) bị lỗi vì:
- * - SPACE bị Swing component mặc định nuốt (JRootPane, focus traversal)
- * - Race condition giữa AWT Event Thread và Game Thread khiến event mất
- *
  * Key Bindings với WHEN_IN_FOCUSED_WINDOW đảm bảo nhận phím bất kể
  * component nào đang có focus trong cửa sổ.
  *
  * Thêm cơ chế "buffered justPressed": khi phím được bấm, flag justPressed
- * được set và chỉ bị clear SAU KHI game loop đọc xong — không bao giờ mất event.
+ * được set và chỉ bị clear SAU KHI game loop đọc xong — không bao giờ mất
+ * event.
  */
 public class InputHandler {
 
@@ -48,16 +45,16 @@ public class InputHandler {
 
     // Danh sách các phím game cần bind
     private static final int[] GAME_KEYS = {
-        KeyEvent.VK_UP, KeyEvent.VK_DOWN, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT,
-        KeyEvent.VK_W, KeyEvent.VK_A, KeyEvent.VK_S, KeyEvent.VK_D,
-        KeyEvent.VK_SPACE, KeyEvent.VK_E, KeyEvent.VK_F, KeyEvent.VK_I,
-        KeyEvent.VK_ESCAPE, KeyEvent.VK_ENTER,
-        KeyEvent.VK_TAB, // radial menu
-        KeyEvent.VK_B    // đặt bom
+            KeyEvent.VK_UP, KeyEvent.VK_DOWN, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT,
+            KeyEvent.VK_W, KeyEvent.VK_A, KeyEvent.VK_S, KeyEvent.VK_D,
+            KeyEvent.VK_SPACE, KeyEvent.VK_E, KeyEvent.VK_F, KeyEvent.VK_I,
+            KeyEvent.VK_ESCAPE, KeyEvent.VK_ENTER,
+            KeyEvent.VK_TAB, // radial menu
+            KeyEvent.VK_B // đặt bom
     };
 
     public InputHandler() {
-        keys = new boolean[512];        // dư dả cho mọi VK_* code
+        keys = new boolean[512]; // dư dả cho mọi VK_* code
         previousKeys = new boolean[512];
         justPressedBuffer = new boolean[512];
     }
@@ -158,6 +155,7 @@ public class InputHandler {
 
     /**
      * Kiểm tra phím có đang được nhấn không.
+     * 
      * @param keyCode mã phím (VK_UP, VK_SPACE...)
      * @return true nếu đang nhấn
      */
@@ -204,7 +202,10 @@ public class InputHandler {
         return mouseLeftDown;
     }
 
-    /** Nút trái chuột vừa được bấm xuống frame này (dùng cho chém kiếm — bấm là chém ngay). */
+    /**
+     * Nút trái chuột vừa được bấm xuống frame này (dùng cho chém kiếm — bấm là chém
+     * ngay).
+     */
     public boolean isMouseLeftJustPressed() {
         // Ưu tiên buffer (giống justPressedBuffer cho keyboard)
         if (mouseLeftJustPressedBuffer) {
@@ -220,7 +221,10 @@ public class InputHandler {
         return result;
     }
 
-    /** Nút trái chuột vừa được thả ra frame này (dùng cho bắn cung — thả ra mới bắn). */
+    /**
+     * Nút trái chuột vừa được thả ra frame này (dùng cho bắn cung — thả ra mới
+     * bắn).
+     */
     public boolean isMouseLeftJustReleased() {
         // Ưu tiên buffer
         if (mouseLeftJustReleasedBuffer) {
@@ -236,7 +240,10 @@ public class InputHandler {
         return result;
     }
 
-    /** Vị trí X hiện tại của chuột, tính theo toạ độ của GamePanel (== world, vì không có camera scroll). */
+    /**
+     * Vị trí X hiện tại của chuột, tính theo toạ độ của GamePanel (== world, vì
+     * không có camera scroll).
+     */
     public int getMouseX() {
         return mouseX;
     }

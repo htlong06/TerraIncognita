@@ -11,9 +11,9 @@ import java.util.Random;
 public class CombatSystem {
 
     private Random random;
-    private double critChance;      
-    private double critMultiplier;  
-    private double missChance;      
+    private double critChance;
+    private double critMultiplier;
+    private double missChance;
 
     public CombatSystem() {
         this.random = new Random();
@@ -24,6 +24,7 @@ public class CombatSystem {
 
     /**
      * Thực hiện 1 lượt tấn công.
+     * 
      * @param attacker entity tấn công
      * @param defender entity bị tấn công
      * @return CombatResult chứa thông tin kết quả (damage, crit, miss...)
@@ -39,51 +40,31 @@ public class CombatSystem {
      * @param damageMultiplier hệ số nhân lên sát thương gốc (1.0 = bình thường)
      */
     public CombatResult attack(Entity attacker, Entity defender, double damageMultiplier) {
-        System.out.println("[DEBUG CombatSystem.attack] attacker='" + attacker.getName()
-                + "' ATK=" + attacker.getAtk()
-                + " | defender='" + defender.getName()
-                + "' DEF=" + defender.getDef() + " HP=" + defender.getHp() + "/" + defender.getMaxHp()
-                + " | multiplier=" + damageMultiplier);
-
         // Kiểm tra miss
         double missRoll = random.nextDouble();
         boolean isMiss = missRoll < missChance;
-        System.out.println("[DEBUG CombatSystem.attack] missRoll=" + String.format("%.3f", missRoll)
-                + " missChance=" + missChance + " => isMiss=" + isMiss);
+
         if (isMiss) {
-            System.out.println("[DEBUG CombatSystem.attack] => MISS! Trả về damage=0");
             return new CombatResult(0, false, true, false);
         }
 
         // Tính damage, áp dụng hệ số nhân (combo) trước khi xét crit
         int baseDamage = Math.max(1, attacker.getAtk() - defender.getDef());
         int damage = Math.max(1, (int) Math.round(baseDamage * damageMultiplier));
-        System.out.println("[DEBUG CombatSystem.attack] baseDamage=max(1, " + attacker.getAtk() + "-" + defender.getDef()
-                + ")=" + baseDamage + " | afterMultiplier=" + damage);
 
         // Kiểm tra crit
         double critRoll = random.nextDouble();
         boolean isCrit = critRoll < critChance;
-        System.out.println("[DEBUG CombatSystem.attack] critRoll=" + String.format("%.3f", critRoll)
-                + " critChance=" + critChance + " => isCrit=" + isCrit);
         if (isCrit) {
-            int beforeCrit = damage;
             damage = (int) (damage * critMultiplier);
-            System.out.println("[DEBUG CombatSystem.attack] CRIT! damage " + beforeCrit + " * " + critMultiplier + " = " + damage);
         }
 
         // Áp dụng damage
-        int hpBefore = defender.getHp();
         defender.takeDamage(damage);
-        System.out.println("[DEBUG CombatSystem.attack] takeDamage(" + damage + ") HP: " + hpBefore + " => " + defender.getHp()
-                + " alive=" + defender.isAlive());
 
         return new CombatResult(damage, isCrit, false, !defender.isAlive());
     }
 
-    /**
-     * Kiểm tra 2 entity có đứng cạnh nhau không (để tấn công cận chiến).
-     */
     /**
      * Kết quả của một lượt tấn công.
      */

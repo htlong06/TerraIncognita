@@ -48,6 +48,7 @@ import TerraIncognita.ui.PauseMenu;
 import TerraIncognita.ui.RadialMenu;
 import TerraIncognita.ui.ShopUI;
 import TerraIncognita.util.Constants;
+
 /**
  * Quản lý trạng thái game (State Machine).
  *
@@ -89,7 +90,8 @@ public class GameEngine {
     private PauseMenu pauseMenu = new PauseMenu();
     private List<Monster> activeMonsters;
     private SwarmEvent swarmEvent;
-    private SwarmEvent.EventState lastSwarmState; // để phát hiện đổi trạng thái (DORMANT→ACTIVE→COMPLETED) và hiện thông báo 1 lần
+    private SwarmEvent.EventState lastSwarmState; // để phát hiện đổi trạng thái (DORMANT→ACTIVE→COMPLETED) và hiện
+                                                  // thông báo 1 lần
     private double frogSfxCooldownTimer; // đếm ngược giữa 2 lần phát tiếng ếch kêu — tránh spam khi đứng yên gần bầy
     private CombatSystem combatSystem;
 
@@ -101,8 +103,7 @@ public class GameEngine {
             new MonsterSpawn(14, 58),
             new MonsterSpawn(40, 60),
             new MonsterSpawn(70, 60),
-            new MonsterSpawn(95, 60)
-    );
+            new MonsterSpawn(95, 60));
 
     // --- Mũi tên (Arrow projectile) ---
     private List<Arrow> activeArrows;
@@ -110,10 +111,6 @@ public class GameEngine {
 
     // --- Bom (Bomb) ---
     private List<Bomb> activeBombs;
-
-    // TODO (GĐ2): GameMap currentMap
-    // TODO (GĐ3): AssetLoader assetLoader, Renderer renderer
-    // TODO (GĐ6): SaveManager saveManager
 
     public GameEngine(InputHandler inputHandler) {
         this.inputHandler = inputHandler;
@@ -130,8 +127,7 @@ public class GameEngine {
         if (mapManager.isLoaded()) {
             this.camera.setMapSize(
                     mapManager.getCurrentMap().getWidth() * Constants.TILE_SIZE,
-                    mapManager.getCurrentMap().getHeight() * Constants.TILE_SIZE
-            );
+                    mapManager.getCurrentMap().getHeight() * Constants.TILE_SIZE);
         }
         this.camera.update((int) (player.getWorldX() + Constants.TILE_SIZE / 2.0),
                 (int) getPlayerVisualCenterY());
@@ -156,7 +152,8 @@ public class GameEngine {
         // vũ khí mặc định, không nằm trong loot pool). Mỗi rương cùng bậc có pool
         // 2 item, chọn ngẫu nhiên 1 khi mở (xem LootTable.generateLoot()).
 
-        // Common — vật phẩm giá trị thấp: Green Gem (nguyên liệu, màu = bậc hiếm) hoặc Bomb
+        // Common — vật phẩm giá trị thấp: Green Gem (nguyên liệu, màu = bậc hiếm) hoặc
+        // Bomb
         Chest commonChest = new Chest(50, 20, "common");
         commonChest.setLootTable(new LootTable(List.of(
                 sellable(new MaterialItem("c1_gem", "Green Gem"), 15),
@@ -196,7 +193,8 @@ public class GameEngine {
 
         // Spawn Merchant NPC ở tile (38, 21) — ngay trước cổng rào nhà mái đỏ
         this.merchant = new Merchant(38, 21);
-        // Spawn Quest Giver NPC ở tile (27, 21) — ngay trước cổng rào nhà mái xám, cạnh merchant
+        // Spawn Quest Giver NPC ở tile (27, 21) — ngay trước cổng rào nhà mái xám, cạnh
+        // merchant
         this.questGiver = new QuestGiver(27, 21);
         this.shopUI = new ShopUI();
         this.hud = new HUD();
@@ -226,7 +224,7 @@ public class GameEngine {
         this.activeArrows = new ArrayList<>();
         this.arrowSprite = assetLoader.getArrowFrame();
 
-        // Danh sách bom đang tồn tại trên map (không giới hạn số lượng)
+        // Danh sách bom đang tồn tại trên map
         this.activeBombs = new ArrayList<>();
     }
 
@@ -270,10 +268,10 @@ public class GameEngine {
                     if (swarmEvent.getState() != lastSwarmState) {
                         lastSwarmState = swarmEvent.getState();
                         if (lastSwarmState == SwarmEvent.EventState.ACTIVE) {
-                            pickupMessage = "Bầy quái đã phát hiện ra bạn! Tiêu diệt tất cả bằng bomb!";
+                            pickupMessage = "Bầy ếch đã phát hiện ra bạn!";
                             messageTimer = 2.5;
                         } else if (lastSwarmState == SwarmEvent.EventState.COMPLETED) {
-                            pickupMessage = "Đã tiêu diệt toàn bộ bầy quái!";
+                            pickupMessage = "Đã tiêu diệt toàn bộ bầy ếch!";
                             messageTimer = 2.5;
                         }
                     }
@@ -354,7 +352,7 @@ public class GameEngine {
                 radialMenu.render(g2d);
                 break;
             case PAUSED:
-                renderPlaying(g2d); 
+                renderPlaying(g2d);
                 renderPauseOverlay(g2d);
                 break;
             case GAME_OVER:
@@ -487,7 +485,8 @@ public class GameEngine {
             changeState(GameState.RADIAL_MENU);
         }
 
-        // F — gần merchant thì mở shop, gần quest giver thì mở dialog quest, gần rương thì mở rương
+        // F — gần merchant thì mở shop, gần quest giver thì mở dialog quest, gần rương
+        // thì mở rương
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_F)) {
             if (isNearMerchant()) {
                 merchant.interact(player);
@@ -522,7 +521,7 @@ public class GameEngine {
         // Tấn công bằng chuột trái — hành vi khác nhau theo vũ khí hiện tại:
         // - Kiếm: bấm là chém ngay (isMouseLeftJustPressed)
         // - Cung: giữ để ngắm (cập nhật hướng quay mặt theo chuột mỗi frame),
-        //   thả chuột ra mới thực sự bắn (isMouseLeftJustReleased)
+        // thả chuột ra mới thực sự bắn (isMouseLeftJustReleased)
         if (player.getWeaponMode() == WeaponMode.SWORD) {
             if (inputHandler.isMouseLeftJustPressed()) {
                 System.out.println("[DEBUG GameEngine] Mouse LEFT just pressed (SWORD mode)");
@@ -550,7 +549,7 @@ public class GameEngine {
             }
         }
 
-        // B — đặt bom tại vị trí hiện tại của player (không giới hạn số lượng)
+        // B — đặt bom tại vị trí hiện tại của player
         if (inputHandler.isKeyJustPressed(KeyEvent.VK_B)) {
             placeBomb();
         }
@@ -701,6 +700,7 @@ public class GameEngine {
             }
         }
     }
+
     private void updateDialog(double deltaTime) {
         // --- Màn lựa chọn (VD: Nhận nhiệm vụ / Từ chối) — ưu tiên xử lý trước ---
         if (dialogBox.isChoicePhase()) {
@@ -833,14 +833,18 @@ public class GameEngine {
         g2d.drawString("Pos: (" + player.getTileX() + ", " + player.getTileY() + ")", 10, 70);
         g2d.drawString("State: " + player.getState(), 10, 85);
 
-        // Vũ khí hiện tại + tiến trình combo (chỉ hiện số combo khi đang dùng Kiếm)
-        String weaponLabel = (player.getWeaponMode() == WeaponMode.SWORD) ? "Kiếm" : "Cung";
-        String weaponLine = "Vũ khí: " + weaponLabel + " (E để đổi, B để đặt bom)";
-        if (player.getWeaponMode() == WeaponMode.SWORD && player.getComboCount() > 0) {
-            weaponLine += "  |  Combo: " + player.getComboCount() + "/3";
-        }
-        g2d.setColor(new Color(220, 220, 160));
-        g2d.drawString(weaponLine, 10, 100);
+        /**
+         * // Vũ khí hiện tại + tiến trình combo (chỉ hiện số combo khi đang dùng Kiếm)
+         * String weaponLabel = (player.getWeaponMode() == WeaponMode.SWORD) ? "Kiếm" :
+         * "Cung";
+         * String weaponLine = "Vũ khí: " + weaponLabel + " (E để đổi, B để đặt bom)";
+         * if (player.getWeaponMode() == WeaponMode.SWORD && player.getComboCount() > 0)
+         * {
+         * weaponLine += " | Combo: " + player.getComboCount() + "/3";
+         * }
+         * g2d.setColor(new Color(220, 220, 160));
+         * g2d.drawString(weaponLine, 10, 100);
+         */
 
         // Thông báo nhặt đồ
         if (pickupMessage != null && messageTimer > 0) {
@@ -859,20 +863,16 @@ public class GameEngine {
     private void drawPlayer(Graphics2D g2d) {
         int tileX = (int) player.getWorldX();
         int tileY = (int) player.getWorldY();
- 
+
         Animation anim = player.getCurrentAnimation();
         BufferedImage frame = (anim != null) ? anim.getCurrentFrame() : null;
- 
+
         int drawSize = Constants.PLAYER_SPRITE_SIZE;
         int drawX = tileX + Constants.TILE_SIZE / 2 - drawSize / 2;
-        // Neo CHÂN THẬT của sprite (đo được: y=60/100 trong frame gốc, ổn định
-        // qua mọi animation) vào đúng đáy tile/hitbox — không neo theo mép dưới
-        // canvas 200x200 như trước (canvas có ~40px khoảng trong suốt dưới chân,
-        // khiến nhân vật luôn hiển thị cao hơn hitbox thật ~80px sau khi scale).
         double scale = (double) Constants.PLAYER_SPRITE_SIZE / Constants.PLAYER_FRAME_SIZE;
         double feetOffsetScaled = Constants.PLAYER_FEET_Y_IN_FRAME * scale;
         int drawY = (int) Math.round(tileY + Constants.TILE_SIZE - feetOffsetScaled);
- 
+
         if (frame != null) {
             g2d.drawImage(frame, drawX, drawY, drawSize, drawSize, null);
         } else {
@@ -885,12 +885,7 @@ public class GameEngine {
     }
 
     /**
-     * Tâm hiển thị (Y) của sprite player — dùng cho camera follow, đường ngắm
-     * cung, và điểm xuất phát mũi tên. Tính dựa trên đúng công thức neo chân
-     * đã sửa trong drawPlayer(): trước đây các chỗ gọi hàm này tự tính riêng
-     * theo canvas center (worldY + TILE_SIZE - PLAYER_SPRITE_SIZE/2), công
-     * thức đó chỉ đúng khi drawY còn neo theo mép canvas. Sau khi drawY đổi
-     * sang neo chân thật, phải cộng lại theo cùng drawY mới để không bị lệch.
+     * Tâm hiển thị (Y) của sprite player
      */
     private double getPlayerVisualCenterY() {
         double scale = (double) Constants.PLAYER_SPRITE_SIZE / Constants.PLAYER_FRAME_SIZE;
@@ -898,7 +893,6 @@ public class GameEngine {
         double drawY = player.getWorldY() + Constants.TILE_SIZE - feetOffsetScaled;
         return drawY + Constants.PLAYER_SPRITE_SIZE / 2.0;
     }
-
 
     /**
      * Vẽ đường kẻ mờ từ tâm player tới hướng ngắm (đã clamp ±60° từ ngang)
@@ -921,7 +915,7 @@ public class GameEngine {
 
         // Đường nét đứt mờ từ tâm sprite player tới điểm ngắm (đã clamp)
         java.awt.Stroke oldStroke = g2d.getStroke();
-        float[] dash = {8f, 6f};
+        float[] dash = { 8f, 6f };
         g2d.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 0, dash, 0));
         g2d.setColor(new Color(255, 255, 255, 90));
         g2d.drawLine(cx, cy, aimX, aimY);
@@ -1008,13 +1002,13 @@ public class GameEngine {
         System.out.println("\n[DEBUG handlePlayerAttack] ====== BẮT ĐẦU TẤN CÔNG ======");
         System.out.println("[DEBUG handlePlayerAttack] weapon=" + player.getWeaponMode()
                 + " dir=" + player.getDirection()
-                + " playerPos=(" + String.format("%.1f", player.getWorldX()) + ", " + String.format("%.1f", player.getWorldY()) + ")"
+                + " playerPos=(" + String.format("%.1f", player.getWorldX()) + ", "
+                + String.format("%.1f", player.getWorldY()) + ")"
                 + " playerTile=(" + player.getTileX() + ", " + player.getTileY() + ")");
 
         player.stateAttack();
 
-        // --- SFX: tiếng vung kiếm — phát ngay khi tung đòn, không phụ
-        // thuộc có trúng quái hay không (đòn "trượt" vẫn phải có tiếng chém).
+        // --- SFX: tiếng vung kiếm — phát ngay khi tung đòn
         // attack1 = nhát thường (combo 1, 2) — attack2 = đòn combo thứ 3 (finisher).
         if (player.getWeaponMode() == WeaponMode.SWORD) {
             String swordSfx = player.isLastAttackComboFinisher()
@@ -1067,7 +1061,8 @@ public class GameEngine {
             boolean intersects = attackHitbox.intersects(mBox);
             System.out.println("[DEBUG handlePlayerAttack]   monster[" + i + "] '" + m.getName() + "'"
                     + " alive=" + m.isAlive()
-                    + " pos=(" + String.format("%.1f", m.getWorldX()) + ", " + String.format("%.1f", m.getWorldY()) + ")"
+                    + " pos=(" + String.format("%.1f", m.getWorldX()) + ", " + String.format("%.1f", m.getWorldY())
+                    + ")"
                     + " hitbox=[x=" + mBox.x + " y=" + mBox.y + " w=" + mBox.width + " h=" + mBox.height + "]"
                     + " INTERSECTS=" + intersects);
         }
@@ -1136,7 +1131,8 @@ public class GameEngine {
             // Kiểm tra va chạm mũi tên với quái vật
             Rectangle arrowBox = arrow.getHitbox();
             for (Monster m : activeMonsters) {
-                if (!m.isAlive()) continue;
+                if (!m.isAlive())
+                    continue;
                 if (arrowBox.intersects(m.getHitbox())) {
                     // Trúng! Gây sát thương
                     CombatSystem.CombatResult result = combatSystem.attack(player, m, 1.0);
@@ -1156,21 +1152,20 @@ public class GameEngine {
                         }
                     }
                     messageTimer = 1.5;
-                    break; // mỗi mũi tên chỉ trúng 1 mục tiêu
+                    break;
                 }
             }
 
             // Kiểm tra va chạm mũi tên với bom — mũi tên kích nổ bom rồi
-            // biến mất, giống hệt như khi trúng quái vật.
             if (arrow.isAlive()) {
                 for (Bomb bomb : activeBombs) {
-                    if (bomb.getState() != Bomb.BombState.PLACED) continue;
+                    if (bomb.getState() != Bomb.BombState.PLACED)
+                        continue;
                     if (arrowBox.intersects(bomb.getHitbox())) {
                         detonateBomb(bomb);
                         arrow.kill();
-                        pickupMessage = "💥 Mũi tên kích nổ quả bom!";
                         messageTimer = 1.5;
-                        break; // mỗi mũi tên chỉ trúng 1 mục tiêu
+                        break;
                     }
                 }
             }
@@ -1184,9 +1179,7 @@ public class GameEngine {
 
     /**
      * Cập nhật tất cả bom đang tồn tại trên map: đếm ngược hiệu ứng nổ,
-     * kiểm tra va chạm với quái vật (Player KHÔNG kích hoạt nổ, nhưng vẫn
-     * nhận sát thương nếu đứng trong phạm vi khi bom nổ), và xoá bom đã
-     * kết thúc (state GONE).
+     * kiểm tra va chạm với quái vật, và xoá bom đã kết thúc (state GONE).
      */
     private void updateBombs(double deltaTime) {
         Iterator<Bomb> it = activeBombs.iterator();
@@ -1198,7 +1191,8 @@ public class GameEngine {
                 // Va chạm với bất kỳ thực thể nào NGOẠI TRỪ player — hiện tại
                 // là quái vật. Bom KHÔNG tự nổ khi va chạm bom khác.
                 for (Monster m : activeMonsters) {
-                    if (!m.isAlive()) continue;
+                    if (!m.isAlive())
+                        continue;
                     if (bomb.getHitbox().intersects(m.getHitbox())) {
                         detonateBomb(bomb);
                         break;
@@ -1218,7 +1212,8 @@ public class GameEngine {
      * Không giới hạn số bom đang tồn tại cùng lúc trên bản đồ (chưa nổ).
      */
     private void placeBomb() {
-        // Bom là item tiêu hao (mua ở shop, id "bomb_shop") — hết trong túi thì không đặt được.
+        // Bom là item tiêu hao (mua ở shop, id "bomb_shop") — hết trong túi thì không
+        // đặt được.
         Item bombAmmo = player.getInventory().findById("bomb_shop");
         if (bombAmmo == null) {
             pickupMessage = "Không có bom!";
@@ -1235,14 +1230,13 @@ public class GameEngine {
         Bomb bomb = new Bomb(bx, by);
         bomb.initAnimations(assetLoader);
         activeBombs.add(bomb);
-        pickupMessage = "Đã đặt bom!";
         messageTimer = 1.0;
     }
 
     /**
      * Kích nổ 1 quả bom: chuyển state sang EXPLODING và gây sát thương cho
      * mọi thứ trong vùng ảnh hưởng 3x3 ô — bao gồm cả Player (nếu đứng
-     * trong phạm vi) lẫn quái vật, không phân biệt ai là người kích hoạt.
+     * trong phạm vi) lẫn quái vật.
      */
     private void detonateBomb(Bomb bomb) {
         bomb.explode();
@@ -1273,19 +1267,22 @@ public class GameEngine {
     }
 
     private boolean isNearMerchant() {
-        if (merchant == null) return false;
+        if (merchant == null)
+            return false;
         return player.getInteractionBounds().intersects(merchant.getInteractionBounds());
     }
 
     private boolean isNearQuestGiver() {
-        if (questGiver == null) return false;
+        if (questGiver == null)
+            return false;
         return player.getInteractionBounds().intersects(questGiver.getInteractionBounds());
     }
 
     /**
      * Xử lý bấm F khi đứng gần Quest Giver:
      * 1) Nếu có quest đã đủ điều kiện → trả thưởng ngay + hiện lời thoại cảm ơn.
-     * 2) Ngược lại nếu còn quest mới có thể mời → hiện lời mời + 2 lựa chọn (Nhận/Từ chối).
+     * 2) Ngược lại nếu còn quest mới có thể mời → hiện lời mời + 2 lựa chọn
+     * (Nhận/Từ chối).
      * 3) Ngược lại (hết quest) → hiện lời thoại thông báo không còn nhiệm vụ.
      */
     private void handleQuestGiverInteraction() {
@@ -1301,7 +1298,7 @@ public class GameEngine {
         Quest offerQuest = questGiver.getNextOfferableQuest(player);
         if (offerQuest != null) {
             pendingOfferedQuest = offerQuest;
-            dialogBox.show(offerQuest.getOfferDialog(), new String[]{"Nhận nhiệm vụ", "Từ chối"});
+            dialogBox.show(offerQuest.getOfferDialog(), new String[] { "Nhận nhiệm vụ", "Từ chối" });
             changeState(GameState.DIALOG);
             return;
         }
@@ -1384,7 +1381,7 @@ public class GameEngine {
         g2d.setColor(new Color(30, 100, 50));
         g2d.drawRect(px + pad, py + pad, size - pad * 2, size - pad * 2);
 
-        // Icon: dấu $ 
+        // Icon: dấu $
         g2d.setColor(new Color(255, 230, 80));
         g2d.setFont(g2d.getFont().deriveFont(16f));
         g2d.drawString("$", px + size / 2 - 4, py + size / 2 + 6);
@@ -1393,15 +1390,14 @@ public class GameEngine {
     /**
      * Vẽ NPC Quest Giver — icon phía trên đầu báo trạng thái quest:
      * "!" xanh lá = có quest đã đủ điều kiện trả thưởng (ưu tiên cao nhất)
-     * "!" vàng    = có quest mới có thể nhận
-     * "?" xám     = hết quest (đã làm xong tất cả)
+     * "!" vàng = có quest mới có thể nhận
+     * "?" xám = hết quest (đã làm xong tất cả)
      */
     private void drawQuestGiver(Graphics2D g2d) {
         int px = (int) questGiver.getWorldX();
         int py = (int) questGiver.getWorldY();
         int size = Constants.TILE_SIZE;
 
-        // Vẽ sprite NPC — animation 2 frame
         BufferedImage[] frames = assetLoader.getFrames("npc_questgiver");
         if (frames != null && frames.length > 0) {
             // Chuyển frame mỗi 500ms (animation idle chậm)
@@ -1434,7 +1430,6 @@ public class GameEngine {
         g2d.drawString(icon, px + size / 2 - 4, py - 6);
     }
 
-
     private void renderPauseOverlay(Graphics2D g2d) {
         // Overlay mờ
         g2d.setColor(new Color(0, 0, 0, 150));
@@ -1460,7 +1455,7 @@ public class GameEngine {
         // SwarmCreature (frog) dùng sprite 32x32 — vẽ đúng kích thước tile,
         // không dùng hệ thống scale 200px của player/orc.
         if (monster instanceof TerraIncognita.entity.monster.SwarmCreature) {
-            int drawSize = Constants.TILE_SIZE; // 32px — khớp với frog frame
+            int drawSize = Constants.TILE_SIZE;
 
             // Thanh máu nhỏ phía trên đầu frog
             int barWidth = 20;
@@ -1486,7 +1481,8 @@ public class GameEngine {
             return;
         }
 
-        // Quái vật dùng chung kích thước sprite với nhân vật (PLAYER_SPRITE_SIZE = 200px)
+        // Quái vật dùng chung kích thước sprite với nhân vật (PLAYER_SPRITE_SIZE =
+        // 200px)
         int drawSize = Constants.PLAYER_SPRITE_SIZE;
         int drawX = worldX + Constants.TILE_SIZE / 2 - drawSize / 2;
         // Neo CHÂN THẬT (đo được y=60/100, xem drawPlayer()) vào đáy tile/hitbox —
@@ -1495,7 +1491,8 @@ public class GameEngine {
         double feetOffsetScaled = Constants.PLAYER_FEET_Y_IN_FRAME * scale;
         int drawY = (int) Math.round(worldY + Constants.TILE_SIZE - feetOffsetScaled);
 
-        // Dùng một điểm neo "đầu nhân vật" riêng, không dựa trên tile hoặc mép trên sprite.
+        // Dùng một điểm neo "đầu nhân vật" riêng, không dựa trên tile hoặc mép trên
+        // sprite.
         int barWidth = 26;
         int barHeight = 5;
         int headAnchorX = drawX + drawSize / 2;

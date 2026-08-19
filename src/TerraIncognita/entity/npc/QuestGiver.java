@@ -14,10 +14,6 @@ import java.util.List;
 /**
  * NPC giao nhiệm vụ (quest board sống). Hiện bảng quest, kiểm tra hoàn
  * thành, trả thưởng.
- *
- * MUỐN THÊM/SỬA NHIỆM VỤ: chỉ cần sửa trong {@link #initQuests()} — không
- * cần đụng vào logic bên dưới (giống cách Merchant.initShop() khai báo
- * hàng bán, hoàn toàn tách biệt khỏi logic mua/bán).
  */
 public class QuestGiver extends NPC {
 
@@ -32,7 +28,6 @@ public class QuestGiver extends NPC {
     }
 
     /**
-     * ==== NƠI DUY NHẤT CẦN SỬA ĐỂ THÊM/ĐỔI NHIỆM VỤ ====
      * Mỗi Quest cần: id duy nhất, tiêu đề, lời thoại giao việc, lời thoại
      * trả thưởng, loại mục tiêu + targetId + số lượng, và phần thưởng.
      */
@@ -44,11 +39,10 @@ public class QuestGiver extends NPC {
                 "Có vài con Orc đang quấy nhiễu khu vực gần đây.\nHãy tiêu diệt 3 con giúp ta.",
                 "Tốt lắm! Khu vực đã an toàn hơn rồi.\nĐây là phần thưởng cho ngươi.",
                 QuestObjectiveType.KILL_MONSTER,
-                "Orc",      // phải khớp Entity.getName() của OrcMonster
+                "Orc",
                 3,
-                50,         // thưởng vàng
-                30          // thưởng exp
-        ));
+                50,
+                30));
 
         // Quest 2: mang 2 Small Health Potion tới nộp — thưởng vàng + 1 item
         availableQuests.add(new Quest(
@@ -60,11 +54,7 @@ public class QuestGiver extends NPC {
                 "small_potion", // phải khớp Item.getId() của Potion tương ứng
                 2,
                 40,
-                20
-        ).withRewardItem(new Potion("large_potion_reward", "Large Health Potion", 50)));
-
-        // Muốn thêm quest mới: copy 1 khối availableQuests.add(new Quest(...))
-        // ở trên rồi đổi nội dung — không cần sửa gì khác trong file này.
+                20).withRewardItem(new Potion("large_potion_reward", "Large Health Potion", 50)));
     }
 
     /**
@@ -96,7 +86,8 @@ public class QuestGiver extends NPC {
                 } else {
                     ready = log.getProgress(q.getId()).isReadyToTurnIn();
                 }
-                if (ready) return q;
+                if (ready)
+                    return q;
             }
         }
         return null;
@@ -110,7 +101,7 @@ public class QuestGiver extends NPC {
     }
 
     /**
-     * Vùng tương tác — giống Merchant/NPC mặc định (3x3 tile quanh vị trí).
+     * Vùng tương tác 3x3 tile quanh vị trí.
      */
     @Override
     public Rectangle getInteractionBounds() {
