@@ -108,7 +108,7 @@ build.bat test        # Windows
 | :---: | :--- | :--- |
 | **1** | **Hứa Thành Long - 24021551** | -Tạo game thread, dựng GameEngine, vòng lặp game (Game loop).<br>- Hệ thống chiến đấu (kiếm, cung, bom).<br>- Sự kiện bầy ếch.<br>- Hệ thống camera.<br>- Load asset, sprite sheet, animation.<br>- Sound manager.<br>- Collision và hitbox.<br>- Player. <br>- Hệ thống quest(nhận, kiểm soát tiến độ, giao thưởng). <br>- |
 | **2** | **Nguyễn Đức Quang - 24021607** | - Túi đồ (Inventory): quản lý vật phẩm, UI, điều khiển.<br>- Rương báu (Chest): độ hiếm, LootTable, sprite sheet, tương tác.<br>- Cửa hàng (Shop): Shop, Merchant, ShopUI, giao dịch.<br>- Lưu/tải game (SaveManager): SQLite + JDBC, nhiều slot save.<br>- Giao diện: HUD, DialogBox, GameOverScreen, Main Menu (new/continue/exit).<br>- |
-| **3** | **Lê Bùi Đức Hạnh - 24022648** ||
+| **3** | **Lê Bùi Đức Hạnh - 24022648** || - Design map bằng Tile Map Editor.<br>- Đọc file các file tmx, tsx và in map ra màn hình, có va chạm tường.<br>- Tạo quái Orc có animations, AI quái: di chuyển, tấn công, reset vị trí. <br>- |
 
 ## 📚 Tài liệu tham khảo
 
