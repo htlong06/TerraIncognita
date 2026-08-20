@@ -2,6 +2,10 @@
 
 Trong **Terra Incognita**, người chơi sẽ hóa thân thành một nhà mạo hiểm khám phá thế giới. Xuyên suốt hành trình, bạn sẽ phải vận dụng linh hoạt giữa cận chiến bằng kiếm và bắn cung tầm xa để chiến đấu với quái vật, hoặc đặt bom nhằm dọn dẹp các mục tiêu diện rộng. Trò chơi kết hợp chặt chẽ yếu tố nhập vai thông qua việc thu thập vật phẩm từ rương báu, giao dịch cùng NPC thương nhân, nhận và hoàn thành các quest, cũng như tối ưu hóa việc quản lý túi đồ. Toàn bộ hành trình của bạn đều có thể được lưu/tải tiến trình chơi một cách an toàn để tiếp tục cuộc phiêu lưu qua nhiều phiên khác nhau.
 
+## 🎥 Video Demo
+
+👉 **[Video Demo Gameplay](https://drive.google.com/file/d/1WeRovmy7oQ3I5Gug4mRf1cKi5CJxLVAC/view?usp=drive_link)**
+
 ## 🎮 Các tính năng của game
 
 ### Di chuyển & điều khiển
@@ -106,7 +110,7 @@ build.bat test        # Windows
 
 | STT | Họ và tên | Chi tiết công việc đảm nhiệm |
 | :---: | :--- | :--- |
-| **1** | **Hứa Thành Long - 24021551** | -Tạo game thread, dựng GameEngine, vòng lặp game (Game loop).<br>- Hệ thống chiến đấu (kiếm, cung, bom).<br>- Sự kiện bầy ếch.<br>- Hệ thống camera.<br>- Load asset, sprite sheet, animation.<br>- Sound manager.<br>- Collision và hitbox.<br>- Player. <br>- Hệ thống quest(nhận, kiểm soát tiến độ, giao thưởng). <br>- |
+| **1** | **Hứa Thành Long - 24021551** | -Tạo game thread, dựng GameEngine, vòng lặp game (Game loop).<br>- Hệ thống chiến đấu (kiếm, cung, bom).<br>- Sự kiện bầy ếch.<br>- Hệ thống camera.<br>- Load asset, sprite sheet, animation.<br>- Sound manager.<br>- Collision và hitbox.<br>- Player. <br>- Hệ thống quest(nhận, kiểm soát tiến độ, giao thưởng). |
 | **2** | **Nguyễn Đức Quang - 24021607** | - Túi đồ (Inventory): quản lý vật phẩm, UI, điều khiển.<br>- Rương báu (Chest): độ hiếm, LootTable, sprite sheet, tương tác.<br>- Cửa hàng (Shop): Shop, Merchant, ShopUI, giao dịch.<br>- Lưu/tải game (SaveManager): SQLite + JDBC, nhiều slot save.<br>- Giao diện: HUD, DialogBox, GameOverScreen, Main Menu (new/continue/exit).<br>- |
 | **3** | **Lê Bùi Đức Hạnh - 24022648** | - Design map bằng Tile Map Editor.<br>- Đọc file các file tmx, tsx và in map ra màn hình, có va chạm tường.<br>- Tạo quái Orc có animations, AI quái: di chuyển, tấn công, reset vị trí. <br>- |
 
