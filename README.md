@@ -107,7 +107,7 @@ build.bat test        # Windows
 | STT | Họ và tên | Chi tiết công việc đảm nhiệm |
 | :---: | :--- | :--- |
 | **1** | **Hứa Thành Long - 24021551** | -Tạo game thread, dựng GameEngine, vòng lặp game (Game loop).<br>- Hệ thống chiến đấu (kiếm, cung, bom).<br>- Sự kiện bầy ếch.<br>- Hệ thống camera.<br>- Load asset, sprite sheet, animation.<br>- Sound manager.<br>- Collision và hitbox.<br>- Player. <br>- Hệ thống quest(nhận, kiểm soát tiến độ, giao thưởng). <br>- |
-| **2** | **Nguyễn Đức Quang - 24021607** | |
+| **2** | **Nguyễn Đức Quang - 24021607** | - Túi đồ (Inventory): quản lý vật phẩm, UI, điều khiển.<br>- Rương báu (Chest): độ hiếm, LootTable, sprite sheet, tương tác.<br>- Cửa hàng (Shop): Shop, Merchant, ShopUI, rollback giao dịch lỗi.<br>- Lưu/tải game (SaveManager): SQLite + JDBC, nhiều slot save.<br>- Giao diện: HUD, DialogBox, GameOverScreen, Main Menu (new/continue/exit).<br>- |
 | **3** | **Lê Bùi Đức Hạnh - 24022648** ||
 
 ## 📚 Tài liệu tham khảo
